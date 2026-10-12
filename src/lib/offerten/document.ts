@@ -81,7 +81,7 @@ export type QuoteDocument = {
   /** Überschrift der Angebotsseite: "Ihr Angebot" bzw. "Dein Angebot" */
   offerHeading: string;
   /** Noah, der Sales-Assistent, als Kontakt für Fragen (WhatsApp, 24/7) */
-  assistant: { text: string; phone: string; link: string } | null;
+  assistant: { text: string; tip: string; phone: string; link: string } | null;
   /** Hinweis auf die persönliche Ansprechperson im Fragen-Kasten */
   personalText: string;
   /** Eckdaten fürs Deckblatt: Paket, Investition, Gültigkeit */
@@ -184,6 +184,7 @@ export function buildDocument(q: QuoteForDocument, settings: QuoteSettings): Quo
     assistant: settings.assistant?.whatsapp
       ? {
           text: fillTemplate(du ? labels.assistantDu : labels.assistant, { name: settings.assistant.name || "Noah" }),
+          tip: fillTemplate(du ? labels.assistantTipDu : labels.assistantTip, { name: settings.assistant.name || "Noah" }),
           phone: formatPhone(settings.assistant.whatsapp),
           link: whatsappLink(settings.assistant.whatsapp)
         }
