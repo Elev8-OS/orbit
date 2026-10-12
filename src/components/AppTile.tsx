@@ -5,6 +5,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { ArrowUpRight, GripVertical } from "lucide-react";
 import type { TileData } from "./Dashboard";
+import { useShell } from "./OrbitShell";
 
 type Props = {
   tile: TileData;
@@ -19,7 +20,10 @@ export function AppTile({ tile, index, sortable, labels }: Props) {
     disabled: !sortable
   });
 
-  const newTab = tile.openIn === "newTab";
+  const shell = useShell();
+  const embedded = Boolean(tile.embed && shell?.isEmbedded(tile.id));
+  const newTab = !embedded && tile.openIn === "newTab";
+  const href = embedded ? `/?app=${encodeURIComponent(tile.id)}` : tile.url;
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -30,10 +34,16 @@ export function AppTile({ tile, index, sortable, labels }: Props) {
   return (
     <li ref={setNodeRef} style={style} className={`tile${isDragging ? " is-dragging" : ""}`}>
       <a
-        href={tile.url}
+        href={href}
         className="tile-link"
         target={newTab ? "_blank" : undefined}
         rel={newTab ? "noopener noreferrer" : undefined}
+        onClick={(e) => {
+          // Normaler Klick öffnet den Tab in Orbit; Strg-/Cmd-/Mittelklick bleibt Browser-Verhalten
+          if (!embedded || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+          e.preventDefault();
+          shell?.openApp(tile.id);
+        }}
       >
         <span className="tile-icon">{tile.icon}</span>
         <span className="tile-name">

@@ -4,6 +4,7 @@ import { getLocale, getMessages, getTranslations } from "next-intl/server";
 import "@fontsource-variable/inter";
 import "./globals.css";
 import "./mobile.css";
+import "./shell.css";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("meta");
