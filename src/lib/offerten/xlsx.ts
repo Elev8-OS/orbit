@@ -186,11 +186,11 @@ export async function renderQuoteXlsx(doc: QuoteDocument): Promise<Buffer> {
     ws.getCell(r, 1).value = { text: `${doc.assistant.text} ${doc.assistant.phone}`, hyperlink: doc.assistant.link };
     ws.getCell(r, 1).alignment = { wrapText: true };
     r++;
-    if (doc.contact.name) {
-      ws.mergeCells(r, 1, r, 8);
-      ws.getCell(r, 1).value = `${doc.personalText} ${[doc.contact.phone, doc.contact.email].filter(Boolean).join(" · ")}`;
-      r++;
-    }
+    ws.mergeCells(r, 1, r, 8);
+    ws.getCell(r, 1).value = doc.assistant.tip;
+    ws.getCell(r, 1).alignment = { wrapText: true };
+    ws.getCell(r, 1).font = { ...font, size: 10, color: { argb: GREY } };
+    r++;
     r++;
   }
   ws.getCell(r, 1).value = L.terms;

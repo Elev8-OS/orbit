@@ -1,0 +1,7 @@
+/* Tabs per Drag & Drop umsortieren */
+.tab-wrap[draggable="true"] { -webkit-user-drag: element; }
+.tab-wrap.is-dragging { opacity: 0.35; }
+.tab-wrap.is-dragging .tab { cursor: grabbing; }
+@media (prefers-reduced-motion: no-preference) {
+  .tab-wrap { transition: opacity 120ms ease; }
+}

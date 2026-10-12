@@ -81,9 +81,15 @@ export type QuoteDocument = {
   /** Überschrift der Angebotsseite: "Ihr Angebot" bzw. "Dein Angebot" */
   offerHeading: string;
   /** Noah, der Sales-Assistent, als Kontakt für Fragen (WhatsApp, 24/7) */
-  assistant: { text: string; phone: string; link: string } | null;
+  assistant: { text: string; tip: string; phone: string; link: string } | null;
   /** Hinweis auf die persönliche Ansprechperson im Fragen-Kasten */
   personalText: string;
+  /** Eckdaten fürs Deckblatt: Paket, Investition, Gültigkeit */
+  facts: { label: string; value: string; sub?: string }[];
+  /** Drei nächste Schritte auf der Angebotsseite */
+  steps: { title: string; text: string }[];
+  /** Name des Sales-Assistenten (für "WhatsApp an Noah") */
+  assistantName: string;
   lines: DocLine[];
   hasDiscount: boolean;
   totals: DocTotalRow[];
@@ -160,12 +166,13 @@ export function buildDocument(q: QuoteForDocument, settings: QuoteSettings): Quo
     number: q.number,
     dateText: formatDate(q.sentAt ?? new Date().toISOString(), lang),
     validUntilText,
-    issuer: settings.issuer,
+    issuer: { ...settings.issuer, phone: formatPhone(settings.issuer.phone) },
     recipient: q.recipient,
     contact: {
       name: q.contactPerson?.name ?? q.ownerName ?? "",
       email: q.contactPerson?.email || q.ownerEmail || settings.issuer.email,
-      phone: q.contactPerson?.phone ?? ""
+      // Telefonnummer der Sales-Person bewusst nicht auf dem Angebot: für Fragen ist Noah da (WhatsApp, 24/7)
+      phone: ""
     },
     taxNote: reverseCharge ? labels.reverseCharge : labels.vatNote,
     reverseCharge,
@@ -177,6 +184,7 @@ export function buildDocument(q: QuoteForDocument, settings: QuoteSettings): Quo
     assistant: settings.assistant?.whatsapp
       ? {
           text: fillTemplate(du ? labels.assistantDu : labels.assistant, { name: settings.assistant.name || "Noah" }),
+          tip: fillTemplate(du ? labels.assistantTipDu : labels.assistantTip, { name: settings.assistant.name || "Noah" }),
           phone: formatPhone(settings.assistant.whatsapp),
           link: whatsappLink(settings.assistant.whatsapp)
         }
@@ -184,6 +192,13 @@ export function buildDocument(q: QuoteForDocument, settings: QuoteSettings): Quo
     personalText: fillTemplate(du ? labels.personalDu : labels.personal, {
       name: q.contactPerson?.name || q.ownerName || ""
     }),
+    facts: buildFacts(q, labels, money, validUntilText, t),
+    steps: [
+      { title: labels.step1Title, text: du ? labels.step1Du : labels.step1 },
+      { title: labels.step2Title, text: du ? labels.step2Du : labels.step2 },
+      { title: labels.step3Title, text: du ? labels.step3Du : labels.step3 }
+    ],
+    assistantName: settings.assistant?.name || "Noah",
     notes: q.texts.notes,
     terms: fillTemplate(settings.texts.terms[lang], {
       currency: q.currency,
@@ -210,4 +225,30 @@ export function defaultSalutation(q: Pick<QuoteForDocument, "language" | "recipi
   if (q.language === "en") return first ? `Dear ${first},` : "Hello,";
   if (du) return first ? `Hallo ${first}` : "Hallo zusammen";
   return full ? `Guten Tag ${full}` : "Guten Tag";
+}
+
+/** Eckdaten fürs Deckblatt: welches Paket, was es im ersten Jahr kostet, bis wann das Angebot gilt. */
+function buildFacts(
+  q: QuoteForDocument,
+  labels: Record<keyof (typeof DOC_LABELS)["de"], string>,
+  money: (n: number) => string,
+  validUntilText: string,
+  t: ReturnType<typeof computeTotals>
+): { label: string; value: string; sub?: string }[] {
+  const facts: { label: string; value: string; sub?: string }[] = [];
+  const plan = q.lines.find((l) => l.key === "plan");
+  if (plan) {
+    // "Elev8 Suite – Paket Growth (Per Unit)" → "Growth" mit "Per Unit · 5 Units"
+    const short = plan.title.replace(/^Elev8 Suite\s*[–-]\s*/, "");
+    const m = short.match(/^(?:Paket|Booking-Paket)?\s*(.+?)\s*(?:package|booking package)?\s*\(([^)]+)\)(.*)$/i);
+    const name = m ? m[1].trim() : short;
+    const model = m ? m[2].trim() : "";
+    const units = q.config.model === "per_unit" ? `${q.config.units} ${q.config.units === 1 ? "Unit" : "Units"}` : (m?.[3] ?? "").trim();
+    facts.push({ label: labels.factPackage, value: name, sub: [model, units].filter(Boolean).join(" · ") || undefined });
+  }
+  if (t.firstYear > 0) {
+    facts.push({ label: labels.factInvestment, value: money(t.firstYear), sub: labels.exclVat });
+  }
+  facts.push({ label: labels.factValid, value: validUntilText });
+  return facts;
 }

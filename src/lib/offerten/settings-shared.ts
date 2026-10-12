@@ -154,6 +154,8 @@ export function formatPhone(raw: string): string {
   if (ch) return `+41 ${ch[1]} ${ch[2]} ${ch[3]} ${ch[4]}`;
   const de = digits.match(/^\+49(\d{3,4})(\d+)$/);
   if (de) return `+49 ${de[1]} ${de[2]}`;
+  const id = digits.match(/^\+62(\d{3})(\d{4})(\d{3,5})$/);
+  if (id) return `+62 ${id[1]} ${id[2]} ${id[3]}`;
   return raw.trim();
 }
 
