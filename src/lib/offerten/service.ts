@@ -5,14 +5,17 @@ import { buildDocument, type QuoteDocument } from "./document";
 import { getTranscript, internalDomains, isInternalEmail, type Transcript } from "./fireflies";
 import * as ghl from "./ghl";
 import { renderQuotePdf } from "./pdf";
+import { personalizeConfigured, writeQuoteTexts } from "./personalize";
 import {
   EMPTY_RECIPIENT,
   buildLines,
   computeTotals,
   defaultConfig,
   formatMoney,
+  type ContactPerson,
   type Lang,
   type QuoteConfig,
+  type QuoteLine,
   type Recipient
 } from "./quote";
 import { fillTemplate, getSettings, type QuoteSettings } from "./settings";
@@ -23,6 +26,7 @@ import {
   logEvent,
   openQuoteForMeeting,
   saveGhlSync,
+  updateDraft,
   type GhlSyncResult,
   type Quote
 } from "./store";
@@ -50,16 +54,19 @@ type Prefill = {
   ghlContactId: string | null;
   ghlOpportunityId: string | null;
   ghlPipelineId: string | null;
+  /** Owner des Kontakts in GHL: Ansprechperson mit Telefonnummer auf dem Angebot */
+  contactPerson: ContactPerson | null;
 };
 
 const GERMAN = ["german", "swiss german", "deutsch", "schweizerdeutsch"];
 
 export async function prefillFromGhl(contact: ghl.GhlContact): Promise<Prefill> {
-  const [preferred, leadUnits, opportunities, pipelineList] = await Promise.all([
+  const [preferred, leadUnits, opportunities, pipelineList, owner] = await Promise.all([
     ghl.customValue(contact, "contact.preferred_language").catch(() => undefined),
     ghl.customValue(contact, "contact.lead_einheiten").catch(() => undefined),
     ghl.opportunitiesForContact(contact.id).catch(() => []),
-    ghl.pipelines().catch(() => [])
+    ghl.pipelines().catch(() => []),
+    contact.assignedTo ? ghl.getUser(contact.assignedTo) : Promise.resolve(null)
   ]);
   const opp = ghl.pickOpportunity(opportunities);
   const pipelineName = pipelineList.find((p) => p.id === opp?.pipelineId)?.name ?? "";
@@ -78,13 +85,16 @@ export async function prefillFromGhl(contact: ghl.GhlContact): Promise<Prefill> 
       email: contact.email,
       company: contact.company,
       addressLines: contact.addressLines,
-      phone: contact.phone
+      phone: contact.phone,
+      country: contact.country,
+      vatId: ""
     },
     language,
     units: unitsMatch ? Number(unitsMatch[0]) : null,
     ghlContactId: contact.id,
     ghlOpportunityId: opp?.id ?? null,
-    ghlPipelineId: opp?.pipelineId ?? null
+    ghlPipelineId: opp?.pipelineId ?? null,
+    contactPerson: owner && (owner.name || owner.email) ? { name: owner.name, email: owner.email, phone: owner.phone } : null
   };
 }
 
@@ -101,11 +111,22 @@ function configFromAnalysis(settings: QuoteSettings, analysis: CallAnalysis | nu
   }
   if (analysis.billing !== "unknown") config.billing = analysis.billing;
   if (analysis.channelManager !== null) config.channelManager = analysis.channelManager;
-  if (analysis.wantsCoins) {
-    const coins = settings.addons.find((a) => a.id === "coins");
-    if (coins) config.addons = [{ id: coins.id, qty: coins.defaultQty }];
-  }
   return config;
+}
+
+/** Im Gespräch zugesagter Rabatt wird auf die Paket-Position übernommen. */
+function applyAgreedDiscount(lines: QuoteLine[], analysis: CallAnalysis | null): QuoteLine[] {
+  const pct = analysis?.agreedDiscountPercent;
+  if (!pct || pct <= 0 || pct > 50) return lines;
+  return lines.map((l) => (l.key === "plan" ? { ...l, discountPercent: pct } : l));
+}
+
+/**
+ * Positionen aus dem Paket mit der aktuellen Preisliste neu rechnen (Rabatte und freie Positionen bleiben).
+ * Wird beim Öffnen eines Entwurfs und vor dem Versand aufgerufen, damit nie veraltete Preise rausgehen.
+ */
+export function refreshLines(quote: Pick<Quote, "config" | "language" | "lines">, settings: QuoteSettings): QuoteLine[] {
+  return buildLines(quote.config, settings, quote.language, quote.lines);
 }
 
 async function findProspect(t: Transcript, analysis: CallAnalysis | null): Promise<ghl.GhlContact | null> {
@@ -140,6 +161,7 @@ async function createDraft({ settings, transcript, analysis, prefill, owner, act
   const external = transcript?.attendees.find((a) => a.email && !isInternalEmail(a.email));
   const recipient: Recipient = prefill?.recipient ?? {
     ...EMPTY_RECIPIENT,
+    country: "",
     name: analysis?.contactName ?? external?.name ?? "",
     firstName: (analysis?.contactName ?? external?.name ?? "").split(" ")[0] ?? "",
     email: analysis?.contactEmail ?? external?.email ?? "",
@@ -161,20 +183,41 @@ async function createDraft({ settings, transcript, analysis, prefill, owner, act
       ghlPipelineId: prefill?.ghlPipelineId ?? null,
       recipient,
       config,
-      lines: buildLines(config, settings, language),
+      lines: applyAgreedDiscount(buildLines(config, settings, language), analysis),
       texts: {
         intro: settings.texts.intro[language],
         closing: settings.texts.closing[language],
-        notes: (analysis?.needs ?? []).map((n) => `- ${n}`).join("\n")
+        notes: (analysis?.needs ?? []).map((n) => `- ${n}`).join("\n"),
+        emailSubject: "",
+        emailBody: "",
+        addressForm: analysis?.addressForm ?? "sie"
       },
       validUntil: addDays(settings.validityDays),
       ownerId: owner.id,
       ownerName: owner.name,
-      ownerEmail: owner.email
+      ownerEmail: owner.email,
+      contactPerson: prefill?.contactPerson ?? null
     },
     settings.numberPrefix,
     actor
-  );
+  ).then((quote) => personalizeDraft(quote, settings, owner.name || "Elev8"));
+}
+
+/**
+ * Schreibt Einleitung, Gesprächspunkte, Schluss und Mail persönlich aus dem Gesprächskontext.
+ * Scheitert das (z.B. Claude nicht erreichbar), bleibt der Entwurf mit den Standardtexten bestehen.
+ */
+export async function personalizeDraft(quote: Quote, settings: QuoteSettings, senderName: string): Promise<Quote> {
+  if (!personalizeConfigured()) return quote;
+  try {
+    const { texts, sources } = await writeQuoteTexts(quote, settings, { name: senderName });
+    const updated = await updateDraft(quote.id, { texts });
+    await logEvent(quote.id, "Claude", "personalized", { sources });
+    return updated ?? quote;
+  } catch (err) {
+    console.error(`Offerte ${quote.number}: persönliche Texte nicht erstellt:`, err);
+    return quote;
+  }
 }
 
 // ── Webhook: Call nach Abschluss automatisch prüfen ─────────
@@ -308,12 +351,18 @@ export const MIME: Record<Format, string> = {
   xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 };
 
-/** Versendete Offerten zeigen den Absender als Kontakt, Entwürfe den Eigentümer. */
-export function documentFor(quote: Quote, settings: QuoteSettings): QuoteDocument {
-  if (quote.status === "sent" && quote.sentByEmail) {
-    return buildDocument({ ...quote, ownerName: quote.sentByName, ownerEmail: quote.sentByEmail }, settings);
-  }
-  return buildDocument(quote, settings);
+/**
+ * Ansprechperson auf dem Dokument: der Owner des Kontakts in GHL (mit Telefonnummer).
+ * Ohne Owner: bei versendeten Offerten der Absender, bei Entwürfen der angemeldete User.
+ */
+export function documentFor(quote: Quote, settings: QuoteSettings, viewer?: { name: string; email: string }): QuoteDocument {
+  const fallback =
+    quote.status === "sent" && quote.sentByEmail
+      ? { name: quote.sentByName ?? "", email: quote.sentByEmail, phone: "" }
+      : viewer
+        ? { name: viewer.name, email: viewer.email, phone: "" }
+        : { name: quote.ownerName ?? "", email: quote.ownerEmail ?? "", phone: "" };
+  return buildDocument({ ...quote, contactPerson: quote.contactPerson ?? fallback }, settings);
 }
 
 export async function renderFile(doc: QuoteDocument, format: Format): Promise<{ filename: string; data: Buffer; type: string }> {
@@ -332,8 +381,8 @@ export function defaultEmail(quote: Quote, settings: QuoteSettings, senderName: 
     senderName
   };
   return {
-    subject: fillTemplate(settings.texts.emailSubject[lang], values),
-    body: fillTemplate(settings.texts.emailBody[lang], values)
+    subject: quote.texts.emailSubject || fillTemplate(settings.texts.emailSubject[lang], values),
+    body: quote.texts.emailBody || fillTemplate(settings.texts.emailBody[lang], values)
   };
 }
 
