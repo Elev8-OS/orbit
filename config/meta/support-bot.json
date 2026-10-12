@@ -1,0 +1,19 @@
+{
+  "app": "support-bot",
+  "changelog": [
+    {
+      "version": "1.0",
+      "date": "2026-10-12",
+      "title": { "de": "Support Bot in Orbit", "en": "Support Bot in Orbit" },
+      "changes": [
+        { "de": "Support Bot öffnet als Tab in Orbit, mit der Anmeldung von Orbit.", "en": "Support Bot opens as a tab in Orbit, using the Orbit sign-in." },
+        { "de": "WhatsApp-Support für Kunden mit Tickets in desk365, Wissensbasis und Reports.", "en": "WhatsApp support for customers with desk365 tickets, knowledge base and reports." }
+      ]
+    }
+  ],
+  "glossary": [
+    { "term": "desk365", "definition": { "de": "Unser Ticketsystem. Anfragen aus WhatsApp landen dort als Ticket.", "en": "Our ticketing system. Requests from WhatsApp end up there as tickets." } },
+    { "term": "Wissensbasis", "name": { "de": "Knowledge base", "en": "Knowledge base" }, "definition": { "de": "Die Antworten und Anleitungen, mit denen der Bot Fragen direkt beantwortet.", "en": "The answers and guides the bot uses to answer questions directly." } },
+    { "term": "Eskalation", "name": { "de": "Escalation", "en": "Escalation" }, "definition": { "de": "Kann der Bot nicht helfen, übergibt er das Gespräch an das Support-Team in Lark.", "en": "If the bot can't help, it hands the conversation to the support team in Lark." } }
+  ]
+}

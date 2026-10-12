@@ -1,0 +1,19 @@
+{
+  "app": "lead-bot",
+  "changelog": [
+    {
+      "version": "1.0",
+      "date": "2026-10-12",
+      "title": { "de": "Lead Bot in Orbit", "en": "Lead Bot in Orbit" },
+      "changes": [
+        { "de": "Lead Bot öffnet als Tab in Orbit, mit der Anmeldung von Orbit.", "en": "Lead Bot opens as a tab in Orbit, using the Orbit sign-in." },
+        { "de": "WhatsApp-Leads mit Claude qualifizieren, Demo-Links senden und Gespräche verfolgen.", "en": "Qualify WhatsApp leads with Claude, send demo links and follow conversations." }
+      ]
+    }
+  ],
+  "glossary": [
+    { "term": "Lead", "definition": { "de": "Eine interessierte Person, die über WhatsApp Kontakt aufnimmt.", "en": "An interested person who gets in touch via WhatsApp." } },
+    { "term": "Qualifizierung", "name": { "de": "Qualification", "en": "Qualification" }, "definition": { "de": "Der Bot klärt im Gespräch, ob und wie gut ein Lead zu Elev8 passt, bevor eine Demo angeboten wird.", "en": "In the conversation, the bot clarifies whether and how well a lead fits Elev8 before offering a demo." } },
+    { "term": "Demo-Link", "name": { "de": "Demo link", "en": "Demo link" }, "definition": { "de": "Link zur Terminbuchung für eine Produktdemo, den der Bot an qualifizierte Leads sendet.", "en": "Booking link for a product demo that the bot sends to qualified leads." } }
+  ]
+}

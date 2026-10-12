@@ -1,0 +1,35 @@
+{
+  "app": "offerten",
+  "changelog": [
+    {
+      "version": "2.0",
+      "date": "2026-10-12",
+      "title": { "de": "Offerten v2", "en": "Offers v2" },
+      "changes": [
+        { "de": "Übersicht mit Nachverfolgen: offene Entwürfe, versendete Offerten und Calls an einem Ort.", "en": "Overview with follow-up: open drafts, sent offers and calls in one place." },
+        { "de": "Editor mit persönlichen Texten, Mehrwertsteuer und Ansprechperson.", "en": "Editor with personal texts, VAT and contact person." },
+        { "de": "Ablage in GoHighLevel, PDF-Erstellung und überarbeitete Preislogik.", "en": "Filing in GoHighLevel, PDF generation and reworked pricing logic." },
+        { "de": "Preise und Standardtexte zentral unter Einstellungen.", "en": "Prices and default texts in one place under settings." }
+      ]
+    },
+    {
+      "version": "1.0",
+      "date": "2026-10-12",
+      "title": { "de": "Offerten ist da", "en": "Offers is here" },
+      "changes": [
+        { "de": "Entwürfe entstehen automatisch nach einem Democall mit Offertwunsch (Fireflies).", "en": "Drafts are created automatically after a demo call where the prospect asks for an offer (Fireflies)." },
+        { "de": "Offerte prüfen, anpassen und als PDF oder Excel versenden.", "en": "Review, adjust and send the offer as PDF or Excel." }
+      ]
+    }
+  ],
+  "glossary": [
+    { "term": "Entwurf", "name": { "de": "Draft", "en": "Draft" }, "definition": { "de": "Eine noch nicht versendete Offerte. Entwürfe aus Democalls entstehen automatisch und lassen sich frei anpassen.", "en": "An offer not yet sent. Drafts from demo calls are created automatically and can be edited freely." } },
+    { "term": "Per Unit", "name": { "de": "Abo pro Unit", "en": "Subscription per unit" }, "definition": { "de": "Preismodell mit monatlichem oder jährlichem Preis pro Unit. Das Paket ergibt sich aus der Anzahl Units.", "en": "Pricing model with a monthly or yearly price per unit. The package follows from the number of units." } },
+    { "term": "Per Booking", "name": { "de": "Prepaid pro Buchung", "en": "Prepaid per booking" }, "definition": { "de": "Preismodell mit vorausbezahlten Buchungspaketen, wahlweise mit Channel Manager.", "en": "Pricing model with prepaid booking packages, optionally with channel manager." } },
+    { "term": "Mindestverrechnung", "name": { "de": "Floor", "en": "Floor" }, "definition": { "de": "Die Anzahl Units, die ein Paket mindestens verrechnet, auch wenn weniger gebucht sind.", "en": "The minimum number of units a package bills, even if fewer are booked." } },
+    { "term": "Channel Manager", "definition": { "de": "Zusatz, der Buchungskanäle wie Airbnb und Booking.com verbindet. Verändert den Preis pro Buchung.", "en": "Add-on that connects booking channels such as Airbnb and Booking.com. Changes the price per booking." } },
+    { "term": "GHL", "name": { "de": "GoHighLevel", "en": "GoHighLevel" }, "definition": { "de": "Unser CRM. Versendete Offerten werden beim Kontakt abgelegt und die Opportunity wird aktualisiert.", "en": "Our CRM. Sent offers are filed with the contact and the opportunity is updated." } },
+    { "term": "Opportunity", "definition": { "de": "Die Verkaufschance zu einem Kontakt in GoHighLevel. Mit dem Versand rückt sie in die nächste Phase.", "en": "The sales opportunity for a contact in GoHighLevel. Sending the offer moves it to the next stage." } },
+    { "term": "Fireflies", "definition": { "de": "Zeichnet Democalls auf. Erkennt Orbit darin einen Offertwunsch, entsteht automatisch ein Entwurf.", "en": "Records demo calls. If Orbit detects an offer request, a draft is created automatically." } }
+  ]
+}
