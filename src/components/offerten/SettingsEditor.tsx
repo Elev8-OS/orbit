@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Plus, RotateCcw, Save, Trash2 } from "lucide-react";
 import type { Addon, BookingPackage, QuoteSettings, UnitTier } from "@/lib/offerten/settings-shared";
+import { ConnectionStatus } from "./ConnectionStatus";
 import { NumberField } from "./NumberField";
 
 type Props = { initial: QuoteSettings; defaults: QuoteSettings; canEdit: boolean };
@@ -76,6 +77,10 @@ export function SettingsEditor({ initial, defaults, canEdit }: Props) {
       </div>
       {error && <p className="form-error" role="alert">{error}</p>}
 
+      <div className="of-form">
+        <ConnectionStatus />
+      </div>
+
       <fieldset className="of-form" disabled={!canEdit}>
         <section className="of-card">
           <h2 className="of-h2">{t("general")}</h2>
@@ -95,6 +100,15 @@ export function SettingsEditor({ initial, defaults, canEdit }: Props) {
             <label className="of-field">
               <span className="field-label">{t("tax")}</span>
               <NumberField value={s.taxPercent} min={0} max={50} onChange={(n) => set({ taxPercent: n })} />
+            </label>
+            <label className="of-field">
+              <span className="field-label">{t("reverseCharge")}</span>
+              <CountryList value={s.reverseChargeCountries ?? []} onChange={(reverseChargeCountries) => set({ reverseChargeCountries })} />
+              <span className="of-hint">{t("reverseChargeHint")}</span>
+            </label>
+            <label className="of-field">
+              <span className="field-label">{t("followUpDays")}</span>
+              <NumberField value={s.followUpDays ?? 4} min={1} max={60} step={1} onChange={(n) => set({ followUpDays: Math.round(n) })} />
             </label>
           </div>
         </section>
@@ -313,5 +327,22 @@ export function SettingsEditor({ initial, defaults, canEdit }: Props) {
         </section>
       </fieldset>
     </div>
+  );
+}
+
+/** Kommagetrennte Länderliste; wird erst beim Verlassen des Feldes übernommen, damit man frei tippen kann. */
+function CountryList({ value, onChange }: { value: string[]; onChange: (v: string[]) => void }) {
+  const [text, setText] = useState(value.join(", "));
+  return (
+    <input
+      value={text}
+      placeholder="DE, AT"
+      onChange={(e) => setText(e.target.value.toUpperCase())}
+      onBlur={() => {
+        const list = [...new Set(text.split(/[^A-Z]+/).filter((c) => c.length === 2))];
+        setText(list.join(", "));
+        onChange(list);
+      }}
+    />
   );
 }
