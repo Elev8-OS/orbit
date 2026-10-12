@@ -2,8 +2,10 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useTranslations } from "next-intl";
-import { Info, LayoutGrid, RotateCw, X } from "lucide-react";
+import { Info, LayoutGrid, RotateCw, Search, X } from "lucide-react";
 import { InfoPanel, hasUnseen, loadMeta } from "./InfoPanel";
+import { CommandPalette } from "./platform/CommandPalette";
+import { openPalette } from "./platform/target";
 import { PREFS_EVENT, type PrefsDetail, type Theme } from "@/lib/prefs";
 
 export type ShellApp = {
@@ -15,8 +17,8 @@ export type ShellApp = {
 };
 
 type ShellContextValue = {
-  /** Öffnet eine App als Tab. Gibt false zurück, wenn die App nicht eingebettet werden kann. */
-  openApp: (id: string) => boolean;
+  /** Öffnet eine App als Tab (optional an einem Pfad). Gibt false zurück, wenn die App nicht eingebettet werden kann. */
+  openApp: (id: string, path?: string | null) => boolean;
   isEmbedded: (id: string) => boolean;
 };
 
@@ -61,10 +63,13 @@ function frameSrc(app: ShellApp, path: string | null): string {
 
 export function OrbitShell({ apps, initialApp, initialPath, locale, theme, children }: Props) {
   const t = useTranslations("shell");
+  const tSearch = useTranslations("platform.header");
   const byId = useMemo(() => new Map(apps.map((a) => [a.id, a])), [apps]);
   const origins = useMemo(() => new Map(apps.map((a) => [new URL(a.url).origin, a.id])), [apps]);
 
   const [tabs, setTabs] = useState<string[]>([]);
+  const tabsRef = useRef<string[]>([]);
+  tabsRef.current = tabs;
   const [active, setActive] = useState<string | null>(null);
   const [passReady, setPassReady] = useState(false);
   const [passError, setPassError] = useState(false);
@@ -139,6 +144,14 @@ export function OrbitShell({ apps, initialApp, initialPath, locale, theme, child
       if (!app) return false;
       setTabs((prev) => (prev.includes(id) ? prev : [...prev, id]));
       setSrcs((prev) => (prev[id] && !path ? prev : { ...prev, [id]: frameSrc(app, path) }));
+      // Ausdrücklicher Pfad bei bereits offenem Tab: neu laden, damit der Tab sicher dorthin wechselt
+      if (path) setReloadKey((prev) => (prev[id] === undefined && !tabsRef.current.includes(id) ? prev : { ...prev, [id]: (prev[id] ?? 0) + 1 }));
+      // Nutzung melden (pro Stunde und App einmal gezählt)
+      try {
+        navigator.sendBeacon?.("/api/usage", new Blob([JSON.stringify({ app: id })], { type: "application/json" }));
+      } catch {
+        /* nicht kritisch */
+      }
       setLoading((prev) => (prev[id] === undefined ? { ...prev, [id]: true } : prev));
       setActive(id);
       writeUrl(id, mode);
@@ -227,13 +240,31 @@ export function OrbitShell({ apps, initialApp, initialPath, locale, theme, child
     return () => window.removeEventListener("message", onMessage);
   }, [origins, refreshPass, reloadTab]);
 
+  // Eingebettete Apps (und Orbits eigene Seiten im Tab) können andere Apps öffnen: {type: "orbit:open", app, path}
+  useEffect(() => {
+    const onOpen = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin && !origins.has(event.origin)) return;
+      const data = event.data as { type?: string; app?: unknown; path?: unknown } | null;
+      if (!data || data.type !== "orbit:open" || typeof data.app !== "string") return;
+      const path = typeof data.path === "string" ? data.path : null;
+      if (!openApp(data.app, path)) {
+        const url = new URL("/", window.location.origin);
+        url.searchParams.set("app", data.app);
+        if (path) url.searchParams.set("path", path);
+        window.location.href = url.toString();
+      }
+    };
+    window.addEventListener("message", onOpen);
+    return () => window.removeEventListener("message", onOpen);
+  }, [origins, openApp]);
+
   // Seitentitel zeigt das aktive Tool
   useEffect(() => {
     document.title = active ? `${byId.get(active)?.name ?? ""} – Orbit` : "Elev8 Orbit";
   }, [active, byId]);
 
   const ctx = useMemo<ShellContextValue>(
-    () => ({ openApp: (id) => openApp(id), isEmbedded: (id) => byId.has(id) }),
+    () => ({ openApp: (id, path) => openApp(id, path ?? null), isEmbedded: (id) => byId.has(id) }),
     [openApp, byId]
   );
 
@@ -288,6 +319,9 @@ export function OrbitShell({ apps, initialApp, initialPath, locale, theme, child
               );
             })}
           </div>
+          <button type="button" className="tabbar-action" onClick={() => openPalette()} aria-label={tSearch("search")} title={`${tSearch("search")} (⌘K)`}>
+            <Search size={16} aria-hidden="true" />
+          </button>
           <button
             type="button"
             className="tabbar-action tabbar-info"
@@ -338,6 +372,7 @@ export function OrbitShell({ apps, initialApp, initialPath, locale, theme, child
             })}
         </div>
       )}
+      <CommandPalette activeApp={active} />
       <InfoPanel
         open={infoOpen}
         appId={infoId}
