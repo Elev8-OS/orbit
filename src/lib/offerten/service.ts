@@ -114,6 +114,38 @@ function configFromAnalysis(settings: QuoteSettings, analysis: CallAnalysis | nu
   return config;
 }
 
+/**
+ * Im Gespräch genannte Onboarding-Gebühr als einmalige Position. Weicht die Währung von der Angebotswährung ab,
+ * wird der Betrag übernommen und in der Beschreibung zur Prüfung markiert.
+ */
+function onboardingLine(analysis: CallAnalysis | null, currency: string, lang: Lang): QuoteLine | null {
+  const fee = analysis?.onboardingFee;
+  if (fee === null || fee === undefined || fee < 0) return null;
+  const otherCurrency = analysis?.onboardingCurrency && analysis.onboardingCurrency.toUpperCase() !== currency.toUpperCase();
+  const note = analysis?.onboardingNote?.trim();
+  const detail = [
+    note || (lang === "de" ? "Einrichtung, Datenübernahme und Einführung, wie im Gespräch besprochen." : "Setup, data migration and introduction, as discussed."),
+    otherCurrency
+      ? lang === "de"
+        ? `Im Gespräch genannt: ${analysis!.onboardingCurrency} ${fee}. Bitte Betrag prüfen.`
+        : `Mentioned in the call: ${analysis!.onboardingCurrency} ${fee}. Please check the amount.`
+      : ""
+  ]
+    .filter(Boolean)
+    .join(" ");
+  return {
+    id: `onboarding-${Date.now().toString(36)}`,
+    key: null,
+    title: lang === "de" ? "Onboarding" : "Onboarding",
+    detail,
+    qty: 1,
+    unit: lang === "de" ? "Pauschal" : "flat fee",
+    unitPrice: fee,
+    discountPercent: 0,
+    interval: "once"
+  };
+}
+
 /** Im Gespräch zugesagter Rabatt wird auf die Paket-Position übernommen. */
 function applyAgreedDiscount(lines: QuoteLine[], analysis: CallAnalysis | null): QuoteLine[] {
   const pct = analysis?.agreedDiscountPercent;
@@ -183,8 +215,12 @@ async function createDraft({ settings, transcript, analysis, prefill, owner, act
       ghlPipelineId: prefill?.ghlPipelineId ?? null,
       recipient,
       config,
-      lines: applyAgreedDiscount(buildLines(config, settings, language), analysis),
+      lines: [
+        ...applyAgreedDiscount(buildLines(config, settings, language), analysis),
+        ...[onboardingLine(analysis, settings.currency, language)].filter((l): l is QuoteLine => Boolean(l))
+      ],
       texts: {
+        salutation: analysis?.salutation?.trim() ?? "",
         intro: settings.texts.intro[language],
         closing: settings.texts.closing[language],
         notes: (analysis?.needs ?? []).map((n) => `- ${n}`).join("\n"),
