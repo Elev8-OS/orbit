@@ -32,7 +32,7 @@
     "new": "New",
     "opensNewTab": "opens in a new tab",
     "dragHandle": "Move {name}",
-    "dragHint": "Drag tiles by the handle to arrange them.",
+    "dragHint": "Move tiles by their handle to arrange them.",
     "dragPaused": "Sorting is paused while searching or filtering.",
     "saving": "Saving …",
     "saved": "Layout saved",

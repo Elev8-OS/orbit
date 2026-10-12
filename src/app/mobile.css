@@ -1,0 +1,208 @@
+/* ─────────────────────────────────────────────────────────────
+   Orbit – Handy, Tablet und Touch
+   Ergänzt globals.css. Wird danach geladen und überschreibt gezielt.
+   ───────────────────────────────────────────────────────────── */
+
+/* ── Sichere Ränder (Notch, Home-Indicator) ───────────────── */
+.sky-inner {
+  padding-top: max(1.25rem, env(safe-area-inset-top));
+  padding-left: max(clamp(1rem, 4vw, 2.5rem), env(safe-area-inset-left));
+  padding-right: max(clamp(1rem, 4vw, 2.5rem), env(safe-area-inset-right));
+}
+.main {
+  padding-left: max(clamp(1rem, 4vw, 2.5rem), env(safe-area-inset-left));
+  padding-right: max(clamp(1rem, 4vw, 2.5rem), env(safe-area-inset-right));
+  padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+}
+.login-top {
+  padding-top: max(1.25rem, env(safe-area-inset-top));
+}
+.login-main {
+  padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+}
+.welcome-skip {
+  bottom: max(1.25rem, env(safe-area-inset-bottom));
+  right: max(1.25rem, env(safe-area-inset-right));
+}
+
+/* ── Begrüssung: Bahn darf breiter sein als der Bildschirm, Text bricht sauber um ── */
+.welcome {
+  grid-template-columns: minmax(0, 1fr);
+  overflow: hidden;
+}
+.welcome-orbit {
+  justify-self: center;
+  width: min(1000px, 140vw);
+}
+.welcome-text {
+  max-width: 100%;
+  padding-inline: 0.5rem;
+}
+.welcome-heading {
+  text-wrap: balance;
+}
+
+/* ── Touch-Geräte: Ziele mindestens 44 px ─────────────────── */
+@media (pointer: coarse) {
+  .brand {
+    min-height: 2.75rem;
+  }
+  .lang-switch button {
+    min-width: 2.75rem;
+    min-height: 2.5rem;
+  }
+  .avatar {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+  .chip {
+    height: 2.75rem;
+  }
+  .button-ghost {
+    min-height: 2.75rem;
+    padding-inline: 0.75rem;
+  }
+  .icon-button,
+  .tile-handle {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+  .tile-handle {
+    opacity: 1;
+  }
+  .search input {
+    height: 3rem;
+  }
+  .search-kbd {
+    display: none;
+  }
+  .menu-action {
+    min-height: 2.75rem;
+  }
+}
+
+/* ── Handy ─────────────────────────────────────────────────── */
+@media (max-width: 599px) {
+  .toolbar {
+    gap: 0.75rem;
+  }
+  .search {
+    flex-basis: 100%;
+    max-width: none;
+  }
+
+  /* Kategorien als wischbare Zeile, randlos bis an den Bildschirmrand */
+  .chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    margin-inline: calc(-1 * max(clamp(1rem, 4vw, 2.5rem), env(safe-area-inset-left)));
+    padding-inline: max(clamp(1rem, 4vw, 2.5rem), env(safe-area-inset-left));
+    scroll-padding-inline: max(clamp(1rem, 4vw, 2.5rem), env(safe-area-inset-left));
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .chips::-webkit-scrollbar {
+    display: none;
+  }
+  .chip {
+    flex-shrink: 0;
+    scroll-snap-align: start;
+  }
+
+  .status-row {
+    margin: 0.75rem 0 0.75rem;
+  }
+
+  /* Kompakte Kacheln: Icon links, Text rechts */
+  .tiles {
+    gap: 0.625rem;
+  }
+  .tile-link {
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: auto auto auto;
+    column-gap: 0.875rem;
+    row-gap: 0.125rem;
+    min-height: 0;
+    padding: 0.875rem 3.25rem 0.875rem 0.875rem;
+    border-radius: 14px;
+  }
+  .tile-icon {
+    grid-row: 1 / span 3;
+    align-self: start;
+    width: 2.5rem;
+    height: 2.5rem;
+    margin: 0;
+    border-radius: 11px;
+  }
+  .tile-name {
+    padding-right: 0;
+    font-size: 1rem;
+  }
+  .tile-description {
+    font-size: 0.875rem;
+    -webkit-line-clamp: 2;
+  }
+  .tile-category {
+    margin-top: 0.25rem;
+    font-size: 0.75rem;
+  }
+  .tile-handle {
+    top: 50%;
+    right: 0.25rem;
+    transform: translateY(-50%);
+  }
+  .tile-badge {
+    top: 0.5rem;
+    right: 0.75rem;
+  }
+  .tile.is-dragging .tile-handle {
+    transform: translateY(-50%);
+  }
+
+  /* Dialog als Bottom-Sheet */
+  .dialog {
+    width: 100%;
+    max-width: 100%;
+    max-height: calc(100dvh - 2.5rem);
+    margin: auto 0 0;
+    border-radius: 20px 20px 0 0;
+    border-bottom: 0;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .dialog[open] {
+    animation: sheet-in 320ms var(--ease-out);
+  }
+  .dialog-body {
+    padding-inline: 1.25rem;
+  }
+  .dialog-head {
+    padding-left: 1.25rem;
+  }
+  .dialog-actions > * {
+    flex: 1 1 0;
+  }
+
+  .user-menu-panel {
+    width: min(20rem, calc(100vw - 2rem));
+  }
+}
+
+@keyframes sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+/* ── Tablet hochkant: zwei Spalten, etwas mehr Luft ───────── */
+@media (min-width: 600px) and (max-width: 1023px) {
+  .tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dialog[open] {
+    animation: none;
+  }
+}

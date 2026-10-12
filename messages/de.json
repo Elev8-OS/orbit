@@ -32,7 +32,7 @@
     "new": "Neu",
     "opensNewTab": "öffnet in neuem Tab",
     "dragHandle": "{name} verschieben",
-    "dragHint": "Kacheln am Griff ziehen, um sie anzuordnen.",
+    "dragHint": "Kacheln am Griff verschieben, um sie anzuordnen.",
     "dragPaused": "Sortieren ist während Suche und Filter pausiert.",
     "saving": "Wird gespeichert …",
     "saved": "Anordnung gespeichert",
