@@ -46,6 +46,8 @@ export async function gatherContext(q: QuoteContextInput, opts: { includeTranscr
         a.needs.length ? `Bedürfnisse: ${a.needs.join("; ")}` : "",
         a.pricingDiscussed ? `Zu Preisen besprochen: ${a.pricingDiscussed}` : "",
         a.nextStep ? `Vereinbarter nächster Schritt: ${a.nextStep}` : "",
+        a.onboardingFee ? `Onboarding-Gebühr besprochen: ${a.onboardingFee} ${a.onboardingCurrency ?? ""} ${a.onboardingNote ?? ""}`.trim() : "",
+        a.salutation ? `Anrede laut Gespräch: ${a.salutation}` : "",
         a.startDate ? `Gewünschter Start: ${a.startDate}` : "",
         `Anrede im Gespräch: ${a.addressForm === "du" ? "du" : "Sie"}`
       ]
@@ -106,6 +108,14 @@ automatische Nachrichten (Dynamic Templates), Upsells für Gäste, Reinigungs- u
 Checklisten und Zeiterfassung (auch in der App Elev8 Go), IoT-Automationen mit Elev8 Bridge (Shelly),
 Auswertungen zu Umsatz, Auslastung und ADR, eigenes Branding und Websites.`;
 
+function assistantLine(settings: QuoteSettings, lang: Lang) {
+  const a = settings.assistant;
+  if (!a?.whatsapp) return "";
+  return lang === "de"
+    ? `Erwähne in der Mail in einem kurzen Satz, dass ${a.name}, unser Sales-Assistent, Fragen rund um die Uhr per WhatsApp beantwortet (${a.whatsapp}). Nicht im Angebotstext, das steht bereits im PDF.`
+    : `In the email, mention in one short sentence that ${a.name}, our sales assistant, answers questions around the clock on WhatsApp (${a.whatsapp}). Not in the offer text, the PDF already has it.`;
+}
+
 function styleRules(lang: Lang, country: string, addressForm: "du" | "sie") {
   const swiss = !["DE", "AT"].includes(country);
   return lang === "de"
@@ -128,9 +138,15 @@ const quoteTool = {
     type: "object",
     properties: {
       addressForm: { type: "string", enum: ["du", "sie"] },
+      salutation: {
+        type: "string",
+        description:
+          "Anrede ganz oben im Angebot, ohne Satzzeichen am Ende. Sie-Form: 'Guten Tag Herr Kümin' bzw. 'Guten Tag Frau Meier', wenn das Geschlecht aus dem Gespräch eindeutig ist, sonst 'Guten Tag Rico Kümin'. Du-Form: 'Hallo Rico'. Englisch: 'Dear Rico'."
+      },
       intro: {
         type: "string",
-        description: "Einleitung im Angebot, 2 bis 4 Sätze: Bezug auf das Gespräch und die Situation des Kunden, warum dieses Paket passt."
+        description:
+          "Einleitung direkt nach der Anrede, 2 bis 4 Sätze, ohne die Anrede zu wiederholen: Bezug auf das Gespräch und die Situation des Kunden, warum dieses Paket passt."
       },
       notes: {
         type: "array",
@@ -145,12 +161,13 @@ const quoteTool = {
           "Begleit-Mail, 60 bis 130 Wörter, Absätze mit Leerzeile. Persönliche Anrede, Bezug aufs Gespräch, Hinweis auf das angehängte Angebot und die Gültigkeit, nächster Schritt, Gruss mit vollem Namen des Absenders."
       }
     },
-    required: ["addressForm", "intro", "notes", "closing", "emailSubject", "emailBody"]
+    required: ["addressForm", "salutation", "intro", "notes", "closing", "emailSubject", "emailBody"]
   }
 };
 
 const quoteTextsSchema = z.object({
   addressForm: z.enum(["du", "sie"]),
+  salutation: z.string().max(200).default(""),
   intro: z.string().min(1),
   notes: z.array(z.string()).max(8),
   closing: z.string().min(1),
@@ -186,6 +203,7 @@ ${ELEV8}
 
 ${COMMON_RULES}
 ${styleRules(q.language, country, addressForm)}
+${assistantLine(settings, q.language)}
 Die Mail wird von ${sender.name} gesendet.`;
 
   const user = `Kunde: ${[q.recipient.company, q.recipient.name].filter(Boolean).join(", ") || "unbekannt"}${
@@ -201,6 +219,7 @@ ${context.text || "(Kein Gesprächskontext vorhanden. Schreibe dann kurz, sachli
   const r = quoteTextsSchema.parse(input);
   return {
     texts: {
+      salutation: r.salutation.trim().replace(/[,.!:]+$/, ""),
       intro: r.intro.trim(),
       notes: r.notes.map((n) => `- ${n.trim()}`).join("\n"),
       closing: r.closing.trim(),
