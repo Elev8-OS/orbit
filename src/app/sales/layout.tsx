@@ -2,16 +2,20 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { ArrowLeft } from "lucide-react";
 import { auth } from "@/auth";
-import { Elev8Logo } from "@/components/Elev8Logo";
 import { SalesNav } from "@/components/sales/SalesNav";
 import { PrefsListener } from "@/components/sales/PrefsListener";
 import { ViewAsSwitch } from "@/components/sales/ViewAsSwitch";
 import { TimeZoneProvider } from "@/components/sales/shared";
 import { pageContext } from "@/lib/sales/page";
 import "./sales.css";
+import "./sales-shell.css";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * Rahmen von Sales nach dem Elev8 Design System: Seitenleiste links wie in ERT und Revenue Desk,
+ * kein eigenes Logo und kein App-Name – Orbit zeigt beides im Tab.
+ */
 export default async function SalesLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
   if (!session?.user?.id) redirect("/signin");
@@ -27,45 +31,50 @@ export default async function SalesLayout({ children }: { children: React.ReactN
   }
 
   const viewer = ctx.user && ctx.result.ok ? ctx.result.viewer : null;
+  const canViewAs = Boolean(viewer && ctx.user?.isManager && ctx.team.length > 1);
 
   return (
-    <div className={ctx.embedded ? "sl-shell is-embedded" : "sl-shell"}>
+    <div className={`sl-shell sl-v2${ctx.embedded ? " is-embedded" : ""}`}>
       {ctx.embedded && <PrefsListener />}
-      <header className="sl-bar">
-        <div className="sl-bar-inner">
-          {!ctx.embedded && (
-            <>
-              <a href="/" className="sl-back" aria-label={t("back")}>
-                <ArrowLeft size={18} aria-hidden="true" />
-                <Elev8Logo height={22} />
-              </a>
-              <span className="sl-bar-divider" aria-hidden="true" />
-            </>
-          )}
-          <a href="/sales" className="sl-bar-title">
-            {t("appName")}
-          </a>
-          {viewer && (
-            <SalesNav
-              items={[
-                { href: "/sales", label: t("nav.today") },
-                { href: "/sales/pipeline", label: t("nav.pipeline") }
-              ]}
-            />
-          )}
-          {viewer && ctx.user?.isManager && ctx.team.length > 1 && (
-            <ViewAsSwitch users={ctx.team.map((u) => ({ id: u.id, name: u.name }))} current={viewer.ghlUser.id} own={viewer.user.email} ownEmails={Object.fromEntries(ctx.team.map((u) => [u.id, u.email]))} />
-          )}
-        </div>
-      </header>
-      {viewer?.other && (
-        <div className="sl-viewing" role="status">
-          {t("viewing", { name: viewer.ghlUser.name })}
-        </div>
+      {viewer && (
+        <aside className="sl-side">
+          <SalesNav
+            group={t("appName")}
+            items={[
+              { href: "/sales", label: t("nav.today"), icon: "today" },
+              { href: "/sales/pipeline", label: t("nav.pipeline"), icon: "pipeline" }
+            ]}
+          />
+          <div className="sl-side-foot">
+            {canViewAs && (
+              <div className="sl-side-viewas">
+                <span className="sl-side-label">{t("viewAs")}</span>
+                <ViewAsSwitch
+                  users={ctx.team.map((u) => ({ id: u.id, name: u.name }))}
+                  current={viewer!.ghlUser.id}
+                  own={viewer!.user.email}
+                  ownEmails={Object.fromEntries(ctx.team.map((u) => [u.id, u.email]))}
+                />
+              </div>
+            )}
+            {/* Nur ausserhalb von Orbit: zurück zur Übersicht (im Tab übernimmt das die Tab-Leiste) */}
+            <a href="/" className="sl-side-back">
+              <ArrowLeft size={14} aria-hidden="true" />
+              Orbit
+            </a>
+          </div>
+        </aside>
       )}
-      <main className="sl-main" id="main">
-        <TimeZoneProvider timeZone={ctx.user ? ctx.timeZone : "Europe/Zurich"}>{body}</TimeZoneProvider>
-      </main>
+      <div className="sl-content">
+        {viewer?.other && (
+          <div className="sl-viewing" role="status">
+            {t("viewing", { name: viewer.ghlUser.name })}
+          </div>
+        )}
+        <main className="sl-main" id="main">
+          <TimeZoneProvider timeZone={ctx.user ? ctx.timeZone : "Europe/Zurich"}>{body}</TimeZoneProvider>
+        </main>
+      </div>
     </div>
   );
 }

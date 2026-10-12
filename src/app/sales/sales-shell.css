@@ -1,0 +1,114 @@
+/* Rahmen von Sales nach dem Elev8 Design System (Abschnitte "Wer was zeigt" und "Layout"):
+   Seitenleiste links wie ERT und Revenue Desk, kein eigenes Logo, kein schwarzes Band. */
+.sl-shell.sl-v2 {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  min-height: 100vh;
+  background: var(--bg);
+}
+.sl-v2 .sl-content { min-width: 0; }
+.sl-v2 .sl-main { min-width: 0; }
+
+/* Seitenleiste */
+.sl-side {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 1.75rem 0.75rem 1.25rem;
+  background: var(--surface);
+  border-right: 1px solid var(--line);
+  overflow-y: auto;
+}
+.sl-side-nav { display: flex; flex-direction: column; gap: 2px; }
+.sl-side-label {
+  padding: 0 0.75rem 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+.sl-side-link {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-height: 2.5rem;
+  padding: 0 0.75rem;
+  border-radius: 12px;
+  color: var(--ink-2, var(--ink));
+  font-size: 0.875rem;
+  text-decoration: none;
+  transition: background 120ms ease;
+}
+.sl-side-link svg { color: var(--muted); flex-shrink: 0; }
+.sl-side-link:hover { background: var(--surface-2); }
+.sl-side-link[aria-current="page"] { background: var(--yellow-soft); color: var(--yellow-ink); font-weight: 600; }
+.sl-side-link[aria-current="page"] svg { color: var(--yellow-ink); }
+.sl-side-link:focus-visible { outline: 2px solid var(--yellow); outline-offset: 1px; }
+
+.sl-side-foot { display: flex; flex-direction: column; gap: 1rem; }
+.sl-side-viewas { display: flex; flex-direction: column; }
+.sl-side-viewas .sl-viewas { padding: 0 0.75rem; }
+.sl-side-viewas select { width: 100%; }
+.sl-side-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0 0.75rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-decoration: none;
+}
+.sl-side-back:hover { color: var(--ink); }
+/* Im Orbit-Tab braucht es den Rückweg nicht: Die Tab-Leiste führt zur Übersicht */
+.sl-v2.is-embedded .sl-side-back { display: none; }
+
+/* Seitentitel wie in den anderen Apps (title 28/34) */
+.sl-v2 .sl-main h1 {
+  font-size: 1.75rem;
+  line-height: 2.125rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* Auswahlfelder nach dem Baustein "Eingabefelder" */
+.sl-v2 select {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 2.25rem;
+  padding: 0 2rem 0 0.75rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background-color: var(--surface-2);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238f8f8f' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.625rem center;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+.sl-v2 select:hover { border-color: var(--muted); }
+.sl-v2 select:focus-visible { outline: 2px solid var(--yellow); outline-offset: 1px; }
+
+/* Handy: Seitenleiste wird zur Leiste oben */
+@media (max-width: 860px) {
+  .sl-shell.sl-v2 { grid-template-columns: 1fr; }
+  .sl-side {
+    position: static;
+    height: auto;
+    flex-direction: row;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+    overflow-x: auto;
+  }
+  .sl-side-nav { flex-direction: row; align-items: center; }
+  .sl-side-nav > .sl-side-label { display: none; }
+  .sl-side-foot { flex-direction: row; align-items: center; }
+  .sl-side-viewas .sl-side-label { display: none; }
+}
