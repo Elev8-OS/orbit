@@ -100,11 +100,19 @@ export function Pulse({ locale }: { locale: string }) {
 
   if (data === null) {
     return (
-      <div className="hero-board" aria-hidden="true">
-        <div className="pulse-tile is-loading" />
-        <div className="pulse-tile is-loading" />
-        <div className="pulse-tile is-loading" />
-        <div className="foryou-card is-loading" />
+      <div className="board" aria-hidden="true">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="board-cell is-loading">
+            <span className="skel skel-label" />
+            <span className="skel skel-value" />
+            <span className="skel skel-detail" />
+          </div>
+        ))}
+        <div className="board-cell board-foryou is-loading">
+          <span className="skel skel-label" />
+          <span className="skel skel-line" />
+          <span className="skel skel-line" />
+        </div>
       </div>
     );
   }
@@ -115,31 +123,41 @@ export function Pulse({ locale }: { locale: string }) {
     .slice(0, 3);
   if (!items.length && !actions.length) return null;
   const groups = data.filter((a) => a.metrics.length);
+  // "Support: Ältestes offenes Ticket …" → Bereich hervorheben, Rest ruhig
+  const split = (text: string) => {
+    const i = text.indexOf(": ");
+    return i > 0 && i < 40 ? [text.slice(0, i), text.slice(i + 2)] : [null, text];
+  };
 
   return (
-    <div className="hero-board" ref={boardRef}>
+    <div className="board" ref={boardRef}>
       {slots.map((key, slot) => {
         const m = byKey.get(key)!;
         return (
-          <div key={slot} className="pulse-tile" data-slot={slot}>
-            <button type="button" className="pulse-open" onClick={() => open(m.app, m.path)} title={`${m.appName}`}>
-              <span className="pulse-label">{m.label[lang]}</span>
-              <span className="pulse-value">{m.value}</span>
-              {m.detail && <span className="pulse-detail">{m.detail[lang]}</span>}
-              <ArrowUpRight size={14} aria-hidden="true" className="pulse-arrow" />
+          <div key={slot} className="board-cell" data-slot={slot}>
+            <div className="board-label">
+              <span>{m.label[lang]}</span>
+              {items.length > 1 && (
+                <button
+                  type="button"
+                  className="board-pick"
+                  aria-label={`${t.choose}: ${m.label[lang]}`}
+                  aria-haspopup="listbox"
+                  aria-expanded={menu === slot}
+                  onClick={() => setMenu(menu === slot ? null : slot)}
+                >
+                  <ChevronDown size={14} aria-hidden="true" />
+                </button>
+              )}
+            </div>
+            <button type="button" className="board-open" onClick={() => open(m.app, m.path)}>
+              <span className="board-value">{m.value}</span>
+              <span className="board-detail">
+                {m.detail?.[lang] ?? m.appName}
+                <ArrowUpRight size={14} aria-hidden="true" className="board-arrow" />
+              </span>
+              <span className="sr-only">{m.appName}</span>
             </button>
-            {items.length > 1 && (
-              <button
-                type="button"
-                className="pulse-pick"
-                aria-label={`${t.choose}: ${m.label[lang]}`}
-                aria-haspopup="listbox"
-                aria-expanded={menu === slot}
-                onClick={() => setMenu(menu === slot ? null : slot)}
-              >
-                <ChevronDown size={16} aria-hidden="true" />
-              </button>
-            )}
             {menu === slot && (
               <div className="pulse-menu" role="listbox" aria-label={t.choose}>
                 {groups.map((g) => (
@@ -170,19 +188,26 @@ export function Pulse({ locale }: { locale: string }) {
           </div>
         );
       })}
-      <section className="foryou-card" aria-label={t.forYou}>
-        <h2 className="foryou-title">{t.forYou}</h2>
+      <section className="board-cell board-foryou" aria-label={t.forYou}>
+        <h2 className="board-label">{t.forYou}</h2>
         {actions.length ? (
           <ul>
-            {actions.map((a) => (
-              <li key={`${a.app}-${a.id}`}>
-                <button type="button" className="foryou-item" onClick={() => open(a.app, a.path)} title={`${t.in} ${a.appName}`}>
-                  <span className={`foryou-dot tone-${a.tone}`} aria-hidden="true" />
-                  <span className="foryou-text">{a.text[lang]}</span>
-                  <ArrowUpRight size={14} aria-hidden="true" className="foryou-arrow" />
-                </button>
-              </li>
-            ))}
+            {actions.map((a) => {
+              const [area, rest] = split(a.text[lang]);
+              return (
+                <li key={`${a.app}-${a.id}`}>
+                  <button type="button" className="foryou-item" onClick={() => open(a.app, a.path)} title={`${t.in} ${a.appName}`}>
+                    <span className={`foryou-dot tone-${a.tone}`} aria-hidden="true" />
+                    <span className="foryou-text">
+                      {area && <strong>{area}</strong>}
+                      {area && <span className="foryou-sep"> · </span>}
+                      {rest}
+                    </span>
+                    <ArrowUpRight size={14} aria-hidden="true" className="foryou-arrow" />
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         ) : (
           <p className="foryou-empty">{t.allClear}</p>

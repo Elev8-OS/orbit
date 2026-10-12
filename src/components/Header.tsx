@@ -18,8 +18,8 @@ type Props = {
   dots: string[];
 };
 
-// Kopf der Übersicht: Elev8 | Orbit als Hauptträger in der obersten Zeile, darunter Begrüssung,
-// drei wählbare Kennzahlen und "Für dich" in einer Reihe.
+// Kopf der Übersicht: eine Achse mit den Kacheln darunter. Oben Elev8 | Orbit mit der Umlaufbahn,
+// darunter Begrüssung, drei wählbare Kennzahlen und "Für dich" als ruhige Typografie ohne Boxen.
 export async function Header({ name, email, admin, locale, theme, dots }: Props) {
   const t = await getTranslations("header");
   const firstName = name?.split(/[\s,]+/).find(Boolean);
@@ -35,10 +35,6 @@ export async function Header({ name, email, admin, locale, theme, dots }: Props)
       <a href="#main" className="skip-link">
         {t("skip")}
       </a>
-      {/* Die Umlaufbahn wird hier abgeschnitten, damit das Auswahlmenü der Kennzahlen über den Rand ragen darf */}
-      <div className="sky-clip" aria-hidden="true">
-        <OrbitRing dots={dots} className="sky-ring" />
-      </div>
       <div className="sky-inner">
         <div className="topbar">
           <h1 className="hero-brand">
@@ -46,6 +42,10 @@ export async function Header({ name, email, admin, locale, theme, dots }: Props)
             <span className="hero-divider" aria-hidden="true" />
             <span className="hero-product">Orbit</span>
           </h1>
+          {/* Die Umlaufbahn als Teil der Markenzeile: jede App des Users ist ein Punkt */}
+          <div className="hero-orbit" aria-hidden="true">
+            <OrbitRing dots={dots} />
+          </div>
           <div className="topbar-actions">
             <ThemeSwitch
               current={theme}
