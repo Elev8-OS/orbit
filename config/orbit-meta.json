@@ -1,0 +1,48 @@
+{
+  "app": "orbit",
+  "changelog": [
+    {
+      "version": "2026.10.4",
+      "date": "2026-10-12",
+      "title": { "de": "Ein Design für alle Apps", "en": "One design for every app" },
+      "changes": [
+        { "de": "Elev8 Design System: gleiche Farben, Schrift und Bausteine in Orbit, ERT und Revenue Desk.", "en": "Elev8 design system: the same colours, type and components in Orbit, ERT and Revenue Desk." },
+        { "de": "Info-Panel (ⓘ) mit Neuigkeiten und Glossar für jede App.", "en": "Info panel (ⓘ) with news and a glossary for every app." }
+      ]
+    },
+    {
+      "version": "2026.10.3",
+      "date": "2026-10-12",
+      "title": { "de": "Sprache und Darstellung zentral", "en": "Language and appearance in one place" },
+      "changes": [
+        { "de": "Sprache (DE/EN) und Darstellung (System, Hell, Dunkel) stellst du nur noch in Orbit ein. Alle Apps übernehmen sie sofort.", "en": "Set language (DE/EN) and appearance (system, light, dark) in Orbit only. Every app follows instantly." },
+        { "de": "Profil, Abmelden und Passwort gibt es nur noch in Orbit.", "en": "Profile, sign-out and password live in Orbit only." }
+      ]
+    },
+    {
+      "version": "2026.10.2",
+      "date": "2026-10-12",
+      "title": { "de": "Apps als Tabs", "en": "Apps as tabs" },
+      "changes": [
+        { "de": "Apps öffnen als Tabs in Orbit und bleiben beim Wechseln geladen.", "en": "Apps open as tabs in Orbit and stay loaded when you switch." },
+        { "de": "Elev8 Reporting Tool und Revenue Desk sind nur noch über Orbit erreichbar, ohne eigenes Passwort.", "en": "Elev8 Reporting Tool and Revenue Desk are reachable only through Orbit, without their own password." }
+      ]
+    },
+    {
+      "version": "2026.10.1",
+      "date": "2026-10-12",
+      "title": { "de": "Orbit ist live", "en": "Orbit is live" },
+      "changes": [
+        { "de": "Ein Login mit Microsoft für alle Elev8-Tools.", "en": "One Microsoft sign-in for every Elev8 tool." },
+        { "de": "Kacheln nach Rolle, frei anordnen, Zugriff direkt anfragen.", "en": "Tiles by role, arrange freely, request access directly." }
+      ]
+    }
+  ],
+  "glossary": [
+    { "term": "Orbit", "definition": { "de": "Der gemeinsame Einstieg zu allen Elev8-Tools. Einmal mit Microsoft anmelden, dann öffnet jede App als Tab.", "en": "The shared entry point to every Elev8 tool. Sign in once with Microsoft and every app opens as a tab." } },
+    { "term": "Rolle", "name": { "de": "App-Rolle", "en": "App role" }, "definition": { "de": "Bestimmt, welche Apps du siehst und was du darin tun darfst. Rollen vergibt die Administration in Microsoft Entra.", "en": "Decides which apps you see and what you may do in them. Your administrator assigns roles in Microsoft Entra." } },
+    { "term": "Zugriff anfragen", "name": { "de": "Zugriffsanfrage", "en": "Access request" }, "definition": { "de": "Fehlt dir eine App, fragst du sie in der Übersicht an. Die Administration bekommt eine E-Mail und schaltet dich frei.", "en": "Missing an app? Request it from the overview. Your administrator gets an email and grants access." } },
+    { "term": "Orbit-Pass", "definition": { "de": "Ein kurzlebiger, signierter Nachweis deiner Anmeldung. Damit erkennen dich die Apps, ohne dass du dich erneut anmeldest.", "en": "A short-lived, signed proof of your sign-in. Apps use it to recognise you without signing in again." } },
+    { "term": "Darstellung", "name": { "de": "Hell, Dunkel, System", "en": "Light, dark, system" }, "definition": { "de": "Oben rechts in Orbit. \"System\" folgt der Einstellung deines Geräts. Gilt für Orbit und alle Apps.", "en": "Top right in Orbit. \"System\" follows your device setting. Applies to Orbit and every app." } }
+  ]
+}

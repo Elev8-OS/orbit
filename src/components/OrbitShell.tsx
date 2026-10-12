@@ -2,7 +2,8 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useTranslations } from "next-intl";
-import { LayoutGrid, RotateCw, X } from "lucide-react";
+import { Info, LayoutGrid, RotateCw, X } from "lucide-react";
+import { InfoPanel, hasUnseen, loadMeta } from "./InfoPanel";
 import { PREFS_EVENT, type PrefsDetail, type Theme } from "@/lib/prefs";
 
 export type ShellApp = {
@@ -73,6 +74,8 @@ export function OrbitShell({ apps, initialApp, initialPath, locale, theme, child
   const lastPass = useRef(0);
   const lastReauth = useRef<Record<string, number>>({});
   const prefs = useRef<{ locale: string; theme: Theme }>({ locale, theme });
+  const [infoOpen, setInfoOpen] = useState(false);
+  const [infoNews, setInfoNews] = useState(false);
 
   // ── Sprache und Darstellung an alle offenen Tools weitergeben ──────────
   useEffect(() => {
@@ -235,6 +238,17 @@ export function OrbitShell({ apps, initialApp, initialPath, locale, theme, child
   );
 
   const activeApp = active ? byId.get(active) : null;
+  // Info-Panel: Infos zur geöffneten App, auf der Übersicht zu Orbit selbst
+  const infoId = activeApp?.id ?? "orbit";
+  const infoName = activeApp?.name ?? "Orbit";
+  useEffect(() => {
+    let alive = true;
+    loadMeta(infoId).then((meta) => alive && setInfoNews(hasUnseen(infoId, meta)));
+    return () => {
+      alive = false;
+    };
+  }, [infoId]);
+  const closeInfo = useCallback(() => setInfoOpen(false), []);
 
   return (
     <ShellContext.Provider value={ctx}>
@@ -274,6 +288,16 @@ export function OrbitShell({ apps, initialApp, initialPath, locale, theme, child
               );
             })}
           </div>
+          <button
+            type="button"
+            className="tabbar-action tabbar-info"
+            onClick={() => setInfoOpen(true)}
+            aria-label={`Info: ${infoName}`}
+            title={`Info: ${infoName}`}
+          >
+            <Info size={17} aria-hidden="true" />
+            {infoNews && <span className="info-dot" aria-hidden="true" />}
+          </button>
           {activeApp && (
             <button type="button" className="tabbar-action" onClick={() => reloadTab(activeApp.id)} aria-label={t("reload")} title={t("reload")}>
               <RotateCw size={16} aria-hidden="true" />
@@ -314,6 +338,14 @@ export function OrbitShell({ apps, initialApp, initialPath, locale, theme, child
             })}
         </div>
       )}
+      <InfoPanel
+        open={infoOpen}
+        appId={infoId}
+        appName={infoName}
+        locale={locale}
+        onClose={closeInfo}
+        onSeen={() => setInfoNews(false)}
+      />
     </ShellContext.Provider>
   );
 }
