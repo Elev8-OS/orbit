@@ -338,7 +338,9 @@ export const DOC_LABELS = {
     step3: "Ihr Team und Ihre Gäste arbeiten ab dem ersten Tag mit der Suite.",
     step3Du: "Dein Team und deine Gäste arbeiten ab dem ersten Tag mit der Suite.",
     whatsappCta: "WhatsApp an {name}",
-    available: "rund um die Uhr erreichbar"
+    available: "rund um die Uhr erreichbar",
+    assistantTip: "Tipp: Schreiben Sie von der Nummer, die Sie bei der Terminvereinbarung angegeben haben. Dann erkennt {name} Sie und kann sehr detailliert Auskunft zu Ihrem Angebot geben.",
+    assistantTipDu: "Tipp: Schreib von der Nummer, die du bei der Terminvereinbarung angegeben hast. Dann erkennt {name} dich und kann sehr detailliert Auskunft zu deinem Angebot geben."
   },
   en: {
     document: "Offer",
@@ -393,6 +395,8 @@ export const DOC_LABELS = {
     step3: "Your team and your guests work with the Suite from day one.",
     step3Du: "Your team and your guests work with the Suite from day one.",
     whatsappCta: "WhatsApp {name}",
-    available: "available around the clock"
+    available: "available around the clock",
+    assistantTip: "Tip: message from the number you gave when booking the appointment. {name} will then recognise you and can answer in detail about your offer.",
+    assistantTipDu: "Tip: message from the number you gave when booking the appointment. {name} will then recognise you and can answer in detail about your offer."
   }
 } as const;

@@ -215,6 +215,7 @@ export function PaperPreview({ doc }: { doc: QuoteDocument }) {
                   <div>
                     <h3>{L.questions}</h3>
                     <p>{doc.assistant.text.replace(/:$/, ".")}</p>
+                    <p style={{ marginTop: 3, color: "#ffffff", fontSize: "11.3px", lineHeight: 1.5 }}>{doc.assistant.tip}</p>
                   </div>
                   <a href={doc.assistant.link} target="_blank" rel="noreferrer" className="of-paper-wa">
                     <span>{L.whatsappCta.replace("{name}", doc.assistantName)}</span>

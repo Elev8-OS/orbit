@@ -112,8 +112,8 @@ function assistantLine(settings: QuoteSettings, lang: Lang) {
   const a = settings.assistant;
   if (!a?.whatsapp) return "";
   return lang === "de"
-    ? `Erwähne in der Mail in einem kurzen Satz, dass ${a.name}, unser Sales-Assistent, Fragen rund um die Uhr per WhatsApp beantwortet (${a.whatsapp}). Nicht im Angebotstext, das steht bereits im PDF.`
-    : `In the email, mention in one short sentence that ${a.name}, our sales assistant, answers questions around the clock on WhatsApp (${a.whatsapp}). Not in the offer text, the PDF already has it.`;
+    ? `Erwähne in der Mail kurz, dass ${a.name}, unser Sales-Assistent, Fragen rund um die Uhr per WhatsApp beantwortet (${a.whatsapp}), und dass ${a.name} besonders detailliert Auskunft geben kann, wenn der Kunde von der Nummer schreibt, die er bei der Terminvereinbarung angegeben hat. Höchstens zwei kurze Sätze. Nicht im Angebotstext, das steht bereits im PDF.`
+    : `In the email, briefly mention that ${a.name}, our sales assistant, answers questions around the clock on WhatsApp (${a.whatsapp}), and that ${a.name} can answer in particular detail when the customer messages from the number they gave when booking the appointment. Two short sentences at most. Not in the offer text, the PDF already has it.`;
 }
 
 function styleRules(lang: Lang, country: string, addressForm: "du" | "sie") {
