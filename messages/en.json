@@ -166,7 +166,7 @@
       "cancel": "Cancel",
       "ghlWrongLocation": "GHL denies access: the token doesn't belong to the Elev8 sub-account. Details under Prices & settings → Connections.",
       "ghlFailed": "GHL can't be reached right now. Details under Prices & settings → Connections.",
-      "creating": "Creating the offer, Claude is writing the texts …"
+      "creating": "Creating the offer, Noah is writing the texts …"
     },
     "editor": {
       "status": {
@@ -267,8 +267,8 @@
         "addressForm": "Form of address",
         "formSie": "Formal (Sie)",
         "formDu": "Informal (du)",
-        "regenerate": "Rewrite texts",
-        "regenerating": "Claude is writing …",
+        "regenerate": "Let Noah rewrite the texts",
+        "regenerating": "Noah is writing …",
         "regenerateError": "The texts couldn't be written. Try again.",
         "regenerateConfirm": "Introduction, discussion points, closing and email will be rewritten. Your edits to them will be lost. Continue?",
         "sources": "Written from: {list}",
@@ -290,7 +290,7 @@
         "ghl_sync": "Filed in GHL",
         "discarded": "Discarded",
         "duplicated": "Copied from {from}",
-        "personalized": "Texts personalized",
+        "personalized": "Texts written by Noah",
         "follow_up_sent": "Followed up",
         "outcome_won": "Marked as won",
         "outcome_lost": "Marked as lost",
@@ -411,7 +411,7 @@
         "checking": "Checking …",
         "ghl": "GoHighLevel",
         "fireflies": "Fireflies",
-        "claude": "Claude",
+        "claude": "Noah (AI)",
         "mail": "Email sending",
         "webhook": "Fireflies webhook"
       }
@@ -426,7 +426,7 @@
       "en": "English"
     },
     "follow": {
-      "lead": "Sent offers with their next follow-up date. Claude suggests a personal follow-up email; it's sent from your mailbox.",
+      "lead": "Sent offers with their next follow-up date. Noah suggests a personal follow-up email; it's sent from your mailbox.",
       "empty": "No offers sent yet.",
       "groups": {
         "due": "Due today",
@@ -452,7 +452,7 @@
     },
     "followUp": {
       "title": "Follow up with {name}",
-      "drafting": "Claude is drafting a suggestion from the call and history …",
+      "drafting": "Noah is drafting a suggestion from the call and history …",
       "to": "To",
       "cc": "Cc",
       "subject": "Subject",

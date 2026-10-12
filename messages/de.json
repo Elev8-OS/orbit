@@ -166,7 +166,7 @@
       "cancel": "Abbrechen",
       "ghlWrongLocation": "GHL lehnt den Zugriff ab: Der Token gehört nicht zum Elev8-Sub-Account. Details unter Preise & Einstellungen → Verbindungen.",
       "ghlFailed": "GHL ist gerade nicht erreichbar. Details unter Preise & Einstellungen → Verbindungen.",
-      "creating": "Offerte wird erstellt, Claude schreibt die Texte …"
+      "creating": "Offerte wird erstellt, Noah schreibt die Texte …"
     },
     "editor": {
       "status": {
@@ -267,8 +267,8 @@
         "addressForm": "Anrede",
         "formSie": "Sie-Form",
         "formDu": "Du-Form",
-        "regenerate": "Texte neu schreiben",
-        "regenerating": "Claude schreibt …",
+        "regenerate": "Noah schreibt die Texte neu",
+        "regenerating": "Noah schreibt …",
         "regenerateError": "Texte konnten nicht geschrieben werden. Versuche es erneut.",
         "regenerateConfirm": "Einleitung, Gesprächspunkte, Schluss und Mail werden neu geschrieben. Deine Änderungen daran gehen verloren. Fortfahren?",
         "sources": "Geschrieben aus: {list}",
@@ -290,7 +290,7 @@
         "ghl_sync": "GHL-Ablage",
         "discarded": "Verworfen",
         "duplicated": "Kopiert aus {from}",
-        "personalized": "Texte persönlich geschrieben",
+        "personalized": "Texte von Noah geschrieben",
         "follow_up_sent": "Nachgefasst",
         "outcome_won": "Als gewonnen markiert",
         "outcome_lost": "Als verloren markiert",
@@ -411,7 +411,7 @@
         "checking": "Wird geprüft …",
         "ghl": "GoHighLevel",
         "fireflies": "Fireflies",
-        "claude": "Claude",
+        "claude": "Noah (KI)",
         "mail": "Mailversand",
         "webhook": "Fireflies-Webhook"
       }
@@ -426,7 +426,7 @@
       "en": "Englisch"
     },
     "follow": {
-      "lead": "Versendete Offerten mit dem nächsten Nachfass-Termin. Claude schlägt eine persönliche Nachfass-Mail vor, gesendet wird aus deinem Postfach.",
+      "lead": "Versendete Offerten mit dem nächsten Nachfass-Termin. Noah schlägt eine persönliche Nachfass-Mail vor, gesendet wird aus deinem Postfach.",
       "empty": "Noch keine versendeten Offerten.",
       "groups": {
         "due": "Heute fällig",
@@ -452,7 +452,7 @@
     },
     "followUp": {
       "title": "Nachfassen bei {name}",
-      "drafting": "Claude schreibt einen Vorschlag aus Gespräch und Verlauf …",
+      "drafting": "Noah schreibt einen Vorschlag aus Gespräch und Verlauf …",
       "to": "An",
       "cc": "Kopie an",
       "subject": "Betreff",
