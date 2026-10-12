@@ -144,6 +144,58 @@ Vor dem Commit prüfen: `npm run apps:check`. Eigene Icon-Dateien kommen nach `p
 Die neue Rolle (`App.MeinTool`) zusätzlich in Entra anlegen und zuweisen. Rollenänderungen werden
 beim nächsten Login wirksam; Sessions laufen nach spätestens 8 Stunden ab.
 
+## 6. Offerten-App (`/offerten`)
+
+Erstellt nach einem Democall automatisch einen Offert-Entwurf, wenn der Interessent ein Angebot wünscht.
+Der Entwurf wird in Orbit geprüft, angepasst und als PDF und/oder Excel direkt aus Orbit versendet.
+Danach wird die Offerte beim Kontakt in GoHighLevel abgelegt.
+
+**Ablauf**
+
+1. Fireflies meldet über einen Webhook, dass ein Call fertig transkribiert ist.
+2. Claude prüft das Transkript: Wurde ein Angebot verlangt, und mit welchen Eckdaten (Units, Preismodell,
+   Zahlungsweise, Channel Manager, Bedürfnisse)? Calls nur mit internen Teilnehmern werden übersprungen.
+3. Der Interessent wird über seine E-Mail in GHL gefunden; Name, Firma, Adresse, Sprache und Opportunity
+   werden übernommen.
+4. Ein Entwurf erscheint unter *Offerten → Entwürfe*, der Organisator bekommt eine Mail. Versendet wird nie automatisch.
+5. Beim Versand geht die Mail aus dem Postfach des angemeldeten Users (Microsoft Graph). In GHL wird die
+   Datei abgelegt, eine Notiz angelegt und die Opportunity auf „Proposal / Contract Sent“ gesetzt; ihr Wert
+   wird auf das Total im ersten Jahr gesetzt.
+
+Unsichere Fälle und Calls ohne erkannten Wunsch stehen unter *Offerten → Calls* und lassen sich von dort
+manuell in eine Offerte umwandeln. Offerten können auch ohne Call aus einem GHL-Kontakt oder leer gestartet werden.
+
+**Einrichtung**
+
+| Was | Wo |
+|---|---|
+| App Roles `App.Offerten` (bearbeiten, senden) und `App.Offerten.Admin` (zusätzlich Preise und Texte) | Entra → App-Registrierung Orbit → App roles |
+| Anwendungsberechtigung **Microsoft Graph → Mail.Send** mit Admin-Zustimmung | Entra → Orbit → API permissions |
+| `FIREFLIES_API_KEY`, `FIREFLIES_WEBHOOK_SECRET` | Railway |
+| Webhook-URL `https://myorbit.elev8-suite.com/api/offerten/webhooks/fireflies`, gleiches Secret | Fireflies → Settings → Developer settings → Webhooks |
+| `ANTHROPIC_API_KEY` | Railway |
+| `GHL_API_TOKEN` (Private Integration), `GHL_LOCATION_ID` | Railway |
+| Optional `GHL_QUOTE_FILE_FIELD_KEY` (Kontaktfeld vom Typ Datei) | Railway |
+
+Alle Variablen mit Erklärung stehen in `.env.example`. Ohne Mail.Send kann `OFFERTEN_MAIL_PROVIDER=resend`
+gesetzt werden; dann geht die Offerte über Resend, Antworten landen beim User.
+
+**Mail.Send einschränken (empfohlen):** Die Anwendungsberechtigung erlaubt grundsätzlich das Senden aus
+jedem Postfach. Mit einer Exchange *Application Access Policy* lässt sie sich auf eine Gruppe
+(z.B. `Sales`) beschränken:
+
+```powershell
+New-ApplicationAccessPolicy -AppId <Client-ID von Orbit> -PolicyScopeGroupId sales@elev8-suite.com `
+  -AccessRight RestrictAccess -Description "Orbit Offerten: nur Sales"
+```
+
+**Preise und Texte** pflegen Admins unter *Offerten → Preise & Einstellungen*. Ohne gespeicherten Stand gilt
+die Elev8-Preisliste aus der Billing-Spezifikation. Änderungen wirken auf neue Offerten und auf Entwürfe,
+sobald dort das Paket geändert wird; versendete Offerten bleiben unverändert.
+
+**Code:** `src/lib/offerten` (Preislogik, Fireflies, Claude, GHL, PDF, Excel, Versand),
+`src/app/offerten` (Seiten), `src/app/api/offerten` (API), `src/components/offerten` (Oberfläche).
+
 ## Sicherheit
 
 - **Eine ausgeblendete Kachel ist kein Zugriffsschutz.** Jedes Tool muss den Login selbst

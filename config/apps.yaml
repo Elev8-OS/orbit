@@ -36,6 +36,9 @@ categories:
   - id: internal
     name: { de: Intern, en: Internal }
     color: "#6B6B6B"
+  - id: sales
+    name: { de: Vertrieb, en: Sales }
+    color: "#F6BB12"
 
 apps:
   # Elev8 Reporting Tool – öffnet als Tab in Orbit. Anmeldung über den Orbit-Pass,
@@ -63,5 +66,18 @@ apps:
     icon: TrendingUp
     category: revenue
     roles: [App.RevenueDesk]
+    requestableBy: [Orbit.Staff]
+    embed: true
+
+  # Offerten – direkt in Orbit gebaut (/offerten). Öffnet als Tab, gleiche Anmeldung wie Orbit.
+  - id: offerten
+    name: { de: Offerten, en: Offers }
+    description:
+      de: Angebote aus Democalls automatisch vorbereiten, anpassen und als PDF oder Excel versenden.
+      en: Prepare offers from demo calls automatically, adjust them and send them as PDF or Excel.
+    url: https://myorbit.elev8-suite.com/offerten
+    icon: FilePen
+    category: sales
+    roles: [App.Offerten, App.Offerten.Admin]
     requestableBy: [Orbit.Staff]
     embed: true
