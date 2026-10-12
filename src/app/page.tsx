@@ -13,6 +13,8 @@ import { Header } from "@/components/Header";
 import { Dashboard, type CategoryData, type TileData } from "@/components/Dashboard";
 import { WelcomeIntro } from "@/components/WelcomeIntro";
 import { OrbitShell, type ShellApp } from "@/components/OrbitShell";
+import { cookies } from "next/headers";
+import { THEME_COOKIE, isTheme } from "@/lib/prefs";
 
 export const dynamic = "force-dynamic";
 
@@ -99,9 +101,11 @@ export default async function HomePage({
   const t = await getTranslations("welcome");
   const firstName = user.name?.split(/[\s,]+/).find(Boolean);
   const dots = tiles.map((tile) => tile.color);
+  const savedTheme = (await cookies()).get(THEME_COOKIE)?.value;
+  const theme = isTheme(savedTheme) ? savedTheme : "system";
 
   return (
-    <OrbitShell apps={shellApps} initialApp={params.app ?? null} initialPath={params.path ?? null}>
+    <OrbitShell apps={shellApps} initialApp={params.app ?? null} initialPath={params.path ?? null} locale={locale} theme={theme}>
       <div className="shell">
         {welcome && (
           <WelcomeIntro
@@ -111,7 +115,7 @@ export default async function HomePage({
             dots={dots}
           />
         )}
-        <Header name={user.name ?? null} email={user.email ?? null} admin={isAdmin(roles)} locale={locale} dots={dots} />
+        <Header name={user.name ?? null} email={user.email ?? null} admin={isAdmin(roles)} locale={locale} theme={theme} dots={dots} />
         <main className="main" id="main">
           <Dashboard
             tiles={tiles}

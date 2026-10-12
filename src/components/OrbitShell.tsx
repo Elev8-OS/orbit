@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import { LayoutGrid, RotateCw, X } from "lucide-react";
+import { PREFS_EVENT, type PrefsDetail, type Theme } from "@/lib/prefs";
 
 export type ShellApp = {
   id: string;
@@ -29,6 +30,8 @@ type Props = {
   apps: ShellApp[];
   initialApp: string | null;
   initialPath: string | null;
+  locale: string;
+  theme: Theme;
   children: ReactNode;
 };
 
@@ -55,7 +58,7 @@ function frameSrc(app: ShellApp, path: string | null): string {
   return new URL(path, base.origin).toString();
 }
 
-export function OrbitShell({ apps, initialApp, initialPath, children }: Props) {
+export function OrbitShell({ apps, initialApp, initialPath, locale, theme, children }: Props) {
   const t = useTranslations("shell");
   const byId = useMemo(() => new Map(apps.map((a) => [a.id, a])), [apps]);
   const origins = useMemo(() => new Map(apps.map((a) => [new URL(a.url).origin, a.id])), [apps]);
@@ -69,6 +72,32 @@ export function OrbitShell({ apps, initialApp, initialPath, children }: Props) {
   const [reloadKey, setReloadKey] = useState<Record<string, number>>({});
   const lastPass = useRef(0);
   const lastReauth = useRef<Record<string, number>>({});
+  const prefs = useRef<{ locale: string; theme: Theme }>({ locale, theme });
+
+  // ── Sprache und Darstellung an alle offenen Tools weitergeben ──────────
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const send = () => {
+      const { locale: l, theme: t } = prefs.current;
+      const resolved = t === "system" ? (media.matches ? "dark" : "light") : t;
+      for (const app of apps) {
+        const frame = document.getElementById(`frame-${app.id}`) as HTMLIFrameElement | null;
+        frame?.contentWindow?.postMessage({ type: "orbit:prefs", locale: l, theme: resolved, themePreference: t }, new URL(app.url).origin);
+      }
+    };
+    const onChange = (event: Event) => {
+      const detail = (event as CustomEvent<PrefsDetail>).detail ?? {};
+      prefs.current = { ...prefs.current, ...detail };
+      send();
+    };
+    const onSystem = () => prefs.current.theme === "system" && send();
+    window.addEventListener(PREFS_EVENT, onChange);
+    media.addEventListener("change", onSystem);
+    return () => {
+      window.removeEventListener(PREFS_EVENT, onChange);
+      media.removeEventListener("change", onSystem);
+    };
+  }, [apps]);
 
   // ── Orbit-Pass holen und regelmässig erneuern ──────────────────
   const refreshPass = useCallback(async (): Promise<boolean> => {
