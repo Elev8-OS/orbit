@@ -31,7 +31,6 @@ export default async function SalesLayout({ children }: { children: React.ReactN
   }
 
   const viewer = ctx.user && ctx.result.ok ? ctx.result.viewer : null;
-  const canViewAs = Boolean(viewer && ctx.user?.isManager && ctx.team.length > 1);
 
   return (
     <div className={`sl-shell sl-v2${ctx.embedded ? " is-embedded" : ""}`}>
@@ -46,13 +45,13 @@ export default async function SalesLayout({ children }: { children: React.ReactN
             ]}
           />
           <div className="sl-side-foot">
-            {canViewAs && (
+            {ctx.user?.isManager && ctx.team.length > 1 && (
               <div className="sl-side-viewas">
                 <span className="sl-side-label">{t("viewAs")}</span>
                 <ViewAsSwitch
                   users={ctx.team.map((u) => ({ id: u.id, name: u.name }))}
-                  current={viewer!.ghlUser.id}
-                  own={viewer!.user.email}
+                  current={viewer.ghlUser.id}
+                  own={viewer.user.email}
                   ownEmails={Object.fromEntries(ctx.team.map((u) => [u.id, u.email]))}
                 />
               </div>
