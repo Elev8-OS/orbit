@@ -19,8 +19,9 @@ type Props = {
   dots: string[];
 };
 
-// Kopf der Übersicht: eine Achse mit den Kacheln darunter. Oben Elev8 | Orbit mit der Umlaufbahn,
-// darunter Begrüssung, drei wählbare Kennzahlen und "Für dich" als ruhige Typografie ohne Boxen.
+// Kopf der Übersicht: eine schwarze Fläche in der Spalte der Kacheln, gleich breit wie diese.
+// Oben Elev8 | Orbit mit der Umlaufbahn, darunter Begrüssung, drei wählbare Kennzahlen und
+// "Für dich" als ruhige Typografie ohne Boxen.
 export async function Header({ name, email, admin, locale, theme, dots }: Props) {
   const t = await getTranslations("header");
   const tp = await getTranslations("platform.header");
@@ -38,36 +39,38 @@ export async function Header({ name, email, admin, locale, theme, dots }: Props)
         {t("skip")}
       </a>
       <div className="sky-inner">
-        <div className="topbar">
-          <h1 className="hero-brand">
-            <Elev8Logo height={60} title="Elev8" />
-            <span className="hero-divider" aria-hidden="true" />
-            <span className="hero-product">Orbit</span>
-          </h1>
-          {/* Die Umlaufbahn als Teil der Markenzeile: jede App des Users ist ein Punkt */}
-          <div className="hero-orbit" aria-hidden="true">
-            <OrbitRing dots={dots} />
+        <div className="hero-card">
+          <div className="topbar">
+            <h1 className="hero-brand">
+              <Elev8Logo height={60} title="Elev8" />
+              <span className="hero-divider" aria-hidden="true" />
+              <span className="hero-product">Orbit</span>
+            </h1>
+            {/* Die Umlaufbahn als Teil der Markenzeile: jede App des Users ist ein Punkt */}
+            <div className="hero-orbit" aria-hidden="true">
+              <OrbitRing dots={dots} />
+            </div>
+            <div className="topbar-actions">
+              <SearchButton label={tp("search")} noahLabel={tp("noah")} />
+              <ThemeSwitch
+                current={theme}
+                labels={{ group: t("theme"), system: t("themeSystem"), light: t("themeLight"), dark: t("themeDark") }}
+              />
+              <LanguageSwitch current={locale} label={t("language")} />
+              <UserMenu
+                name={name}
+                email={email}
+                admin={admin}
+                labels={{ account: t("account"), signOut: t("signOut"), admin: t("admin"), adminArea: tp("adminArea"), install: tp("install") }}
+              />
+            </div>
           </div>
-          <div className="topbar-actions">
-            <SearchButton label={tp("search")} noahLabel={tp("noah")} />
-            <ThemeSwitch
-              current={theme}
-              labels={{ group: t("theme"), system: t("themeSystem"), light: t("themeLight"), dark: t("themeDark") }}
-            />
-            <LanguageSwitch current={locale} label={t("language")} />
-            <UserMenu
-              name={name}
-              email={email}
-              admin={admin}
-              labels={{ account: t("account"), signOut: t("signOut"), admin: t("admin"), adminArea: tp("adminArea"), install: tp("install") }}
-            />
+          <div className="hero hero-v2">
+            <p className="hero-greeting">
+              <strong>{firstName ? t("greeting", { name: firstName }) : t("greetingFallback")}</strong> · {today}
+            </p>
+            <Pulse locale={locale} />
           </div>
-        </div>
-        <div className="hero hero-v2">
-          <p className="hero-greeting">
-            <strong>{firstName ? t("greeting", { name: firstName }) : t("greetingFallback")}</strong> · {today}
-          </p>
-          <Pulse locale={locale} />
         </div>
       </div>
     </header>

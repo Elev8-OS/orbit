@@ -1,8 +1,20 @@
 /* Kopf der Übersicht – eine Achse mit den Kacheln darunter (gleiche Spalte wie .main).
    Oben: Elev8 | Orbit, die Umlaufbahn, Einstellungen. Darunter Begrüssung und eine Zeile
    aus drei Kennzahlen und "Für dich": grosse ruhige Typografie, getrennt nur durch Haarlinien. */
-.sky-v2 { overflow: visible; overflow-x: clip; z-index: 5; }
-.sky-v2 .sky-inner { padding-top: 1.75rem; padding-bottom: 2.5rem; }
+/* Kein Schwarz über die ganze Breite: Der Kopf ist eine Fläche in der Spalte, so breit wie die Kacheln */
+.sky-v2 { overflow: visible; z-index: 5; }
+/* übersteuert Hintergrund und Unterkante von .sky aus globals.css/theme.css (auch im Dunkelmodus) */
+:root:root .sky.sky-v2 { background: transparent; border: 0; }
+.sky-v2 .sky-inner { padding-top: clamp(1rem, 2vw, 1.5rem); padding-bottom: 0; }
+.hero-card {
+  position: relative;
+  padding: clamp(1.5rem, 2.5vw, 2rem) clamp(1.25rem, 2.8vw, 2.25rem) clamp(1.75rem, 2.8vw, 2.25rem);
+  border-radius: 24px;
+  background: var(--sky);
+  color: var(--sky-ink);
+  /* im Dunkelmodus sichtbar, auf hellem Grund kaum wahrnehmbar */
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
 .sky-v2 .topbar { gap: 2rem; }
 
 /* Marke */
@@ -33,12 +45,12 @@
   justify-content: center;
   pointer-events: none;
 }
-.hero-orbit .orbit-ring { height: 9.5rem; width: auto; max-width: 100%; }
+.hero-orbit .orbit-ring { height: 9rem; width: auto; max-width: 100%; }
 .sky-v2 .topbar-actions { flex-shrink: 0; }
 
 /* Begrüssung. max-width: none hebt die 36rem-Grenze von .hero aus globals.css auf –
    die Kennzahlen-Reihe nutzt die volle Spalte. */
-.hero-v2 { margin-top: 2rem; max-width: none; }
+.hero-v2 { margin-top: 1.5rem; max-width: none; }
 .hero-greeting { margin: 0; font-size: 0.9375rem; line-height: 1.5; color: var(--sky-muted); }
 .hero-greeting strong { color: var(--sky-ink); font-weight: 600; }
 
@@ -46,7 +58,7 @@
 .board {
   margin-top: 1.25rem;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(0, 1.9fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(0, 1.75fr);
   border-top: 1px solid rgba(255, 255, 255, 0.12);
 }
 .board-cell {
@@ -97,7 +109,7 @@
   cursor: pointer;
 }
 .board-value {
-  font-size: clamp(2.25rem, 3.2vw, 2.875rem);
+  font-size: clamp(1.875rem, 2.6vw, 2.5rem);
   line-height: 1;
   font-weight: 600;
   letter-spacing: -0.04em;
@@ -208,6 +220,7 @@
   .sky-v2 .topbar { flex-wrap: wrap; gap: 1rem; }
 }
 @media (max-width: 640px) {
+  .hero-card { border-radius: 20px; }
   .board { grid-template-columns: 1fr; }
   .board-cell { border-left: 0; padding-left: 0; padding-right: 0; padding-bottom: 1.25rem; border-bottom: 1px solid rgba(255, 255, 255, 0.12); }
   .board-foryou { border-bottom: 0; margin-top: 0; }
