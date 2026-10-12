@@ -40,18 +40,51 @@ export const recipientSchema = z.object({
   email: z.string().max(200),
   company: z.string().max(160),
   addressLines: z.array(z.string().max(160)).max(5),
-  phone: z.string().max(60)
+  phone: z.string().max(60),
+  /** ISO-Ländercode (CH, DE, …). Steuert den MwSt-Hinweis, z.B. Reverse Charge für Deutschland. */
+  country: z.string().max(2).default(""),
+  /** USt-IdNr. bzw. UID des Kunden, erscheint bei Reverse Charge auf dem Angebot */
+  vatId: z.string().max(40).default("")
 });
 export type Recipient = z.infer<typeof recipientSchema>;
 
 export const textsSchema = z.object({
   intro: z.string().max(3000),
   closing: z.string().max(3000),
-  notes: z.string().max(3000)
+  notes: z.string().max(3000),
+  /** Persönliche Mail zur Offerte (von Claude aus dem Gespräch geschrieben, im Editor anpassbar) */
+  emailSubject: z.string().max(250).default(""),
+  emailBody: z.string().max(6000).default(""),
+  /** Anrede wie im Gespräch: "du" oder "sie" */
+  addressForm: z.enum(["du", "sie"]).default("sie")
 });
 export type QuoteTexts = z.infer<typeof textsSchema>;
 
-export const EMPTY_RECIPIENT: Recipient = { name: "", firstName: "", email: "", company: "", addressLines: [], phone: "" };
+export const EMPTY_RECIPIENT: Recipient = {
+  name: "",
+  firstName: "",
+  email: "",
+  company: "",
+  addressLines: [],
+  phone: "",
+  country: "",
+  vatId: ""
+};
+
+/** Ältere Datensätze haben noch nicht alle Felder: mit Standardwerten auffüllen. */
+export const normalizeRecipient = (r: Partial<Recipient> | null | undefined): Recipient => ({ ...EMPTY_RECIPIENT, ...(r ?? {}) });
+export const normalizeTexts = (t: Partial<QuoteTexts> | null | undefined): QuoteTexts => ({
+  intro: "",
+  closing: "",
+  notes: "",
+  emailSubject: "",
+  emailBody: "",
+  addressForm: "sie",
+  ...(t ?? {})
+});
+
+/** Ansprechperson bei Elev8 auf dem Dokument (Owner des Kontakts in GHL, sonst der Absender) */
+export type ContactPerson = { name: string; email: string; phone: string };
 
 export function defaultConfig(settings: QuoteSettings): QuoteConfig {
   return {
@@ -268,7 +301,11 @@ export const DOC_LABELS = {
     totalMonthly: "Total pro Monat",
     totalYearly: "Total pro Jahr",
     firstYear: "Total im ersten Jahr",
-    notes: "Hinweise",
+    notes: "Aus unserem Gespräch",
+    exclVat: "exkl. MwSt.",
+    vatNote: "Alle Preise verstehen sich exklusive Mehrwertsteuer.",
+    reverseCharge: "Steuerschuldnerschaft des Leistungsempfängers (Reverse-Charge-Verfahren, § 13b UStG). Die Umsatzsteuer schuldet der Leistungsempfänger.",
+    customerVatId: "USt-IdNr. Kunde",
     terms: "Konditionen",
     page: "Seite",
     sheetQuote: "Angebot",
@@ -294,7 +331,11 @@ export const DOC_LABELS = {
     totalMonthly: "Total per month",
     totalYearly: "Total per year",
     firstYear: "Total in the first year",
-    notes: "Notes",
+    notes: "From our conversation",
+    exclVat: "excl. VAT",
+    vatNote: "All prices are exclusive of VAT.",
+    reverseCharge: "Reverse charge: VAT is payable by the recipient of the service (§ 13b UStG).",
+    customerVatId: "Customer VAT ID",
     terms: "Terms",
     page: "Page",
     sheetQuote: "Offer",

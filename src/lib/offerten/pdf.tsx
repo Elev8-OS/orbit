@@ -126,7 +126,9 @@ function Paragraphs({ text, style }: { text: string; style: typeof s.paragraph }
 function QuotePdf({ doc }: { doc: QuoteDocument }) {
   const L = doc.labels;
   const issuerLine = [doc.issuer.company, ...doc.issuer.addressLines, doc.issuer.taxId].filter(Boolean).join(" · ");
-  const contactLine = [doc.issuer.website, doc.issuer.email, doc.issuer.phone].filter(Boolean).join(" · ");
+  const contactLine = [doc.issuer.website, doc.contact.email || doc.issuer.email, doc.contact.phone || doc.issuer.phone]
+    .filter(Boolean)
+    .join(" · ");
   const notes = doc.notes
     .split("\n")
     .map((n) => n.replace(/^[-•*]\s*/, "").trim())
@@ -160,6 +162,11 @@ function QuotePdf({ doc }: { doc: QuoteDocument }) {
               <Text key={i}>{line}</Text>
             ))}
             {doc.recipient.email ? <Text style={s.small}>{doc.recipient.email}</Text> : null}
+            {doc.customerVatId ? (
+              <Text style={s.small}>
+                {L.customerVatId}: {doc.customerVatId}
+              </Text>
+            ) : null}
           </View>
           <View style={s.metaRight}>
             <View style={s.metaRow}>
@@ -180,6 +187,7 @@ function QuotePdf({ doc }: { doc: QuoteDocument }) {
                 <View>
                   {doc.contact.name ? <Text style={s.metaValue}>{doc.contact.name}</Text> : null}
                   {doc.contact.email ? <Text style={[s.metaValue, s.small]}>{doc.contact.email}</Text> : null}
+                  {doc.contact.phone ? <Text style={[s.metaValue, s.small]}>{doc.contact.phone}</Text> : null}
                 </View>
               </View>
             ) : null}
@@ -239,6 +247,9 @@ function QuotePdf({ doc }: { doc: QuoteDocument }) {
 
         <View style={s.section} wrap={false}>
           <Text style={s.sectionTitle}>{L.terms}</Text>
+          <Text style={doc.reverseCharge ? [s.small, { color: INK, fontWeight: 600, marginBottom: 3 }] : [s.small, { marginBottom: 3 }]}>
+            {doc.taxNote}
+          </Text>
           <Text style={s.small}>{doc.terms}</Text>
         </View>
 
