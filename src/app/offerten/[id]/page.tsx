@@ -4,7 +4,9 @@ import { currentOffertenUser } from "@/lib/offerten/access";
 import { contactUrl, ghlConfigured } from "@/lib/offerten/ghl";
 import { mailProvider } from "@/lib/offerten/mailer";
 import { getSettings } from "@/lib/offerten/settings";
-import { getQuote, listEvents } from "@/lib/offerten/store";
+import { refreshLines } from "@/lib/offerten/service";
+import { getQuote, listEvents, updateDraft } from "@/lib/offerten/store";
+import { personalizeConfigured } from "@/lib/offerten/personalize";
 import { QuoteEditor } from "@/components/offerten/QuoteEditor";
 
 export const dynamic = "force-dynamic";
@@ -12,9 +14,14 @@ export const dynamic = "force-dynamic";
 export default async function QuotePage({ params }: { params: Promise<{ id: string }> }) {
   const user = await currentOffertenUser();
   if (!user) return null;
-  const quote = await getQuote((await params).id);
+  let quote = await getQuote((await params).id);
   if (!quote || quote.status === "discarded") notFound();
   const [settings, events, locale] = await Promise.all([getSettings(), listEvents(quote.id), getLocale()]);
+  // Entwürfe beim Öffnen auf die aktuelle Preisliste bringen
+  if (quote.status === "draft") {
+    const lines = refreshLines(quote, settings);
+    if (JSON.stringify(lines) !== JSON.stringify(quote.lines)) quote = (await updateDraft(quote.id, { lines })) ?? quote;
+  }
   return (
     <QuoteEditor
       initial={quote}
@@ -25,6 +32,7 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
       ghlEnabled={ghlConfigured()}
       ghlContactBase={ghlConfigured() ? contactUrl("__ID__") : null}
       uiLocale={locale === "en" ? "en" : "de"}
+      aiEnabled={personalizeConfigured()}
     />
   );
 }
