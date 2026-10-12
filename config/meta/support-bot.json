@@ -2,6 +2,15 @@
   "app": "support-bot",
   "changelog": [
     {
+      "version": "1.1",
+      "date": "2026-10-12",
+      "title": { "de": "Neues Design", "en": "New design" },
+      "changes": [
+        { "de": "Gleiches Erscheinungsbild wie Orbit und die anderen Apps, mit Navigation links.", "en": "Same look as Orbit and the other apps, with navigation on the left." },
+        { "de": "Hell und Dunkel folgen der Einstellung in Orbit.", "en": "Light and dark follow your setting in Orbit." }
+      ]
+    },
+    {
       "version": "1.0",
       "date": "2026-10-12",
       "title": { "de": "Support Bot in Orbit", "en": "Support Bot in Orbit" },
