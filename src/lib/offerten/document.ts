@@ -8,6 +8,7 @@ import {
   lineTotal,
   withTax,
   type Interval,
+  type ContactPerson,
   type Lang,
   type QuoteConfig,
   type QuoteLine,
@@ -32,8 +33,10 @@ export type QuoteForDocument = {
   validUntil: string;
   createdAt: string;
   sentAt?: string | null;
-  ownerName: string | null;
-  ownerEmail: string | null;
+  ownerName?: string | null;
+  ownerEmail?: string | null;
+  /** Ansprechperson (Owner in GHL); hat Vorrang vor ownerName/ownerEmail */
+  contactPerson?: ContactPerson | null;
 };
 
 export type DocLine = QuoteLine & {
@@ -46,18 +49,29 @@ export type DocLine = QuoteLine & {
   intervalText: string;
 };
 
-export type DocTotalRow = { label: string; amount: number; text: string; strong?: boolean; interval?: Interval };
+export type DocTotalRow = {
+  label: string;
+  amount: number;
+  text: string;
+  strong?: boolean;
+  interval?: Interval;
+  kind?: "total" | "firstYear";
+};
 
 export type QuoteDocument = {
   lang: Lang;
-  labels: (typeof DOC_LABELS)[Lang];
+  labels: Record<keyof (typeof DOC_LABELS)["de"], string>;
   currency: string;
   number: string;
   dateText: string;
   validUntilText: string;
   issuer: QuoteSettings["issuer"];
   recipient: Recipient;
-  contact: { name: string; email: string };
+  contact: { name: string; email: string; phone: string };
+  /** MwSt-Hinweis: Reverse Charge (z.B. Deutschland) oder "exkl. MwSt." */
+  taxNote: string;
+  reverseCharge: boolean;
+  customerVatId: string;
   intro: string;
   closing: string;
   notes: string;
@@ -72,7 +86,11 @@ export type QuoteDocument = {
 
 export function buildDocument(q: QuoteForDocument, settings: QuoteSettings): QuoteDocument {
   const lang = q.language;
-  const labels = DOC_LABELS[lang];
+  const du = q.texts.addressForm === "du";
+  const labels: Record<keyof (typeof DOC_LABELS)["de"], string> = {
+    ...DOC_LABELS[lang],
+    ...(lang === "de" && du ? { contact: "Dein Kontakt" } : {})
+  };
   const money = (n: number) => formatMoney(n, q.currency, lang);
   const validUntilText = formatDate(q.validUntil, lang);
   const taxPercent = settings.taxPercent;
@@ -88,6 +106,8 @@ export function buildDocument(q: QuoteForDocument, settings: QuoteSettings): Quo
     intervalText: INTERVAL_LABEL[lang][l.interval]
   }));
 
+  const country = (q.recipient.country ?? "").toUpperCase();
+  const reverseCharge = Boolean(country && (settings.reverseChargeCountries ?? ["DE"]).includes(country));
   const t = computeTotals(q.lines, taxPercent);
   const totals: DocTotalRow[] = [];
   const intervalRows: [Interval, string, number][] = [
@@ -103,10 +123,23 @@ export function buildDocument(q: QuoteForDocument, settings: QuoteSettings): Quo
       totals.push({ label: `${labels.tax} ${formatNumber(taxPercent, lang)} %`, amount: tax, text: money(tax), interval });
     }
     const gross = withTax(amount, taxPercent);
-    totals.push({ label, amount: gross, text: money(gross), strong: true, interval });
+    totals.push({
+      label: taxPercent > 0 ? label : `${label} ${labels.exclVat}`,
+      amount: gross,
+      text: money(gross),
+      strong: true,
+      interval,
+      kind: "total"
+    });
   }
   if (t.intervals.length > 1 || t.intervals.includes("monthly")) {
-    totals.push({ label: labels.firstYear, amount: t.firstYear, text: money(t.firstYear), strong: true });
+    totals.push({
+      label: taxPercent > 0 ? labels.firstYear : `${labels.firstYear} ${labels.exclVat}`,
+      amount: t.firstYear,
+      text: money(t.firstYear),
+      strong: true,
+      kind: "firstYear"
+    });
   }
 
   const recipientName = q.recipient.company || q.recipient.name || "Offer";
@@ -121,7 +154,14 @@ export function buildDocument(q: QuoteForDocument, settings: QuoteSettings): Quo
     validUntilText,
     issuer: settings.issuer,
     recipient: q.recipient,
-    contact: { name: q.ownerName ?? "", email: q.ownerEmail ?? settings.issuer.email },
+    contact: {
+      name: q.contactPerson?.name ?? q.ownerName ?? "",
+      email: q.contactPerson?.email || q.ownerEmail || settings.issuer.email,
+      phone: q.contactPerson?.phone ?? ""
+    },
+    taxNote: reverseCharge ? labels.reverseCharge : labels.vatNote,
+    reverseCharge,
+    customerVatId: reverseCharge ? (q.recipient.vatId ?? "") : "",
     intro: q.texts.intro,
     closing: q.texts.closing,
     notes: q.texts.notes,

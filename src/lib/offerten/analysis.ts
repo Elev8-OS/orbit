@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { callClaudeTool, claudeConfigured } from "./claude";
 import type { Transcript } from "./fireflies";
 import { transcriptText } from "./fireflies";
 
@@ -20,8 +21,11 @@ export const analysisSchema = z.object({
   model: z.enum(["per_unit", "per_booking", "unknown"]),
   billing: z.enum(["monthly", "yearly", "unknown"]),
   channelManager: z.boolean().nullable(),
-  wantsCoins: z.boolean(),
   startDate: z.string().nullable(),
+  addressForm: z.enum(["du", "sie"]).default("sie"),
+  agreedDiscountPercent: z.number().min(0).max(100).nullable().default(null),
+  pricingDiscussed: z.string().nullable().default(null),
+  nextStep: z.string().nullable().default(null),
   needs: z.array(z.string()),
   summary: z.string()
 });
@@ -62,11 +66,24 @@ const TOOL = {
         type: ["boolean", "null"],
         description: "true, wenn der Interessent den Elev8 Channel Manager braucht (z.B. Anbindung Airbnb/Booking.com über Elev8)."
       },
-      wantsCoins: {
-        type: "boolean",
-        description: "true, wenn Reinigungs- oder Wartungsmanagement (Cleaning/Maintenance Tasks) ausdrücklich gewünscht ist."
-      },
       startDate: { type: ["string", "null"], description: "Gewünschter Start als ISO-Datum oder kurze Angabe wie 'Ende Oktober'." },
+      addressForm: {
+        type: "string",
+        enum: ["du", "sie"],
+        description: "Wie die Elev8-Person den Interessenten im Gespräch angesprochen hat (bei Englisch: 'sie' bei formellem, 'du' bei lockerem Ton)."
+      },
+      agreedDiscountPercent: {
+        type: ["number", "null"],
+        description: "Nur wenn im Gespräch ein konkreter Rabatt in Prozent zugesagt wurde, sonst null."
+      },
+      pricingDiscussed: {
+        type: ["string", "null"],
+        description: "Kurz in eigenen Worten, was zu Preisen, Budget oder Konditionen besprochen wurde. null, wenn nichts."
+      },
+      nextStep: {
+        type: ["string", "null"],
+        description: "Der im Gespräch vereinbarte nächste Schritt (z.B. Entscheid bis Freitag, Folgetermin, Testzugang). null, wenn keiner."
+      },
       needs: {
         type: "array",
         items: { type: "string" },
@@ -76,7 +93,8 @@ const TOOL = {
     },
     required: [
       "offerRequested", "confidence", "evidence", "language", "company", "contactName", "contactEmail", "units",
-      "bookingsPerYear", "model", "billing", "channelManager", "wantsCoins", "startDate", "needs", "summary"
+      "bookingsPerYear", "model", "billing", "channelManager", "startDate", "addressForm", "agreedDiscountPercent",
+      "pricingDiscussed", "nextStep", "needs", "summary"
     ]
   }
 } as const;
@@ -87,9 +105,7 @@ Deine Aufgabe: Erkennen, ob der Interessent eine Offerte bzw. ein Angebot wünsc
 Sei streng: Nur wenn ein Angebot wirklich verlangt oder verbindlich zugesagt wurde, ist offerRequested true. Erfinde keine Zahlen; was nicht genannt wurde, ist null oder "unknown".
 Teilnehmer mit diesen Domains gehören zu Elev8 und sind NICHT der Interessent: {internal}.`;
 
-export function analysisConfigured(): boolean {
-  return Boolean(process.env.ANTHROPIC_API_KEY);
-}
+export const analysisConfigured = claudeConfigured;
 
 export async function analyzeCall(t: Transcript, internal: string[]): Promise<CallAnalysis> {
   const attendees = t.attendees
@@ -111,30 +127,13 @@ ${t.summary.actionItems || "(keine)"}
 Transkript:
 ${transcriptText(t)}`;
 
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": process.env.ANTHROPIC_API_KEY ?? "",
-      "anthropic-version": "2023-06-01"
-    },
-    body: JSON.stringify({
-      model: process.env.ANTHROPIC_MODEL || "claude-sonnet-5-5",
-      max_tokens: 2000,
-      system: SYSTEM.replace("{internal}", internal.join(", ")),
-      tools: [TOOL],
-      tool_choice: { type: "tool", name: TOOL.name },
-      messages: [{ role: "user", content: userContent }]
-    }),
-    signal: AbortSignal.timeout(120_000)
+  const input = await callClaudeTool({
+    system: SYSTEM.replace("{internal}", internal.join(", ")),
+    user: userContent,
+    tool: TOOL as unknown as Parameters<typeof callClaudeTool>[0]["tool"],
+    maxTokens: 2000
   });
-  const json = (await res.json().catch(() => null)) as {
-    content?: { type: string; name?: string; input?: unknown }[];
-    error?: { message?: string };
-  } | null;
-  if (!res.ok || !json?.content) throw new Error(`Claude-API: ${json?.error?.message ?? res.status}`);
-  const block = json.content.find((c) => c.type === "tool_use" && c.name === TOOL.name);
-  const parsed = analysisSchema.safeParse(block?.input);
+  const parsed = analysisSchema.safeParse(input);
   if (!parsed.success) throw new Error(`Analyse unvollständig: ${parsed.error.issues.map((i) => i.path.join(".")).join(", ")}`);
   return parsed.data;
 }
