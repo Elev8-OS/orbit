@@ -31,6 +31,8 @@ export type TileData = {
   color: string;
   icon: ReactNode;
   isNew: boolean;
+  /** öffnet als Tab innerhalb von Orbit */
+  embed: boolean;
 };
 
 export type CategoryData = { id: string; name: string; color: string };

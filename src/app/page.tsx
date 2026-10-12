@@ -12,10 +12,15 @@ import { AppIcon } from "@/components/AppIcon";
 import { Header } from "@/components/Header";
 import { Dashboard, type CategoryData, type TileData } from "@/components/Dashboard";
 import { WelcomeIntro } from "@/components/WelcomeIntro";
+import { OrbitShell, type ShellApp } from "@/components/OrbitShell";
 
 export const dynamic = "force-dynamic";
 
-export default async function HomePage({ searchParams }: { searchParams: Promise<{ welcome?: string }> }) {
+export default async function HomePage({
+  searchParams
+}: {
+  searchParams: Promise<{ welcome?: string; app?: string; path?: string }>;
+}) {
   const session = await auth();
   if (!session?.user?.id) redirect("/signin");
   const user = session.user;
@@ -64,7 +69,8 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       categoryName: category.name[locale],
       color: colorOf(app),
       icon: <AppIcon icon={app.icon} />,
-      isNew: newIds.includes(app.id)
+      isNew: newIds.includes(app.id),
+      embed: app.embed
     };
   });
   const categories: CategoryData[] = config.categories
@@ -79,33 +85,45 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   }));
   const pendingRequests = requestable.length ? await openRequestIds(user.id).catch(() => []) : [];
 
-  const welcome = (await searchParams).welcome === "1";
+  const params = await searchParams;
+  const welcome = params.welcome === "1";
+  const shellApps: ShellApp[] = ordered
+    .filter((app) => app.embed)
+    .map((app) => ({
+      id: app.id,
+      name: app.name[locale],
+      url: app.url,
+      color: colorOf(app),
+      icon: <AppIcon icon={app.icon} />
+    }));
   const t = await getTranslations("welcome");
   const firstName = user.name?.split(/[\s,]+/).find(Boolean);
   const dots = tiles.map((tile) => tile.color);
 
   return (
-    <div className="shell">
-      {welcome && (
-        <WelcomeIntro
-          heading={firstName ? t(firstVisit ? "first" : "returning", { name: firstName }) : t("fallback")}
-          subline={t("ready", { count: tiles.length })}
-          skipLabel={t("skip")}
-          dots={dots}
-        />
-      )}
-      <Header name={user.name ?? null} email={user.email ?? null} admin={isAdmin(roles)} locale={locale} dots={dots} />
-      <main className="main" id="main">
-        <Dashboard
-          tiles={tiles}
-          categories={categories}
-          defaultOrder={apps.map((a) => a.id)}
-          supportEmail={process.env.ORBIT_SUPPORT_EMAIL || null}
-          requestable={requestable}
-          pendingRequests={pendingRequests}
-          welcome={welcome}
-        />
-      </main>
-    </div>
+    <OrbitShell apps={shellApps} initialApp={params.app ?? null} initialPath={params.path ?? null}>
+      <div className="shell">
+        {welcome && (
+          <WelcomeIntro
+            heading={firstName ? t(firstVisit ? "first" : "returning", { name: firstName }) : t("fallback")}
+            subline={t("ready", { count: tiles.length })}
+            skipLabel={t("skip")}
+            dots={dots}
+          />
+        )}
+        <Header name={user.name ?? null} email={user.email ?? null} admin={isAdmin(roles)} locale={locale} dots={dots} />
+        <main className="main" id="main">
+          <Dashboard
+            tiles={tiles}
+            categories={categories}
+            defaultOrder={apps.map((a) => a.id)}
+            supportEmail={process.env.ORBIT_SUPPORT_EMAIL || null}
+            requestable={requestable}
+            pendingRequests={pendingRequests}
+            welcome={welcome}
+          />
+        </main>
+      </div>
+    </OrbitShell>
   );
 }
