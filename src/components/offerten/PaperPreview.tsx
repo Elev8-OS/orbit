@@ -75,7 +75,6 @@ export function PaperPreview({ doc }: { doc: QuoteDocument }) {
                   <span suppressHydrationWarning>{doc.dateText}</span>
                 </div>
               </div>
-              <span className="of-paper-accent" aria-hidden="true" />
               {who && <p className="of-paper-kicker">{L.offerFor}</p>}
               <h2>{who || L.document}</h2>
             </div>
@@ -211,24 +210,17 @@ export function PaperPreview({ doc }: { doc: QuoteDocument }) {
                   ))}
                 </ol>
               </section>
-              {(doc.assistant || doc.contact.name) && (
+              {doc.assistant && (
                 <section className="of-paper-questions">
                   <div>
                     <h3>{L.questions}</h3>
-                    {doc.assistant && <p>{doc.assistant.text.replace(/:$/, ".")}</p>}
-                    {doc.contact.name && (
-                      <p className="of-paper-personal">
-                        {doc.personalText} <strong>{[doc.contact.phone, doc.contact.email].filter(Boolean).join(" · ")}</strong>
-                      </p>
-                    )}
+                    <p>{doc.assistant.text.replace(/:$/, ".")}</p>
                   </div>
-                  {doc.assistant && (
-                    <a href={doc.assistant.link} target="_blank" rel="noreferrer" className="of-paper-wa">
-                      <span>{L.whatsappCta.replace("{name}", doc.assistantName)}</span>
-                      <strong>{doc.assistant.phone}</strong>
-                      <span>{L.available}</span>
-                    </a>
-                  )}
+                  <a href={doc.assistant.link} target="_blank" rel="noreferrer" className="of-paper-wa">
+                    <span>{L.whatsappCta.replace("{name}", doc.assistantName)}</span>
+                    <strong>{doc.assistant.phone}</strong>
+                    <span>{L.available}</span>
+                  </a>
                 </section>
               )}
               <section className="of-paper-terms">
