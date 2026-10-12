@@ -43,7 +43,9 @@ export function PaperPreview({ doc }: { doc: QuoteDocument }) {
       .filter(Boolean)
       .map((p, i) => <p key={i}>{p}</p>);
   const footer = [doc.issuer.company, ...doc.issuer.addressLines, doc.issuer.taxId].filter(Boolean).join(" · ");
-  const contact = [doc.issuer.website, doc.issuer.email, doc.issuer.phone].filter(Boolean).join(" · ");
+  const contact = [doc.issuer.website, doc.contact.email || doc.issuer.email, doc.contact.phone || doc.issuer.phone]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
     <div className="of-paper-scroll">
@@ -66,6 +68,11 @@ export function PaperPreview({ doc }: { doc: QuoteDocument }) {
               <p key={i}>{l}</p>
             ))}
             {doc.recipient.email && <p className="of-paper-muted">{doc.recipient.email}</p>}
+            {doc.customerVatId && (
+              <p className="of-paper-muted">
+                {L.customerVatId}: {doc.customerVatId}
+              </p>
+            )}
           </div>
           <dl>
             <div>
@@ -86,6 +93,7 @@ export function PaperPreview({ doc }: { doc: QuoteDocument }) {
                 <dd>
                   {doc.contact.name}
                   {doc.contact.email && <span className="of-paper-muted">{doc.contact.email}</span>}
+                  {doc.contact.phone && <span className="of-paper-muted">{doc.contact.phone}</span>}
                 </dd>
               </div>
             )}
@@ -149,6 +157,7 @@ export function PaperPreview({ doc }: { doc: QuoteDocument }) {
         )}
         <section className="of-paper-section">
           <h3>{L.terms}</h3>
+          <p className={doc.reverseCharge ? "of-paper-strong of-paper-tax" : "of-paper-muted"}>{doc.taxNote}</p>
           <p className="of-paper-muted">{doc.terms}</p>
         </section>
         <div className="of-paper-text">{paragraphs(doc.closing)}</div>
