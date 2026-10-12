@@ -5,7 +5,7 @@ import { auth } from "@/auth";
 import { arrangeApps, isAdmin, loadAppsConfig, requestableApps, visibleApps } from "@/lib/apps";
 import { claimWelcomeEmail, getPreferences, registerFirstVisit } from "@/lib/preferences";
 import { openRequestIds } from "@/lib/access-requests";
-import { sendMail } from "@/lib/mail/send";
+import { mailConfigured, sendMail } from "@/lib/mail/send";
 import { welcomeEmail } from "@/lib/mail/templates";
 import { isLocale, defaultLocale } from "@/i18n/config";
 import { AppIcon } from "@/components/AppIcon";
@@ -27,23 +27,25 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   const config = await loadAppsConfig();
   const apps = visibleApps(config, roles);
 
-  // Einstellungen laden; beim allerersten Besuch User anlegen und Willkommensmail einplanen
+  // Einstellungen laden; beim allerersten Besuch User mit Start-Reihenfolge anlegen
   let firstVisit = false;
-  let prefs = await getPreferences(user.id).catch((err) => {
+  const prefs = await getPreferences(user.id).catch((err) => {
     console.error("Einstellungen nicht geladen:", err);
     return undefined;
   });
   if (prefs === null) {
     firstVisit = await registerFirstVisit(user.id, apps.map((a) => a.id)).catch(() => false);
-    if (firstVisit && user.email && process.env.ORBIT_WELCOME_EMAIL !== "false") {
-      const email = user.email;
-      const name = user.name || email;
-      const appNames = apps.map((a) => a.name[locale]);
-      after(async () => {
-        if (!(await claimWelcomeEmail(user.id).catch(() => false))) return;
-        await sendMail({ to: email, tags: [{ name: "type", value: "welcome" }], ...welcomeEmail(locale, name, appNames) });
-      });
-    }
+  }
+
+  // Willkommensmail genau einmal pro Person – auch nachgeholt, wenn Resend erst später eingerichtet wird
+  if (prefs !== undefined && user.email && mailConfigured() && process.env.ORBIT_WELCOME_EMAIL !== "false") {
+    const email = user.email;
+    const name = user.name || email;
+    const appNames = apps.map((a) => a.name[locale]);
+    after(async () => {
+      if (!(await claimWelcomeEmail(user.id).catch(() => false))) return;
+      await sendMail({ to: email, tags: [{ name: "type", value: "welcome" }], ...welcomeEmail(locale, name, appNames) });
+    });
   }
   const { ordered, newIds } = arrangeApps(apps, prefs?.tileOrder ?? null);
 
