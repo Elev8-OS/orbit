@@ -39,6 +39,9 @@ categories:
   - id: sales
     name: { de: Vertrieb, en: Sales }
     color: "#F6BB12"
+  - id: support
+    name: { de: Kundensupport, en: Customer support }
+    color: "#C8A84B"
 
 apps:
   # Elev8 Reporting Tool – öffnet als Tab in Orbit. Anmeldung über den Orbit-Pass,
@@ -79,5 +82,33 @@ apps:
     icon: FilePen
     category: sales
     roles: [App.Offerten, App.Offerten.Admin]
+    requestableBy: [Orbit.Staff]
+    embed: true
+
+  # Lead Bot – WhatsApp-Leads mit Claude qualifizieren und zur Demo führen (Repo whatsapp_lead_converter,
+  # Railway-Dienst lead-bot). Öffnet als Tab, Anmeldung über den Orbit-Pass.
+  - id: lead-bot
+    name: { de: Lead Bot, en: Lead Bot }
+    description:
+      de: WhatsApp-Leads mit Claude qualifizieren, Demo-Links senden und Gespräche verfolgen.
+      en: Qualify WhatsApp leads with Claude, send demo links and follow conversations.
+    url: https://add-converter.elev8-suite.com/admin/
+    icon: MessageCircle
+    category: sales
+    roles: [App.LeadBot]
+    requestableBy: [Orbit.Staff]
+    embed: true
+
+  # Support Bot – WhatsApp-Support für Bestandskunden mit desk365-Tickets und Lark-Eskalation
+  # (gleiches Repo, Railway-Dienst support-bot). Öffnet als Tab, Anmeldung über den Orbit-Pass.
+  - id: support-bot
+    name: { de: Support Bot, en: Support Bot }
+    description:
+      de: WhatsApp-Support für Kunden mit Tickets in desk365, Wissensbasis und Reports.
+      en: WhatsApp support for customers with desk365 tickets, knowledge base and reports.
+    url: https://support-bot.elev8-suite.com/admin/
+    icon: LifeBuoy
+    category: support
+    roles: [App.SupportBot]
     requestableBy: [Orbit.Staff]
     embed: true
