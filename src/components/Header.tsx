@@ -2,6 +2,8 @@ import { getTranslations } from "next-intl/server";
 import type { Locale } from "@/i18n/config";
 import { Brand } from "./Brand";
 import { LanguageSwitch } from "./LanguageSwitch";
+import { ThemeSwitch } from "./ThemeSwitch";
+import type { Theme } from "@/lib/prefs";
 import { OrbitRing } from "./OrbitRing";
 import { UserMenu } from "./UserMenu";
 
@@ -10,10 +12,11 @@ type Props = {
   email: string | null;
   admin: boolean;
   locale: Locale;
+  theme: Theme;
   dots: string[];
 };
 
-export async function Header({ name, email, admin, locale, dots }: Props) {
+export async function Header({ name, email, admin, locale, theme, dots }: Props) {
   const t = await getTranslations("header");
   const firstName = name?.split(/[\s,]+/).find(Boolean);
 
@@ -27,6 +30,10 @@ export async function Header({ name, email, admin, locale, dots }: Props) {
         <div className="topbar">
           <Brand />
           <div className="topbar-actions">
+            <ThemeSwitch
+              current={theme}
+              labels={{ group: t("theme"), system: t("themeSystem"), light: t("themeLight"), dark: t("themeDark") }}
+            />
             <LanguageSwitch current={locale} label={t("language")} />
             <UserMenu
               name={name}

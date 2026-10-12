@@ -5,6 +5,9 @@ import "@fontsource-variable/inter";
 import "./globals.css";
 import "./mobile.css";
 import "./shell.css";
+import "./theme.css";
+import { cookies } from "next/headers";
+import { THEME_COOKIE, isTheme } from "@/lib/prefs";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("meta");
@@ -24,8 +27,9 @@ export const viewport: Viewport = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const locale = await getLocale();
   const messages = await getMessages();
+  const savedTheme = (await cookies()).get(THEME_COOKIE)?.value;
   return (
-    <html lang={locale}>
+    <html lang={locale} data-theme={isTheme(savedTheme) ? savedTheme : "system"}>
       <body>
         <NextIntlClientProvider locale={locale} messages={messages}>
           {children}

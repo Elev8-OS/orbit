@@ -1,0 +1,91 @@
+/* ─────────────────────────────────────────────────────────────
+   Orbit – Darstellung wählbar (System / Hell / Dunkel)
+   globals.css folgt dem System. Diese Datei erzwingt die Wahl aus
+   <html data-theme="light|dark">; "system" lässt alles wie es ist.
+   ───────────────────────────────────────────────────────────── */
+
+/* Hell erzwingen, auch wenn das System dunkel ist */
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="light"] {
+    --bg: #f5f5f5;
+    --surface: #ffffff;
+    --surface-2: #fafafa;
+    --ink: #000000;
+    --ink-2: #262626;
+    --muted: #5f5f5f;
+    --line: #e5e5e5;
+    --line-strong: #cfcfcf;
+    --yellow-soft: #fef4d4;
+    --yellow-ink: #6b4e00;
+    --danger: #b42318;
+    --success: #067647;
+    --tile-icon-bg: #000000;
+    --tile-icon-fg: var(--yellow);
+    --shadow-lift: 0 20px 40px -20px rgba(0, 0, 0, 0.35);
+    color-scheme: light;
+  }
+  :root[data-theme="light"] .sky {
+    border-bottom: 0;
+  }
+}
+
+/* Dunkel erzwingen, auch wenn das System hell ist */
+:root[data-theme="dark"] {
+  --bg: #000000;
+  --surface: #111111;
+  --surface-2: #191919;
+  --ink: #ffffff;
+  --ink-2: #e5e5e5;
+  --muted: #a3a3a3;
+  --line: #262626;
+  --line-strong: #3a3a3a;
+  --yellow-soft: #2a2207;
+  --yellow-ink: #f6bb12;
+  --danger: #fda29b;
+  --success: #75e0a7;
+  --tile-icon-bg: var(--yellow);
+  --tile-icon-fg: #000000;
+  --shadow-lift: 0 20px 40px -16px rgba(0, 0, 0, 0.8);
+  color-scheme: dark;
+}
+:root[data-theme="dark"] .sky {
+  border-bottom: 1px solid var(--line);
+}
+
+/* ── Schalter in der Kopfzeile ─────────────────────────── */
+.theme-switch {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--sky-line);
+}
+.theme-switch button {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 1.75rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--sky-muted);
+  cursor: pointer;
+}
+.theme-switch button[aria-pressed="true"] {
+  background: var(--yellow);
+  color: #000;
+}
+.theme-switch button:not([aria-pressed="true"]):hover {
+  color: var(--sky-ink);
+}
+@media (pointer: coarse) {
+  .theme-switch button {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+}
+@media (max-width: 420px) {
+  .topbar-actions {
+    gap: 0.375rem;
+  }
+}
