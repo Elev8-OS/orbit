@@ -79,5 +79,13 @@
       "mail_not_configured": "Anfragen sind noch nicht eingerichtet. Wende dich direkt an deine Administration.",
       "default": "Die Anfrage wurde nicht gesendet. Versuche es erneut."
     }
+  },
+  "shell": {
+    "tabs": "Geöffnete Apps",
+    "home": "Übersicht",
+    "close": "{name} schliessen",
+    "reload": "Neu laden",
+    "loading": "{name} wird geladen …",
+    "passError": "Die Verbindung zu Orbit ist unterbrochen. Lade die Seite neu oder melde dich erneut an."
   }
 }

@@ -79,5 +79,13 @@
       "mail_not_configured": "Requests aren't set up yet. Contact your administrator directly.",
       "default": "The request wasn't sent. Try again."
     }
+  },
+  "shell": {
+    "tabs": "Open apps",
+    "home": "Overview",
+    "close": "Close {name}",
+    "reload": "Reload",
+    "loading": "Loading {name} …",
+    "passError": "The connection to Orbit was interrupted. Reload the page or sign in again."
   }
 }
