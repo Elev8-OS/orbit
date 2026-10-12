@@ -16,6 +16,10 @@ export async function GET(request: Request) {
     });
   } catch (err) {
     console.error("GHL-Suche:", err);
-    return Response.json({ error: "ghl_failed" }, { status: 502 });
+    const detail = err instanceof Error ? err.message : String(err);
+    return Response.json(
+      { error: /access to this location/i.test(detail) ? "ghl_wrong_location" : "ghl_failed", detail },
+      { status: 502 }
+    );
   }
 }

@@ -24,7 +24,8 @@ export async function GET() {
           external: t.participants.filter((p) => !isInternalEmail(p)),
           status: m?.status ?? null,
           reason: m?.reason ?? null,
-          quoteId: m?.quoteId ?? null
+          quoteId: m?.quoteId ?? null,
+          dismissedBy: m?.dismissedBy ?? null
         };
       });
     return Response.json({ meetings });
