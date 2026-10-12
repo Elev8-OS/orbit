@@ -8,10 +8,19 @@ import "./shell.css";
 import "./theme.css";
 import { cookies } from "next/headers";
 import { THEME_COOKIE, isTheme } from "@/lib/prefs";
+import "./platform.css";
+import { PwaRegister } from "@/components/platform/PwaRegister";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("meta");
-  return { title: "Elev8 Orbit", description: t("description") };
+  return {
+    title: "Elev8 Orbit",
+    description: t("description"),
+    applicationName: "Orbit",
+    appleWebApp: { capable: true, title: "Orbit", statusBarStyle: "black-translucent" },
+    icons: { apple: "/pwa/apple-180.png" },
+    formatDetection: { telephone: false }
+  };
 }
 
 export const viewport: Viewport = {
@@ -34,6 +43,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <NextIntlClientProvider locale={locale} messages={messages}>
           {children}
         </NextIntlClientProvider>
+        <PwaRegister />
       </body>
     </html>
   );

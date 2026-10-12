@@ -6,6 +6,7 @@ import { ThemeSwitch } from "./ThemeSwitch";
 import type { Theme } from "@/lib/prefs";
 import { OrbitRing } from "./OrbitRing";
 import { UserMenu } from "./UserMenu";
+import { SearchButton } from "./platform/SearchButton";
 
 type Props = {
   name: string | null;
@@ -18,6 +19,7 @@ type Props = {
 
 export async function Header({ name, email, admin, locale, theme, dots }: Props) {
   const t = await getTranslations("header");
+  const tp = await getTranslations("platform.header");
   const firstName = name?.split(/[\s,]+/).find(Boolean);
 
   return (
@@ -30,6 +32,7 @@ export async function Header({ name, email, admin, locale, theme, dots }: Props)
         <div className="topbar">
           <Brand />
           <div className="topbar-actions">
+            <SearchButton label={tp("search")} noahLabel={tp("noah")} />
             <ThemeSwitch
               current={theme}
               labels={{ group: t("theme"), system: t("themeSystem"), light: t("themeLight"), dark: t("themeDark") }}
@@ -39,7 +42,7 @@ export async function Header({ name, email, admin, locale, theme, dots }: Props)
               name={name}
               email={email}
               admin={admin}
-              labels={{ account: t("account"), signOut: t("signOut"), admin: t("admin") }}
+              labels={{ account: t("account"), signOut: t("signOut"), admin: t("admin"), adminArea: tp("adminArea"), install: tp("install") }}
             />
           </div>
         </div>
