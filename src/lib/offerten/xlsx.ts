@@ -66,6 +66,10 @@ export async function renderQuoteXlsx(doc: QuoteDocument): Promise<Buffer> {
   }
   r++;
   ws.mergeCells(r, 1, r, 8);
+  ws.getCell(r, 1).value = doc.salutation;
+  ws.getCell(r, 1).font = { ...font, bold: true };
+  r++;
+  ws.mergeCells(r, 1, r, 8);
   ws.getCell(r, 1).value = doc.intro;
   ws.getCell(r, 1).alignment = { wrapText: true, vertical: "top" };
   ws.getRow(r).height = Math.max(30, Math.ceil(doc.intro.length / 140) * 16);
@@ -169,19 +173,34 @@ export async function renderQuoteXlsx(doc: QuoteDocument): Promise<Buffer> {
     }
     r++;
   }
-  ws.getCell(r, 1).value = L.terms;
-  ws.getCell(r, 1).font = { ...font, bold: true };
-  r++;
-  ws.mergeCells(r, 1, r, 8);
-  ws.getCell(r, 1).value = [doc.taxNote, doc.terms].join(" ");
-  ws.getCell(r, 1).alignment = { wrapText: true, vertical: "top" };
-  ws.getCell(r, 1).font = { ...font, size: 10, color: { argb: GREY } };
-  ws.getRow(r).height = Math.max(30, Math.ceil(doc.terms.length / 140) * 15);
-  r += 2;
   ws.mergeCells(r, 1, r, 8);
   ws.getCell(r, 1).value = doc.closing;
   ws.getCell(r, 1).alignment = { wrapText: true, vertical: "top" };
   ws.getRow(r).height = Math.max(20, Math.ceil(doc.closing.length / 140) * 16);
+  r += 2;
+  if (doc.assistant) {
+    ws.getCell(r, 1).value = L.questions;
+    ws.getCell(r, 1).font = { ...font, bold: true };
+    r++;
+    ws.mergeCells(r, 1, r, 8);
+    ws.getCell(r, 1).value = { text: `${doc.assistant.text} ${doc.assistant.phone}`, hyperlink: doc.assistant.link };
+    ws.getCell(r, 1).alignment = { wrapText: true };
+    r++;
+    if (doc.contact.name) {
+      ws.mergeCells(r, 1, r, 8);
+      ws.getCell(r, 1).value = `${doc.personalText} ${[doc.contact.phone, doc.contact.email].filter(Boolean).join(" · ")}`;
+      r++;
+    }
+    r++;
+  }
+  ws.getCell(r, 1).value = L.terms;
+  ws.getCell(r, 1).font = { ...font, bold: true };
+  r++;
+  ws.mergeCells(r, 1, r, 8);
+  ws.getCell(r, 1).value = (doc.reverseCharge ? [doc.taxNote, doc.terms] : [doc.terms]).join(" ");
+  ws.getCell(r, 1).alignment = { wrapText: true, vertical: "top" };
+  ws.getCell(r, 1).font = { ...font, size: 10, color: { argb: GREY } };
+  ws.getRow(r).height = Math.max(30, Math.ceil(doc.terms.length / 140) * 15);
   r += 2;
   const footer = [doc.issuer.company, ...doc.issuer.addressLines, doc.issuer.taxId, doc.issuer.website].filter(Boolean).join(" · ");
   if (footer) {

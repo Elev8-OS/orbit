@@ -1,9 +1,11 @@
 import path from "node:path";
-import { Document, Font, Page, Path, Svg, Text, View, StyleSheet, renderToBuffer } from "@react-pdf/renderer";
+import { Document, Font, Link, Page, Path, Svg, Text, View, StyleSheet, renderToBuffer } from "@react-pdf/renderer";
 import type { QuoteDocument } from "./document";
 
 /**
- * PDF-Ausgabe im Elev8-Look: Schwarz/Weiss, Elev8-Gelb als Akzent, Inter.
+ * PDF-Ausgabe im Elev8-Look: Schwarz/Weiss, Elev8-Gelb als Akzent, Inter, viel Weissraum.
+ * Seite 1 ist persönlich (Anrede, Einleitung, Gesprächspunkte), Seite 2 das Angebot mit Preisen,
+ * Kontakt für Fragen (Noah per WhatsApp) und ganz am Ende die Konditionen.
  * Die Schrift kommt aus @fontsource/inter (WOFF), damit Umlaute und Ziffern sauber gesetzt sind.
  */
 
@@ -26,61 +28,82 @@ function registerFonts() {
 
 const YELLOW = "#F6BB12";
 const INK = "#000000";
-const INK2 = "#262626";
+const INK2 = "#2B2B2B";
 const MUTED = "#6B6B6B";
-const LINE = "#E5E5E5";
-const SOFT = "#FAFAFA";
+const LINE = "#E6E6E6";
+const SOFT = "#F7F7F5";
 
 const s = StyleSheet.create({
-  page: { paddingTop: 40, paddingBottom: 64, paddingHorizontal: 44, fontFamily: "Inter", fontSize: 9.5, color: INK2, lineHeight: 1.45 },
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 28 },
-  docTitle: { fontSize: 22, fontWeight: 700, color: INK, textAlign: "right", letterSpacing: -0.4, lineHeight: 1.1 },
-  docNumber: { fontSize: 10, color: MUTED, textAlign: "right", marginTop: 4, lineHeight: 1.2 },
-  accent: { width: 36, height: 3, backgroundColor: YELLOW, marginBottom: 14 },
-  meta: { flexDirection: "row", justifyContent: "space-between", marginBottom: 22 },
-  metaLabel: { fontSize: 7.5, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 3 },
-  recipientName: { fontSize: 11, fontWeight: 600, color: INK },
-  metaRight: { width: 190 },
-  metaRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 2.5, borderBottomWidth: 0.5, borderBottomColor: LINE },
-  metaKey: { color: MUTED },
-  metaValue: { color: INK, fontWeight: 500, textAlign: "right", maxWidth: 120 },
-  paragraph: { marginBottom: 10, color: INK2, fontSize: 10 },
-  table: { marginTop: 8, marginBottom: 12 },
-  thead: { flexDirection: "row", borderBottomWidth: 1.2, borderBottomColor: INK, paddingBottom: 5, marginBottom: 2 },
-  th: { fontSize: 7, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: 0.3 },
-  row: { flexDirection: "row", paddingVertical: 7, borderBottomWidth: 0.5, borderBottomColor: LINE },
-  colItem: { flex: 1, paddingRight: 10 },
-  colQty: { width: 58, textAlign: "right" },
+  page: { paddingTop: 46, paddingBottom: 78, paddingHorizontal: 56, fontFamily: "Inter", fontSize: 10, color: INK2, lineHeight: 1.55 },
+  // Kopf
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  headerMeta: { alignItems: "flex-end" },
+  headerLabel: { fontSize: 7.5, fontWeight: 600, color: MUTED, letterSpacing: 1.2, textTransform: "uppercase" },
+  headerNumber: { fontSize: 9.5, color: INK, fontWeight: 500, marginTop: 2 },
+  // Titel
+  hero: { marginTop: 52, marginBottom: 34 },
+  heroBar: { width: 34, height: 3, backgroundColor: YELLOW, marginBottom: 16 },
+  heroKicker: { fontSize: 11, color: MUTED, marginBottom: 4 },
+  heroTitle: { fontSize: 26, fontWeight: 700, color: INK, letterSpacing: -0.5, lineHeight: 1.15 },
+  heroSub: { fontSize: 9.5, color: MUTED, marginTop: 10 },
+  // Für / Kontakt
+  parties: { flexDirection: "row", gap: 28, marginBottom: 40 },
+  party: { flex: 1, borderTopWidth: 1, borderTopColor: INK, paddingTop: 9 },
+  partyLabel: { fontSize: 7.5, fontWeight: 600, color: MUTED, letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 },
+  partyName: { fontSize: 10.5, fontWeight: 600, color: INK },
+  partyLine: { fontSize: 9.5, color: INK2 },
+  partyMuted: { fontSize: 9, color: MUTED },
+  // Brief
+  salutation: { fontSize: 11, color: INK, marginBottom: 12 },
+  paragraph: { fontSize: 10.5, color: INK2, lineHeight: 1.65, marginBottom: 11 },
+  sectionTitle: { fontSize: 13, fontWeight: 700, color: INK, letterSpacing: -0.2, marginBottom: 12 },
+  notes: { marginTop: 26 },
+  bullet: { flexDirection: "row", marginBottom: 8 },
+  bulletDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: YELLOW, marginTop: 5, marginRight: 10 },
+  bulletText: { flex: 1, fontSize: 10.5, lineHeight: 1.55 },
+  // Angebot
+  offerHead: { marginBottom: 22 },
+  offerTitle: { fontSize: 20, fontWeight: 700, color: INK, letterSpacing: -0.4, lineHeight: 1.25 },
+  offerSub: { fontSize: 9.5, color: MUTED, marginTop: 6 },
+  table: { marginBottom: 18 },
+  thead: { flexDirection: "row", borderBottomWidth: 1.2, borderBottomColor: INK, paddingBottom: 7 },
+  th: { fontSize: 7.5, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5 },
+  row: { flexDirection: "row", paddingVertical: 13, borderBottomWidth: 0.6, borderBottomColor: LINE },
+  colItem: { flex: 1, paddingRight: 14 },
+  colQty: { width: 54, textAlign: "right" },
   colPrice: { width: 72, textAlign: "right", paddingLeft: 6 },
-  colDisc: { width: 46, textAlign: "right", paddingLeft: 6 },
-  colInterval: { width: 66, textAlign: "right", paddingLeft: 8 },
-  colTotal: { width: 76, textAlign: "right", paddingLeft: 6 },
-  unitText: { color: MUTED, fontSize: 7.5, marginTop: 1, textAlign: "right" },
-  itemTitle: { fontWeight: 600, color: INK },
-  itemDetail: { color: MUTED, fontSize: 8.5, marginTop: 2 },
-  num: { color: INK2 },
-  totals: { alignSelf: "flex-end", width: 270, marginBottom: 18 },
-  totalRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 3.5, paddingHorizontal: 8 },
-  totalStrong: { backgroundColor: SOFT, borderLeftWidth: 2.5, borderLeftColor: YELLOW, marginTop: 2 },
-  totalLabel: { color: MUTED },
-  totalLabelStrong: { color: INK, fontWeight: 600 },
-  totalValue: { color: INK2 },
-  totalValueStrong: { color: INK, fontWeight: 700 },
-  section: { marginBottom: 12 },
-  sectionTitle: { fontSize: 8, fontWeight: 600, color: INK, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 4 },
-  small: { fontSize: 8.5, color: MUTED },
-  bullet: { flexDirection: "row", marginBottom: 2 },
-  bulletDot: { width: 10, color: YELLOW, fontWeight: 700 },
+  colDisc: { width: 44, textAlign: "right", paddingLeft: 6 },
+  colInterval: { width: 62, textAlign: "right", paddingLeft: 8 },
+  colTotal: { width: 92, textAlign: "right", paddingLeft: 12 },
+  unitText: { color: MUTED, fontSize: 7.5, marginTop: 2, textAlign: "right" },
+  itemTitle: { fontWeight: 600, color: INK, fontSize: 10.5 },
+  itemDetail: { color: MUTED, fontSize: 9, marginTop: 3, lineHeight: 1.5 },
+  num: { color: INK2, fontSize: 10 },
+  totals: { alignSelf: "flex-end", width: 290, marginBottom: 30 },
+  totalRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 5, paddingHorizontal: 12 },
+  totalStrong: { backgroundColor: SOFT, borderLeftWidth: 3, borderLeftColor: YELLOW, marginTop: 3, paddingVertical: 8 },
+  totalLabel: { color: MUTED, fontSize: 9.5 },
+  totalLabelStrong: { color: INK, fontWeight: 600, fontSize: 10 },
+  totalValue: { color: INK2, fontSize: 9.5 },
+  totalValueStrong: { color: INK, fontWeight: 700, fontSize: 10.5 },
+  // Fragen
+  questions: { backgroundColor: SOFT, borderLeftWidth: 3, borderLeftColor: YELLOW, paddingVertical: 16, paddingHorizontal: 18, marginTop: 8, marginBottom: 30 },
+  questionsTitle: { fontSize: 12, fontWeight: 700, color: INK, marginBottom: 8 },
+  questionsText: { fontSize: 10, color: INK2, lineHeight: 1.55 },
+  questionsPhone: { fontSize: 12, fontWeight: 700, color: INK, textDecoration: "none", marginTop: 3, marginBottom: 10 },
+  // Konditionen
+  terms: { borderTopWidth: 0.6, borderTopColor: LINE, paddingTop: 12 },
+  termsTitle: { fontSize: 7.5, fontWeight: 600, color: MUTED, letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 },
+  small: { fontSize: 8.5, color: MUTED, lineHeight: 1.5 },
+  taxStrong: { fontSize: 8.5, color: INK, fontWeight: 600, lineHeight: 1.5, marginBottom: 4 },
   footer: {
     position: "absolute",
-    bottom: 22,
-    left: 44,
-    right: 44,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    borderTopWidth: 0.5,
+    bottom: 28,
+    left: 56,
+    right: 56,
+    borderTopWidth: 0.6,
     borderTopColor: LINE,
-    paddingTop: 7,
+    paddingTop: 8,
     fontSize: 7.5,
     color: MUTED
   }
@@ -107,7 +130,7 @@ function Logo({ height = 26 }: { height?: number }) {
   );
 }
 
-function Paragraphs({ text, style }: { text: string; style: typeof s.paragraph }) {
+function Paragraphs({ text }: { text: string }) {
   return (
     <>
       {text
@@ -115,7 +138,7 @@ function Paragraphs({ text, style }: { text: string; style: typeof s.paragraph }
         .map((p) => p.trim())
         .filter(Boolean)
         .map((p, i) => (
-          <Text key={i} style={style}>
+          <Text key={i} style={s.paragraph}>
             {p}
           </Text>
         ))}
@@ -133,69 +156,84 @@ function QuotePdf({ doc }: { doc: QuoteDocument }) {
     .split("\n")
     .map((n) => n.replace(/^[-•*]\s*/, "").trim())
     .filter(Boolean);
+  const who = doc.recipient.company || doc.recipient.name;
 
   return (
     <Document title={`${L.document} ${doc.number}`} author={doc.issuer.company} creator="Elev8 Orbit" language={doc.lang}>
       <Page size="A4" style={s.page}>
         <View style={s.footer} fixed>
-          <View style={{ maxWidth: 400 }}>
-            {issuerLine ? <Text>{issuerLine}</Text> : null}
-            {contactLine ? <Text>{contactLine}</Text> : null}
-          </View>
+          {issuerLine ? <Text>{issuerLine}</Text> : null}
+          {contactLine ? <Text>{contactLine}</Text> : null}
         </View>
+
+        {/* ── Seite 1: persönlich ── */}
         <View style={s.header}>
-          <Logo />
-          <View>
-            <Text style={s.docTitle}>{L.document}</Text>
-            <Text style={s.docNumber}>{doc.number}</Text>
+          <Logo height={24} />
+          <View style={s.headerMeta}>
+            <Text style={s.headerLabel}>{L.document}</Text>
+            <Text style={s.headerNumber}>{doc.number}</Text>
           </View>
         </View>
 
-        <View style={s.meta}>
-          <View style={{ maxWidth: 250 }}>
-            <Text style={s.metaLabel}>{L.for}</Text>
-            {doc.recipient.company ? <Text style={s.recipientName}>{doc.recipient.company}</Text> : null}
+        <View style={s.hero}>
+          <View style={s.heroBar} />
+          {who ? <Text style={s.heroKicker}>{L.offerFor}</Text> : null}
+          <Text style={s.heroTitle}>{who || L.document}</Text>
+          <Text style={s.heroSub}>
+            {doc.number} · {doc.dateText} · {L.validShort} {doc.validUntilText}
+          </Text>
+        </View>
+
+        <View style={s.parties}>
+          <View style={s.party}>
+            <Text style={s.partyLabel}>{L.for}</Text>
+            {doc.recipient.company ? <Text style={s.partyName}>{doc.recipient.company}</Text> : null}
             {doc.recipient.name ? (
-              <Text style={doc.recipient.company ? undefined : s.recipientName}>{doc.recipient.name}</Text>
+              <Text style={doc.recipient.company ? s.partyLine : s.partyName}>{doc.recipient.name}</Text>
             ) : null}
             {doc.recipient.addressLines.map((line, i) => (
-              <Text key={i}>{line}</Text>
+              <Text key={i} style={s.partyLine}>
+                {line}
+              </Text>
             ))}
-            {doc.recipient.email ? <Text style={s.small}>{doc.recipient.email}</Text> : null}
+            {doc.recipient.email ? <Text style={s.partyMuted}>{doc.recipient.email}</Text> : null}
             {doc.customerVatId ? (
-              <Text style={s.small}>
+              <Text style={s.partyMuted}>
                 {L.customerVatId}: {doc.customerVatId}
               </Text>
             ) : null}
           </View>
-          <View style={s.metaRight}>
-            <View style={s.metaRow}>
-              <Text style={s.metaKey}>{L.number}</Text>
-              <Text style={s.metaValue}>{doc.number}</Text>
-            </View>
-            <View style={s.metaRow}>
-              <Text style={s.metaKey}>{L.date}</Text>
-              <Text style={s.metaValue}>{doc.dateText}</Text>
-            </View>
-            <View style={s.metaRow}>
-              <Text style={s.metaKey}>{L.validUntil}</Text>
-              <Text style={s.metaValue}>{doc.validUntilText}</Text>
-            </View>
-            {doc.contact.name || doc.contact.email ? (
-              <View style={s.metaRow}>
-                <Text style={s.metaKey}>{L.contact}</Text>
-                <View>
-                  {doc.contact.name ? <Text style={s.metaValue}>{doc.contact.name}</Text> : null}
-                  {doc.contact.email ? <Text style={[s.metaValue, s.small]}>{doc.contact.email}</Text> : null}
-                  {doc.contact.phone ? <Text style={[s.metaValue, s.small]}>{doc.contact.phone}</Text> : null}
-                </View>
-              </View>
-            ) : null}
+          <View style={s.party}>
+            <Text style={s.partyLabel}>{L.contact}</Text>
+            {doc.contact.name ? <Text style={s.partyName}>{doc.contact.name}</Text> : null}
+            {doc.contact.phone ? <Text style={s.partyLine}>{doc.contact.phone}</Text> : null}
+            {doc.contact.email ? <Text style={s.partyMuted}>{doc.contact.email}</Text> : null}
           </View>
         </View>
 
-        <View style={s.accent} />
-        <Paragraphs text={doc.intro} style={s.paragraph} />
+        <Text style={s.salutation}>{doc.salutation}</Text>
+        <Paragraphs text={doc.intro} />
+
+        {notes.length ? (
+          <View style={s.notes} wrap={false}>
+            <Text style={s.sectionTitle}>{L.notes}</Text>
+            {notes.map((n, i) => (
+              <View key={i} style={s.bullet}>
+                <View style={s.bulletDot} />
+                <Text style={s.bulletText}>{n}</Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
+
+        {/* ── Seite 2: Angebot ── */}
+        <View break style={s.offerHead}>
+          <View style={s.heroBar} />
+          <Text style={s.offerTitle}>{doc.offerHeading}</Text>
+          <Text style={s.offerSub}>
+            {doc.number} · {L.validShort} {doc.validUntilText}
+          </Text>
+        </View>
 
         <View style={s.table}>
           <View style={s.thead} fixed>
@@ -233,28 +271,32 @@ function QuotePdf({ doc }: { doc: QuoteDocument }) {
           ))}
         </View>
 
-        {notes.length ? (
-          <View style={s.section} wrap={false}>
-            <Text style={s.sectionTitle}>{L.notes}</Text>
-            {notes.map((n, i) => (
-              <View key={i} style={s.bullet}>
-                <Text style={s.bulletDot}>•</Text>
-                <Text style={{ flex: 1 }}>{n}</Text>
-              </View>
-            ))}
+        <Paragraphs text={doc.closing} />
+
+        {doc.assistant || doc.contact.name ? (
+          <View style={s.questions} wrap={false}>
+            <Text style={s.questionsTitle}>{L.questions}</Text>
+            {doc.assistant ? (
+              <>
+                <Text style={s.questionsText}>{doc.assistant.text}</Text>
+                <Link src={doc.assistant.link} style={s.questionsPhone}>
+                  {doc.assistant.phone}
+                </Link>
+              </>
+            ) : null}
+            {doc.contact.name ? (
+              <Text style={s.questionsText}>
+                {doc.personalText} {[doc.contact.phone, doc.contact.email].filter(Boolean).join(" · ")}
+              </Text>
+            ) : null}
           </View>
         ) : null}
 
-        <View style={s.section} wrap={false}>
-          <Text style={s.sectionTitle}>{L.terms}</Text>
-          <Text style={doc.reverseCharge ? [s.small, { color: INK, fontWeight: 600, marginBottom: 3 }] : [s.small, { marginBottom: 3 }]}>
-            {doc.taxNote}
-          </Text>
+        <View style={s.terms} wrap={false}>
+          <Text style={s.termsTitle}>{L.terms}</Text>
+          {doc.reverseCharge ? <Text style={s.taxStrong}>{doc.taxNote}</Text> : null}
           <Text style={s.small}>{doc.terms}</Text>
         </View>
-
-        <Paragraphs text={doc.closing} style={s.paragraph} />
-
       </Page>
     </Document>
   );
