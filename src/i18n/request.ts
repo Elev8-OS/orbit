@@ -41,7 +41,8 @@ export default getRequestConfig(async () => {
     // an einer App die gemeinsamen Dateien nicht berühren
     messages: {
       ...(await import(`../../messages/${locale}.json`)).default,
-      sales: (await import(`../../messages/sales/${locale}.json`)).default
+      sales: (await import(`../../messages/sales/${locale}.json`)).default,
+      platform: (await import(`../../messages/platform/${locale}.json`)).default
     }
   };
 });

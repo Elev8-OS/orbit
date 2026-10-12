@@ -42,6 +42,9 @@ categories:
   - id: support
     name: { de: Kundensupport, en: Customer support }
     color: "#C8A84B"
+  - id: customers
+    name: { de: Kunden, en: Customers }
+    color: "#F6BB12"
 
 apps:
   # Elev8 Reporting Tool – öffnet als Tab in Orbit. Anmeldung über den Orbit-Pass,
@@ -140,6 +143,37 @@ apps:
     icon: ListChecks
     category: revenue
     roles: [App.OtaQA, App.OtaQA.Reviewer, App.OtaQA.Admin]
+    requestableBy: [Orbit.Staff]
+    embed: true
+    enabled: false
+
+  # Kunden-360 – direkt in Orbit gebaut (/kunden). Alles zu einem Kunden auf einer Seite: GHL, Calls, Offerten
+  # und was andere Apps über ihre Kunden-Schnittstelle liefern. Rollen: KUNDEN_ROLES (Standard App.Kunden
+  # sowie die Sales- und Offerten-Rollen). Siehe docs/PLATTFORM.md.
+  - id: kunden
+    name: { de: Kunden, en: Customers }
+    description:
+      de: Alles zu einem Kunden auf einer Seite – Gespräche, Offerten, Calls, Aufgaben, Support und ein Briefing von Noah.
+      en: Everything about a customer on one page – conversations, offers, calls, tasks, support and a briefing from Noah.
+    url: https://myorbit.elev8-suite.com/kunden
+    icon: Building2
+    category: customers
+    roles: [App.Kunden, App.Sales, App.Sales.Admin, App.Offerten, App.Offerten.Admin]
+    requestableBy: [Orbit.Staff]
+    embed: true
+
+  # E-Mail-Assistent (Moneypenny für alle) – direkt in Orbit gebaut (/assistent). Jede Person verbindet ihr eigenes
+  # Postfach; Noah sortiert neue E-Mails und legt Antwortentwürfe in Outlook an. Erst aktivieren, wenn die
+  # Einrichtung in Entra erledigt ist und ASSISTENT_ENABLED=true gesetzt ist (docs/PLATTFORM.md).
+  - id: assistent
+    name: { de: E-Mail-Assistent, en: Email assistant }
+    description:
+      de: Noah sortiert deinen Posteingang und schreibt Antwortentwürfe in deinem Stil. Gesendet wird nur, was du freigibst.
+      en: Noah sorts your inbox and writes reply drafts in your style. Only what you approve gets sent.
+    url: https://myorbit.elev8-suite.com/assistent
+    icon: Mail
+    category: internal
+    roles: [App.Assistent, Orbit.Staff]
     requestableBy: [Orbit.Staff]
     embed: true
     enabled: false

@@ -6,6 +6,7 @@ import { ThemeSwitch } from "./ThemeSwitch";
 import type { Theme } from "@/lib/prefs";
 import { OrbitRing } from "./OrbitRing";
 import { UserMenu } from "./UserMenu";
+import { SearchButton } from "./platform/SearchButton";
 import { Pulse } from "./Pulse";
 import "./hero.css";
 
@@ -22,6 +23,7 @@ type Props = {
 // darunter Begrüssung, drei wählbare Kennzahlen und "Für dich" als ruhige Typografie ohne Boxen.
 export async function Header({ name, email, admin, locale, theme, dots }: Props) {
   const t = await getTranslations("header");
+  const tp = await getTranslations("platform.header");
   const firstName = name?.split(/[\s,]+/).find(Boolean);
   const today = new Date().toLocaleDateString(locale === "en" ? "en-GB" : "de-CH", {
     weekday: "long",
@@ -47,6 +49,7 @@ export async function Header({ name, email, admin, locale, theme, dots }: Props)
             <OrbitRing dots={dots} />
           </div>
           <div className="topbar-actions">
+            <SearchButton label={tp("search")} noahLabel={tp("noah")} />
             <ThemeSwitch
               current={theme}
               labels={{ group: t("theme"), system: t("themeSystem"), light: t("themeLight"), dark: t("themeDark") }}
@@ -56,7 +59,7 @@ export async function Header({ name, email, admin, locale, theme, dots }: Props)
               name={name}
               email={email}
               admin={admin}
-              labels={{ account: t("account"), signOut: t("signOut"), admin: t("admin") }}
+              labels={{ account: t("account"), signOut: t("signOut"), admin: t("admin"), adminArea: tp("adminArea"), install: tp("install") }}
             />
           </div>
         </div>

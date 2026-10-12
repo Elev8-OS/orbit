@@ -34,7 +34,15 @@ export const appSchema = z.object({
   embed: z.boolean().default(true),
   // Wer diese App über "Zugriff anfragen" anfragen darf (App Roles, "*" = alle angemeldeten User).
   // Leer = App taucht in der Anfrageliste nicht auf, ihr Name bleibt für andere unsichtbar.
-  requestableBy: z.array(z.string().min(1)).default([])
+  requestableBy: z.array(z.string().min(1)).default([]),
+  // Schnittstellen für „Mein Tag“, die Suche und Kunden-360 (siehe docs/INTEGRATION.md). Alle optional.
+  integrations: z
+    .object({
+      today: z.string().url().optional(),
+      customer: z.string().url().optional(),
+      search: z.string().url().optional()
+    })
+    .default({})
 });
 
 export const appsConfigSchema = z

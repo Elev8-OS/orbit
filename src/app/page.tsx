@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { getLocale, getTranslations } from "next-intl/server";
@@ -15,6 +16,8 @@ import { WelcomeIntro } from "@/components/WelcomeIntro";
 import { OrbitShell, type ShellApp } from "@/components/OrbitShell";
 import { cookies } from "next/headers";
 import { THEME_COOKIE, isTheme } from "@/lib/prefs";
+import { MyDay, MyDaySkeleton } from "@/components/platform/MyDay";
+import { touchUser } from "@/lib/platform/directory";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +36,7 @@ export default async function HomePage({
 
   const config = await loadAppsConfig();
   const apps = visibleApps(config, roles);
+  after(() => touchUser({ id: user.id, name: user.name, email: user.email, roles }).catch((err) => console.error("Verzeichnis:", err)));
 
   // Einstellungen laden; beim allerersten Besuch User mit Start-Reihenfolge anlegen
   let firstVisit = false;
@@ -117,6 +121,14 @@ export default async function HomePage({
         )}
         <Header name={user.name ?? null} email={user.email ?? null} admin={isAdmin(roles)} locale={locale} theme={theme} dots={dots} />
         <main className="main" id="main">
+          {process.env.ORBIT_MY_DAY !== "false" && (
+            <Suspense fallback={<MyDaySkeleton />}>
+              <MyDay
+                user={{ id: user.id, name: user.name || user.email || "Elev8", email: (user.email ?? "").toLowerCase(), roles, admin: isAdmin(roles) }}
+                locale={locale}
+              />
+            </Suspense>
+          )}
           <Dashboard
             tiles={tiles}
             categories={categories}
