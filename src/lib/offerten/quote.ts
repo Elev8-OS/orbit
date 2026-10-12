@@ -322,7 +322,23 @@ export const DOC_LABELS = {
     assistantDu: "{name}, unser Sales-Assistent, beantwortet deine Fragen rund um die Uhr per WhatsApp:",
     personal: "Persönlich erreichen Sie {name}:",
     personalDu: "Persönlich erreichst du {name}:",
-    validShort: "gültig bis"
+    validShort: "gültig bis",
+    factPackage: "Paket",
+    factInvestment: "Investition im ersten Jahr",
+    factValid: "Gültig bis",
+    highlights: "Aus unserem Gespräch",
+    nextSteps: "So geht es weiter",
+    step1Title: "Angebot bestätigen",
+    step1: "Antworten Sie auf unsere E-Mail oder schreiben Sie Noah per WhatsApp.",
+    step1Du: "Antworte auf unsere E-Mail oder schreib Noah per WhatsApp.",
+    step2Title: "Gemeinsam einrichten",
+    step2: "Wir richten die Elev8 Suite mit Ihnen ein und binden Ihre Kanäle an.",
+    step2Du: "Wir richten die Elev8 Suite mit dir ein und binden deine Kanäle an.",
+    step3Title: "Starten",
+    step3: "Ihr Team und Ihre Gäste arbeiten ab dem ersten Tag mit der Suite.",
+    step3Du: "Dein Team und deine Gäste arbeiten ab dem ersten Tag mit der Suite.",
+    whatsappCta: "WhatsApp an {name}",
+    available: "rund um die Uhr erreichbar"
   },
   en: {
     document: "Offer",
@@ -361,6 +377,22 @@ export const DOC_LABELS = {
     assistantDu: "{name}, our sales assistant, answers your questions around the clock on WhatsApp:",
     personal: "To reach {name} personally:",
     personalDu: "To reach {name} personally:",
-    validShort: "valid until"
+    validShort: "valid until",
+    factPackage: "Package",
+    factInvestment: "Investment in the first year",
+    factValid: "Valid until",
+    highlights: "From our conversation",
+    nextSteps: "Next steps",
+    step1Title: "Confirm the offer",
+    step1: "Reply to our email or message Noah on WhatsApp.",
+    step1Du: "Reply to our email or message Noah on WhatsApp.",
+    step2Title: "Set up together",
+    step2: "We set up the Elev8 Suite with you and connect your channels.",
+    step2Du: "We set up the Elev8 Suite with you and connect your channels.",
+    step3Title: "Go live",
+    step3: "Your team and your guests work with the Suite from day one.",
+    step3Du: "Your team and your guests work with the Suite from day one.",
+    whatsappCta: "WhatsApp {name}",
+    available: "available around the clock"
   }
 } as const;
