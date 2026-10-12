@@ -85,6 +85,20 @@ apps:
     requestableBy: [Orbit.Staff]
     embed: true
 
+  # Sales – direkt in Orbit gebaut (/sales). Termine, Follow-ups und Pipeline des eigenen GHL-Users,
+  # live aus GHL gelesen und dorthin zurückgeschrieben. Calls kommen aus dem Fireflies-Webhook der Offerten.
+  - id: sales
+    name: { de: Sales, en: Sales }
+    description:
+      de: Deine Termine, fälligen Follow-ups, Gespräche ohne nächsten Schritt und deine Pipeline aus GHL.
+      en: Your meetings, due follow-ups, calls without a next step and your pipeline from GHL.
+    url: https://myorbit.elev8-suite.com/sales
+    icon: Target
+    category: sales
+    roles: [App.Sales, App.Sales.Admin]
+    requestableBy: [Orbit.Staff]
+    embed: true
+
   # Lead Bot – WhatsApp-Leads mit Claude qualifizieren und zur Demo führen (Repo whatsapp_lead_converter,
   # Railway-Dienst lead-bot). Öffnet als Tab, Anmeldung über den Orbit-Pass.
   - id: lead-bot
