@@ -2,6 +2,15 @@
   "app": "support-bot",
   "changelog": [
     {
+      "version": "1.2",
+      "date": "2026-10-12",
+      "title": { "de": "Deutsch und Englisch", "en": "German and English" },
+      "changes": [
+        { "de": "Das Dashboard zeigt die Sprache, die du in Orbit gewählt hast.", "en": "The dashboard shows the language you chose in Orbit." },
+        { "de": "Datum und Zahlen erscheinen im Schweizer Format, z.B. 12.10.26 und 20'145.", "en": "Dates and numbers follow your language, e.g. 12/10/26 and 20,145." }
+      ]
+    },
+    {
       "version": "1.1",
       "date": "2026-10-12",
       "title": { "de": "Neues Design", "en": "New design" },
