@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { useTranslations } from "next-intl";
 import { Info, LayoutGrid, RotateCw, X } from "lucide-react";
 import { InfoPanel, hasUnseen, loadMeta } from "./InfoPanel";
+import "./tabbar-dnd.css";
 import { PREFS_EVENT, type PrefsDetail, type Theme } from "@/lib/prefs";
 
 export type ShellApp = {
@@ -75,6 +76,8 @@ export function OrbitShell({ apps, initialApp, initialPath, locale, theme, child
   const lastReauth = useRef<Record<string, number>>({});
   const prefs = useRef<{ locale: string; theme: Theme }>({ locale, theme });
   const [infoOpen, setInfoOpen] = useState(false);
+  const dragId = useRef<string | null>(null);
+  const [dragging, setDragging] = useState<string | null>(null);
   const [infoNews, setInfoNews] = useState(false);
 
   // ── Sprache und Darstellung an alle offenen Tools weitergeben ──────────
@@ -170,6 +173,20 @@ export function OrbitShell({ apps, initialApp, initialPath, locale, theme, child
   const reloadTab = useCallback((id: string) => {
     setLoading((prev) => ({ ...prev, [id]: true }));
     setReloadKey((prev) => ({ ...prev, [id]: (prev[id] ?? 0) + 1 }));
+  }, []);
+
+  // Tabs umsortieren (Drag & Drop oder Alt+Pfeiltaste). Nur die Reihenfolge der Tabs ändert sich,
+  // die App-Fenster bleiben im Seitenaufbau stehen, damit keine App neu lädt.
+  const moveTab = useCallback((id: string, target: string | number) => {
+    setTabs((prev) => {
+      const from = prev.indexOf(id);
+      const to = typeof target === "number" ? target : prev.indexOf(target);
+      if (from < 0 || to < 0 || to >= prev.length || from === to) return prev;
+      const next = [...prev];
+      next.splice(from, 1);
+      next.splice(to, 0, id);
+      return next;
+    });
   }, []);
 
   // Beim Laden: geöffnete Tabs dieser Browser-Sitzung wiederherstellen, dann ?app= öffnen
@@ -268,14 +285,43 @@ export function OrbitShell({ apps, initialApp, initialPath, locale, theme, child
             {tabs.map((id) => {
               const app = byId.get(id)!;
               return (
-                <div key={id} className={`tab-wrap${active === id ? " is-active" : ""}`} style={{ "--tile-color": app.color } as CSSProperties}>
+                <div
+                  key={id}
+                  className={`tab-wrap${active === id ? " is-active" : ""}${dragging === id ? " is-dragging" : ""}`}
+                  style={{ "--tile-color": app.color } as CSSProperties}
+                  draggable
+                  onDragStart={(e) => {
+                    dragId.current = id;
+                    setDragging(id);
+                    e.dataTransfer.effectAllowed = "move";
+                    e.dataTransfer.setData("text/plain", id);
+                  }}
+                  onDragOver={(e) => {
+                    if (!dragId.current) return;
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = "move";
+                    if (dragId.current !== id) moveTab(dragId.current, id);
+                  }}
+                  onDrop={(e) => e.preventDefault()}
+                  onDragEnd={() => {
+                    dragId.current = null;
+                    setDragging(null);
+                  }}
+                >
                   <button
                     type="button"
                     role="tab"
                     aria-selected={active === id}
                     aria-controls={`frame-${id}`}
+                    aria-keyshortcuts="Alt+ArrowLeft Alt+ArrowRight"
+                    title={locale === "en" ? "Drag to reorder (Alt + ← / →)" : "Ziehen zum Verschieben (Alt + ← / →)"}
                     className="tab"
                     onClick={() => openApp(id)}
+                    onKeyDown={(e) => {
+                      if (!e.altKey || (e.key !== "ArrowLeft" && e.key !== "ArrowRight")) return;
+                      e.preventDefault();
+                      moveTab(id, tabs.indexOf(id) + (e.key === "ArrowLeft" ? -1 : 1));
+                    }}
                   >
                     <span className="tab-icon" aria-hidden="true">{app.icon}</span>
                     <span className="tab-label">{app.name}</span>
@@ -314,7 +360,7 @@ export function OrbitShell({ apps, initialApp, initialPath, locale, theme, child
         <div className={`stage${active ? " is-visible" : ""}${tabs.length ? " has-tabbar" : ""}`}>
           {passError && active && <p className="stage-error" role="alert">{t("passError")}</p>}
           {passReady &&
-            tabs.map((id) => {
+            [...tabs].sort().map((id) => {
               const app = byId.get(id)!;
               return (
                 <div key={id} className="frame-wrap" hidden={active !== id}>
