@@ -37,7 +37,7 @@ export async function GET(req: Request) {
         return {
           app: app.id,
           name: app.name,
-          metrics: Array.isArray(data.metrics) ? data.metrics.slice(0, 4) : [],
+          metrics: Array.isArray(data.metrics) ? data.metrics.slice(0, 8) : [],
           actions: Array.isArray(data.actions) ? data.actions.slice(0, 5) : []
         };
       } catch {

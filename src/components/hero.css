@@ -1,27 +1,21 @@
-/* Kopf der Übersicht: Marke als Hauptträger, darunter Begrüssung, Puls und "Für dich" */
-.sky-v2 .sky-inner { padding-bottom: clamp(1.75rem, 3vw, 2.25rem); }
-.sky-v2 .topbar { justify-content: flex-end; }
-
-.hero-v2 {
-  position: relative;
-  z-index: 1;
-  margin-top: clamp(0.5rem, 2vw, 1.25rem);
-  max-width: 46rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-}
+/* Kopf der Übersicht: Elev8 | Orbit oben links, darunter Begrüssung und eine Reihe mit
+   drei wählbaren Kennzahlen und "Für dich". Kompakt, damit die Kacheln früh ins Bild kommen. */
+.sky-v2 { overflow: visible; z-index: 5; }
+.sky-clip { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.sky-v2 .sky-inner { padding-top: 1.5rem; padding-bottom: clamp(1.5rem, 3vw, 2rem); }
+.sky-v2 .topbar { align-items: center; }
 
 /* Marke: Elev8-Wortmarke mit Krone | Orbit */
 .hero-brand {
   display: flex;
   align-items: center;
-  gap: clamp(1rem, 2.5vw, 1.75rem);
+  gap: clamp(0.875rem, 2vw, 1.5rem);
   margin: 0;
   color: var(--sky-ink);
+  min-width: 0;
 }
 .hero-brand .elev8-logo {
-  height: clamp(2.5rem, 5vw, 3.75rem);
+  height: clamp(2.25rem, 4.2vw, 3.25rem);
   width: auto;
   flex-shrink: 0;
 }
@@ -32,109 +26,193 @@
   background: rgba(255, 255, 255, 0.28);
 }
 .hero-product {
-  font-size: clamp(2.75rem, 6.5vw, 4.75rem);
+  font-size: clamp(2.5rem, 5.5vw, 4rem);
   line-height: 0.9;
   font-weight: 700;
   letter-spacing: -0.045em;
 }
+
+.hero-v2 {
+  position: relative;
+  z-index: 1;
+  margin-top: 1.25rem;
+  max-width: none;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
 .hero-greeting {
-  margin: -0.5rem 0 0;
+  margin: 0;
   font-size: 1.0625rem;
   line-height: 1.5;
   color: var(--sky-muted);
 }
 .hero-greeting strong { color: var(--sky-ink); font-weight: 600; }
 
-/* Puls: drei Kennzahlen */
-.pulse {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+/* Eine Reihe: drei Kennzahlen + "Für dich" */
+.hero-board {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(0, 1.6fr);
   gap: 0.75rem;
 }
-.pulse-item {
+.pulse-tile,
+.foryou-card {
+  position: relative;
+  min-height: 6.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 16px;
+  background: rgba(17, 17, 17, 0.72);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  transition: border-color 150ms ease, background 150ms ease;
+}
+.pulse-tile:hover,
+.pulse-tile:focus-within { border-color: rgba(246, 187, 18, 0.55); background: rgba(28, 28, 28, 0.8); }
+.pulse-tile.is-loading,
+.foryou-card.is-loading { animation: pulse-wait 1.4s ease-in-out infinite; }
+@keyframes pulse-wait { 50% { opacity: 0.45; } }
+@media (prefers-reduced-motion: reduce) {
+  .pulse-tile.is-loading, .foryou-card.is-loading { animation: none; }
+}
+
+/* Kennzahl: ganze Fläche öffnet die App, Pfeil oben rechts wählt die Kennzahl */
+.pulse-open {
   width: 100%;
-  min-height: 5.25rem;
+  height: 100%;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 0.25rem;
-  padding: 0.875rem 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.04);
+  padding: 0.875rem 2.75rem 0.875rem 1rem;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
   color: var(--sky-ink);
   font: inherit;
   text-align: left;
   cursor: pointer;
-  transition: background 150ms ease, border-color 150ms ease;
 }
-.pulse-item:hover { background: rgba(255, 255, 255, 0.08); border-color: rgba(246, 187, 18, 0.55); }
-.pulse-label {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--sky-muted);
-}
-.pulse-arrow { opacity: 0; transition: opacity 150ms ease; color: var(--yellow); }
-.pulse-item:hover .pulse-arrow, .pulse-item:focus-visible .pulse-arrow { opacity: 1; }
+.pulse-label { font-size: 0.75rem; font-weight: 500; color: var(--sky-muted); }
 .pulse-value {
   font-size: 1.75rem;
   line-height: 2rem;
   font-weight: 650;
   letter-spacing: -0.025em;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 .pulse-detail { font-size: 0.8125rem; color: var(--sky-muted); }
-.pulse-item.is-loading {
-  cursor: default;
-  animation: pulse-wait 1.4s ease-in-out infinite;
+.pulse-arrow {
+  position: absolute;
+  right: 0.875rem;
+  bottom: 0.875rem;
+  color: var(--yellow);
+  opacity: 0;
+  transition: opacity 150ms ease;
 }
-@keyframes pulse-wait { 50% { opacity: 0.45; } }
-@media (prefers-reduced-motion: reduce) {
-  .pulse-item.is-loading { animation: none; }
+.pulse-open:hover .pulse-arrow, .pulse-open:focus-visible .pulse-arrow { opacity: 1; }
+.pulse-pick {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  width: 2rem;
+  height: 2rem;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--sky-muted);
+  cursor: pointer;
 }
+.pulse-pick:hover, .pulse-pick[aria-expanded="true"] { background: rgba(255, 255, 255, 0.1); color: var(--sky-ink); }
 
-/* Für dich: bis zu drei offene Punkte */
+/* Auswahlmenü: alle Kennzahlen aus Apps mit Berechtigung, nach App gruppiert */
+.pulse-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 30;
+  width: max(100%, 18rem);
+  max-height: 22rem;
+  overflow-y: auto;
+  padding: 0.375rem;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-lift);
+}
+.pulse-menu-group {
+  padding: 0.625rem 0.625rem 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+.pulse-menu-item {
+  width: 100%;
+  min-height: 2.5rem;
+  display: grid;
+  grid-template-columns: 1rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 0.625rem;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.875rem;
+  text-align: left;
+  cursor: pointer;
+}
+.pulse-menu-item:hover { background: var(--surface-2); }
+.pulse-menu-item[aria-selected="true"] { font-weight: 600; }
+.pulse-menu-check { color: var(--yellow-ink); display: grid; place-items: center; }
+.pulse-menu-value { font-size: 0.8125rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* Für dich: bis zu drei offene Punkte, jeder klickbar */
+.foryou-card { padding: 0.75rem 0.5rem 0.5rem; }
 .foryou-title {
   margin: 0 0 0.25rem;
+  padding: 0 0.5rem;
   font-size: 0.75rem;
   font-weight: 500;
   color: var(--sky-muted);
 }
-.foryou ul { list-style: none; margin: 0; padding: 0; }
+.foryou-card ul { list-style: none; margin: 0; padding: 0; }
 .foryou-item {
-  width: calc(100% + 1.5rem);
-  min-height: 2.25rem;
-  margin: 0 -0.75rem;
-  padding: 0.375rem 0.75rem;
+  width: 100%;
+  min-height: 1.875rem;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.625rem;
+  padding: 0.25rem 0.5rem;
   border: 0;
-  border-radius: 10px;
+  border-radius: 8px;
   background: transparent;
   color: var(--sky-ink);
   font: inherit;
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   text-align: left;
   cursor: pointer;
 }
-.foryou-item:hover { background: rgba(255, 255, 255, 0.06); }
-.foryou-dot { width: 8px; height: 8px; border-radius: 999px; background: var(--yellow); }
+.foryou-item:hover { background: rgba(255, 255, 255, 0.08); }
+.foryou-dot { width: 7px; height: 7px; border-radius: 999px; background: var(--yellow); }
 .foryou-dot.tone-red { background: #fda29b; }
 .foryou-dot.tone-amber { background: #fec84b; }
 .foryou-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.foryou-app { font-size: 0.75rem; color: var(--sky-muted); }
+.foryou-arrow { color: var(--yellow); opacity: 0; transition: opacity 150ms ease; }
+.foryou-item:hover .foryou-arrow, .foryou-item:focus-visible .foryou-arrow { opacity: 1; }
+.foryou-empty { margin: 0; padding: 0.25rem 0.5rem; font-size: 0.875rem; color: var(--sky-muted); }
 
+@media (max-width: 1080px) {
+  .hero-board { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .foryou-card { grid-column: 1 / -1; min-height: 0; }
+}
 @media (max-width: 720px) {
-  .pulse { grid-template-columns: 1fr; }
-  .pulse-item { min-height: 0; }
-  .foryou-app { display: none; }
+  .sky-v2 .topbar { flex-wrap: wrap; }
+  .hero-board { grid-template-columns: 1fr; }
+  .pulse-tile { min-height: 0; }
 }

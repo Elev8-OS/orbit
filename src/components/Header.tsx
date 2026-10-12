@@ -18,7 +18,8 @@ type Props = {
   dots: string[];
 };
 
-// Kopf der Übersicht: Elev8 | Orbit als Hauptträger, darunter Begrüssung, Puls und "Für dich".
+// Kopf der Übersicht: Elev8 | Orbit als Hauptträger in der obersten Zeile, darunter Begrüssung,
+// drei wählbare Kennzahlen und "Für dich" in einer Reihe.
 export async function Header({ name, email, admin, locale, theme, dots }: Props) {
   const t = await getTranslations("header");
   const firstName = name?.split(/[\s,]+/).find(Boolean);
@@ -34,9 +35,17 @@ export async function Header({ name, email, admin, locale, theme, dots }: Props)
       <a href="#main" className="skip-link">
         {t("skip")}
       </a>
-      <OrbitRing dots={dots} className="sky-ring" />
+      {/* Die Umlaufbahn wird hier abgeschnitten, damit das Auswahlmenü der Kennzahlen über den Rand ragen darf */}
+      <div className="sky-clip" aria-hidden="true">
+        <OrbitRing dots={dots} className="sky-ring" />
+      </div>
       <div className="sky-inner">
         <div className="topbar">
+          <h1 className="hero-brand">
+            <Elev8Logo height={60} title="Elev8" />
+            <span className="hero-divider" aria-hidden="true" />
+            <span className="hero-product">Orbit</span>
+          </h1>
           <div className="topbar-actions">
             <ThemeSwitch
               current={theme}
@@ -52,11 +61,6 @@ export async function Header({ name, email, admin, locale, theme, dots }: Props)
           </div>
         </div>
         <div className="hero hero-v2">
-          <h1 className="hero-brand">
-            <Elev8Logo height={60} title="Elev8" />
-            <span className="hero-divider" aria-hidden="true" />
-            <span className="hero-product">Orbit</span>
-          </h1>
           <p className="hero-greeting">
             <strong>{firstName ? t("greeting", { name: firstName }) : t("greetingFallback")}</strong> · {today}
           </p>
