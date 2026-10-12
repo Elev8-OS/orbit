@@ -41,14 +41,14 @@ const s = StyleSheet.create({
   page: { paddingTop: 0, paddingBottom: 64, fontFamily: "Inter", fontSize: 10, color: INK2, lineHeight: 1.55 },
   body: { paddingHorizontal: PAD },
   // Deckblatt
-  band: { backgroundColor: DARK, paddingHorizontal: PAD, paddingTop: 30, paddingBottom: 30 },
-  bandTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 30 },
+  band: { backgroundColor: DARK, paddingHorizontal: PAD, paddingTop: 20, paddingBottom: 18 },
+  bandTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 14 },
   bandMeta: { alignItems: "flex-end" },
   bandLabel: { fontSize: 7.5, fontWeight: 600, color: DARK_MUTED, letterSpacing: 1.4, textTransform: "uppercase" },
   bandNumber: { fontSize: 9.5, color: "#FFFFFF", fontWeight: 500, marginTop: 3 },
   bandBar: { width: 34, height: 3, backgroundColor: YELLOW, marginBottom: 14 },
-  bandKicker: { fontSize: 11, color: DARK_MUTED, marginBottom: 6 },
-  bandTitle: { fontSize: 28, fontWeight: 700, color: "#FFFFFF", letterSpacing: -0.6, lineHeight: 1.12 },
+  bandKicker: { fontSize: 9.5, color: DARK_MUTED, marginBottom: 2 },
+  bandTitle: { fontSize: 21, fontWeight: 700, color: "#FFFFFF", letterSpacing: -0.4, lineHeight: 1.15 },
   // Eckdaten
   facts: { flexDirection: "row", marginHorizontal: PAD, marginTop: -1, backgroundColor: YELLOW },
   fact: { flex: 1, paddingVertical: 11, paddingHorizontal: 14 },
@@ -57,7 +57,7 @@ const s = StyleSheet.create({
   factValue: { fontSize: 12.5, fontWeight: 700, color: INK, lineHeight: 1.2 },
   factSub: { fontSize: 8, color: "#3A2E00", marginTop: 2 },
   // Parteien
-  parties: { flexDirection: "row", gap: 28, marginTop: 22, marginBottom: 20 },
+  parties: { flexDirection: "row", gap: 28, marginTop: 24, marginBottom: 22 },
   party: { flex: 1 },
   partyLabel: { fontSize: 7.5, fontWeight: 600, color: MUTED, letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 },
   partyName: { fontSize: 10.5, fontWeight: 600, color: INK },
@@ -114,8 +114,6 @@ const s = StyleSheet.create({
   questionsMain: { flex: 1, paddingRight: 16 },
   questionsTitle: { fontSize: 13, fontWeight: 700, color: "#FFFFFF", marginBottom: 5 },
   questionsText: { fontSize: 9.5, color: DARK_MUTED, lineHeight: 1.5 },
-  questionsPersonal: { fontSize: 8.5, color: DARK_MUTED, marginTop: 8 },
-  questionsPersonalStrong: { color: "#FFFFFF", fontWeight: 600 },
   waBox: { backgroundColor: YELLOW, paddingVertical: 10, paddingHorizontal: 14, textDecoration: "none" },
   waLabel: { fontSize: 7, fontWeight: 700, color: "#3A2E00", letterSpacing: 0.9, textTransform: "uppercase" },
   waPhone: { fontSize: 14, fontWeight: 700, color: INK, marginTop: 2 },
@@ -204,7 +202,6 @@ function QuotePdf({ doc }: { doc: QuoteDocument }) {
               <Text style={[s.bandLabel, { marginTop: 3, letterSpacing: 0 }]}>{doc.dateText}</Text>
             </View>
           </View>
-          <View style={s.bandBar} />
           {who ? <Text style={s.bandKicker}>{L.offerFor}</Text> : null}
           <Text style={s.bandTitle}>{who || L.document}</Text>
         </View>
@@ -362,24 +359,17 @@ function QuotePdf({ doc }: { doc: QuoteDocument }) {
             </View>
           </View>
 
-          {doc.assistant || doc.contact.name ? (
+          {doc.assistant ? (
             <View style={s.questions} wrap={false}>
               <View style={s.questionsMain}>
                 <Text style={s.questionsTitle}>{L.questions}</Text>
-                {doc.assistant ? <Text style={s.questionsText}>{doc.assistant.text.replace(/:$/, ".")}</Text> : null}
-                {doc.contact.name ? (
-                  <Text style={s.questionsPersonal}>
-                    {doc.personalText} <Text style={s.questionsPersonalStrong}>{[doc.contact.phone, doc.contact.email].filter(Boolean).join(" · ")}</Text>
-                  </Text>
-                ) : null}
+                <Text style={s.questionsText}>{doc.assistant.text.replace(/:$/, ".")}</Text>
               </View>
-              {doc.assistant ? (
-                <Link src={doc.assistant.link} style={s.waBox}>
-                  <Text style={s.waLabel}>{L.whatsappCta.replace("{name}", doc.assistantName)}</Text>
-                  <Text style={s.waPhone}>{doc.assistant.phone}</Text>
-                  <Text style={s.waSub}>{L.available}</Text>
-                </Link>
-              ) : null}
+              <Link src={doc.assistant.link} style={s.waBox}>
+                <Text style={s.waLabel}>{L.whatsappCta.replace("{name}", doc.assistantName)}</Text>
+                <Text style={s.waPhone}>{doc.assistant.phone}</Text>
+                <Text style={s.waSub}>{L.available}</Text>
+              </Link>
             </View>
           ) : null}
 
