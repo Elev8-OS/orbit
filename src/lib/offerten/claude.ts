@@ -48,8 +48,10 @@ export async function callClaudeTool(opts: {
   tool: ToolDef;
   maxTokens?: number;
   timeoutMs?: number;
+  /** Anderes Modell als ANTHROPIC_MODEL (optional) */
+  model?: string;
 }): Promise<unknown> {
-  const model = process.env.ANTHROPIC_MODEL || "claude-sonnet-5-5";
+  const model = opts.model || process.env.ANTHROPIC_MODEL || "claude-sonnet-5-5";
   const timeoutMs = opts.timeoutMs ?? 120_000;
   const system = `${opts.system}
 
