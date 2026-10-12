@@ -1,0 +1,155 @@
+# ─────────────────────────────────────────────────────────────
+# Orbit Statusseite: überwachte Dienste
+#
+# Jeder Dienst wird alle 5 Minuten geprüft (ORBIT_STATUS_INTERVAL_MIN):
+#   http:     Adresse, die antworten muss (Status unter 500 = erreichbar)
+#   railway:  letzte Bereitstellung auf Railway (CRASHED oder FAILED = gestört).
+#             Braucht RAILWAY_API_TOKEN (Account- oder Workspace-Token). Ohne Token wird nur http geprüft.
+#   group:    apps (Kacheln in Orbit), background (Hintergrunddienste), integrations (Schnittstellen)
+#   app:      id der Kachel aus apps.yaml (optional, für Mein Tag und Verlinkung)
+#   alert:    false = keine Alarm-E-Mail bei Störung (Standard true)
+# Alarme gehen an ORBIT_ALERT_TO (sonst ORBIT_ACCESS_REQUEST_TO) und optional an ORBIT_ALERT_WEBHOOK
+# (Slack-, Teams- oder Lark-kompatibler Webhook mit {"text": "..."}).
+# ─────────────────────────────────────────────────────────────
+
+services:
+  # ── Apps in Orbit ───────────────────────────────────────────
+  - id: orbit
+    name: Orbit
+    group: apps
+    http: https://myorbit.elev8-suite.com/api/health
+    railway: { project: 016bdcda-5a7e-468c-bba4-e6437e25fcdc, service: f87a6aa5-045e-4127-b8a0-dc382d6827b6, environment: 64bee6b2-b258-41ee-8be9-e81ab6fd0490 }
+  - id: ert
+    name: Elev8 Reporting Tool
+    app: ert
+    group: apps
+    http: https://ert.elev8-suite.com/
+    railway: { project: 882329d0-6df3-42f8-b3e5-a9b1324af3a0, service: c727eccf-4742-4698-a2d7-d969efde0d9c, environment: 3c59d6eb-f41b-46e3-b711-d48be970b51c }
+  - id: revenue-desk
+    name: Revenue Desk
+    app: revenue-desk
+    group: apps
+    http: https://insights.elev8-suite.com/
+    railway: { project: df5f3bac-fa08-443b-ab21-7a37699eb5fe, service: 93f33530-daf0-49a1-bf27-fddcb79f2bf3, environment: 8869e264-7aa6-4681-95a0-991e7dd927b2 }
+  - id: lead-bot
+    name: Lead Bot
+    app: lead-bot
+    group: apps
+    http: https://add-converter.elev8-suite.com/health
+    railway: { project: d0b176ae-2d4e-4a90-8f9a-f1dfcdb753ec, service: d92f841d-9f4d-42ca-8f1a-ddc97c5523aa, environment: 94c59e73-6efd-42ea-aff3-c78c8b508786 }
+  - id: support-bot
+    name: Support Bot
+    app: support-bot
+    group: apps
+    http: https://support-bot.elev8-suite.com/health
+    railway: { project: d0b176ae-2d4e-4a90-8f9a-f1dfcdb753ec, service: 5463bd86-af35-42b0-94e8-ede3008e9ee9, environment: 94c59e73-6efd-42ea-aff3-c78c8b508786 }
+  - id: ota-qa
+    name: OTA Listing QA
+    app: ota-qa
+    group: apps
+    http: https://web-production-362e.up.railway.app/api/browser-import/ping
+    railway: { project: ee5f1bcf-f5ce-421b-a759-fc4f6bfb0f62, service: d80ddb3d-63e4-4214-8f78-015612853c52, environment: d8492ace-fbe5-428c-bf49-3576c286889f }
+
+  # ── Hintergrunddienste ─────────────────────────────────────
+  - id: moneypenny-web
+    name: Miss Moneypenny (Oberfläche)
+    group: background
+    http: https://mmp.elev8-suite.com/healthz
+    railway: { project: 99091331-7cc9-4932-9c67-d62f9cc9f25d, service: 132dcd9e-a253-4da9-8b52-853047d726fc, environment: de39efa8-3dfc-437c-a5ec-c5e91f3a669f }
+  - id: moneypenny-worker
+    name: Miss Moneypenny (E-Mail-Lauf)
+    group: background
+    railway: { project: 99091331-7cc9-4932-9c67-d62f9cc9f25d, service: 4d730454-f5c4-4bd8-a990-1b6069cc1ac9, environment: de39efa8-3dfc-437c-a5ec-c5e91f3a669f }
+  - id: revenue-engine
+    name: Revenue Engine
+    group: background
+    railway: { project: 1affcbef-8734-46b0-8ea8-007fb569a212, service: 72412ca8-c79d-423a-87b7-9f43039eee27, environment: abf616a9-e14d-44db-a1b7-343e8083c663 }
+  - id: product-intelligence
+    name: Product Intelligence
+    group: background
+    railway: { project: 27006392-0f9a-4f1f-a8a6-78a520734b89, service: 3c3b143f-f407-407c-917f-1cce85d4b326, environment: 90f955fc-5d8b-4c88-a0f8-e2919a52579f }
+  - id: tenant-intake
+    name: Tenant Intake (Onboarding)
+    group: background
+    railway: { project: 36ed3819-b7b2-4fe1-acfd-6b514e280ed2, service: ed2315d3-8f40-452e-b232-e3b57630aec3, environment: bc6f00fb-94cc-44ff-8e34-1be74190a866 }
+  - id: elev8-onboarding
+    name: Elev8 Onboarding
+    group: background
+    railway: { project: 62a4258a-110a-4250-963c-b615b3fda5a5, service: 0a0b8044-eb4e-4771-a6af-6af520ad688f, environment: 77b6735b-ccdd-4646-a933-8c3ea7ff1f83 }
+  - id: accounting
+    name: Accounting (Airbnb-Buchhaltung)
+    group: background
+    railway: { project: 4d20cdb5-75c9-477b-acac-b5ed55037829, service: 7fe5e894-e7ca-4963-86a3-395df72bfa4b, environment: d7fe87ed-2443-4840-9b26-c37ccba97919 }
+  - id: profit-management-web
+    name: The R Profit Management (Web)
+    group: background
+    railway: { project: cba700cc-36d8-4fee-b04d-5bc43f08af8b, service: 6afacf45-5cc8-4357-b170-459bee7cfe66, environment: aeadd937-7363-40d0-af6c-9d52cb87e027 }
+  - id: profit-management-worker
+    name: The R Profit Management (Worker)
+    group: background
+    railway: { project: cba700cc-36d8-4fee-b04d-5bc43f08af8b, service: 764e57f1-fada-424d-b1ac-70a6a3115460, environment: aeadd937-7363-40d0-af6c-9d52cb87e027 }
+  - id: meldeschein
+    name: Meldeschein-Service
+    group: background
+    http: https://hochschwarzwaldcard.elev8-suite.com/
+    railway: { project: 0719347a-5308-4bb7-8cb0-95b7f6f43b00, service: 0cdecc86-aed5-4bb7-9b33-2d014ec95074, environment: 5382841e-cdee-4262-826d-2592d746a8a6 }
+  - id: nuki-monitor
+    name: Nuki-Monitor
+    group: background
+    railway: { project: 366b4eb7-051f-44f1-b6d6-f85898f7a763, service: 540efee2-e336-42a8-860d-436c3c9fb9fb, environment: afa5c695-16ef-45c2-949a-e3a703e97dcd }
+  - id: elev8-ical
+    name: Elev8 iCal
+    group: background
+    railway: { project: e8c7d096-78b7-43c7-921f-19a49f1e141f, service: ac1b7960-cd37-4765-af06-4a789d82c390, environment: 196ec016-6c71-46c6-b2b4-b66fe0971e5f }
+  - id: gro-guides
+    name: GRO Guides
+    group: background
+    railway: { project: 1a252073-c0cc-4696-8eef-ec1b77c9416e, service: e917c23d-0c33-4635-be04-8d00cef72ca0, environment: b5c442a7-684d-454e-9bf2-d4273ea4d1d2 }
+  - id: wa-engine
+    name: WhatsApp Cold Contacts
+    group: background
+    railway: { project: e14c691f-ab19-48b2-81b2-145dd70d09d1, service: f67a4f0b-3dca-405a-9548-1aa975040c13, environment: ebed110f-4169-4c0d-9738-6f375eeed661 }
+  - id: website-generator
+    name: Website-Generator
+    group: background
+    alert: false
+    railway: { project: 1fdfc726-50d1-4148-82cf-066766268e9a, service: 2d6d78d6-cda1-4d2b-a5da-03ebbe401dbb, environment: f79c323a-de14-44b9-9042-5f8bbd901400 }
+  - id: lead-harvester
+    name: Lead Harvester
+    group: background
+    alert: false
+    railway: { project: 2ce365a7-6adb-4015-98e3-504b57457783, service: 060cdd56-0d13-4fa6-b620-28857e0b3b17, environment: a5009afe-752c-4c96-bed9-68c7bbfce070 }
+  - id: lead-list-scale
+    name: Lead List Scale
+    group: background
+    alert: false
+    railway: { project: 7f3e7f75-d2e8-4806-ac24-79f45003be0f, service: c7c9df48-0469-47db-8809-846520ed7d92, environment: a06cc74c-fbcc-47c6-9541-1d7cd92a728c }
+  - id: elev8-dev
+    name: Elev8 Dev
+    group: background
+    alert: false
+    railway: { project: 68a3f4d5-6eea-44a9-ac23-c280b8a3dc89, service: 9c262cb4-6b64-4a3f-8a60-0e00d6c8a779, environment: 29555d99-0856-40e2-9f46-89c2cefc132a }
+
+  # ── Schnittstellen ─────────────────────────────────────────
+  - id: fireflies-ghl-bridge
+    name: Fireflies → GHL Bridge
+    group: integrations
+    railway: { project: 0747598a-7aa5-4264-a986-7234a315d526, service: f674d2f5-c269-4d4f-8bf4-b6df70ef9adf, environment: 21f5f042-1369-4640-8509-eb02d8deb704 }
+  - id: whatsapp-bridge
+    name: WhatsApp Bridge
+    group: integrations
+    railway: { project: 6d4a595c-138b-4181-9cff-dac81650b807, service: 7ef0ad9d-ce30-4d44-9480-48105c17ed35, environment: 59c08d41-523f-461f-8270-32c593c77624 }
+  - id: ghl-bc-scanner
+    name: GHL Business-Card-Scanner
+    group: integrations
+    alert: false
+    railway: { project: 3cbc552a-4e4f-42fa-a810-c93a184c5543, service: 6bc9d79f-1f0f-49b4-8180-16c734704ab0, environment: 85a8bb18-ecd2-4e86-ae6a-28a9ed42406c }
+  - id: mydatavalue-mcp
+    name: MyDataValue MCP
+    group: integrations
+    http: https://mydatavalue-mcp-production.up.railway.app/
+    railway: { project: b26f491f-a987-4598-995e-5dee6db6a41f, service: 4df15ce9-9aea-4f94-bfeb-f58cbf94ae6d, environment: de8b7a1e-0242-4d5b-a5cd-b7fab57b3098 }
+  - id: airroi-mcp
+    name: AirROI MCP
+    group: integrations
+    http: https://airroi-mcp-production.up.railway.app/
