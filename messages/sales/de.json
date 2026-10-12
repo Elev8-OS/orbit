@@ -1,0 +1,159 @@
+{
+  "appName": "Sales",
+  "back": "Zurück zu Orbit",
+  "nav": {
+    "today": "Heute",
+    "pipeline": "Pipeline"
+  },
+  "noAccess": {
+    "title": "Kein Zugriff auf Sales",
+    "body": "Für diese App brauchst du die Rolle App.Sales. Du kannst sie in Orbit unter „Zugriff anfragen“ anfordern."
+  },
+  "setup": {
+    "ghl_not_configured": {
+      "title": "GHL ist nicht verbunden",
+      "body": "GHL_API_TOKEN und GHL_LOCATION_ID fehlen in Railway. Ohne sie kann Sales keine Termine, Follow-ups und Deals laden."
+    },
+    "no_ghl_user": {
+      "title": "Kein GHL-User für {email}",
+      "body": "Sales zeigt die Daten des GHL-Users mit derselben E-Mail wie dein Microsoft-Konto. Lege in GHL einen User mit {email} an oder passe dessen E-Mail an."
+    },
+    "ghl_failed": {
+      "title": "GHL antwortet nicht",
+      "body": "Die User-Liste von GHL konnte nicht geladen werden. Prüfe, ob der Token den Scope users.readonly hat, und lade die Seite neu."
+    }
+  },
+  "viewing": "Du siehst die Ansicht von {name}. Follow-ups, die du hier anlegst, werden {name} zugewiesen.",
+  "viewAs": "Ansicht von",
+  "viewAsMe": "{name} (ich)",
+  "dialog": {
+    "title": "Follow-up anlegen",
+    "afterCall": "Nach dem Call „{title}“",
+    "close": "Schliessen",
+    "suggesting": "Noah liest das Gespräch und schlägt den nächsten Schritt vor …",
+    "again": "Neu vorschlagen",
+    "contact": "Kontakt",
+    "change": "Ändern",
+    "taskTitle": "Was ist zu tun?",
+    "body": "Notiz für dich",
+    "dueDate": "Fällig am",
+    "due": {
+      "tomorrow": "Morgen",
+      "three": "In 3 Werktagen",
+      "monday": "Nächster Montag",
+      "twoWeeks": "In 2 Wochen"
+    },
+    "noteFromCall": "Zusammenfassung des Calls als Notiz in GHL ablegen",
+    "hint": "Wird in GHL als Task beim Kontakt angelegt.",
+    "cancel": "Abbrechen",
+    "saving": "Wird angelegt …",
+    "create": "Follow-up anlegen",
+    "noClaude": "Ohne ANTHROPIC_API_KEY gibt es keinen Vorschlag. Trag den nächsten Schritt selbst ein.",
+    "suggestFailed": "Der Vorschlag konnte nicht erstellt werden. Trag den nächsten Schritt selbst ein oder versuche es nochmals.",
+    "forbidden": "Dieser Kontakt ist einem anderen Sales-Mitarbeiter zugewiesen.",
+    "saveFailed": "Nicht angelegt. GHL meldet: {detail}",
+    "searchContact": "Name, Firma oder E-Mail suchen",
+    "noContacts": "Kein passender Kontakt. Lege ihn zuerst in GHL an."
+  },
+  "today": {
+    "summary": {
+      "events": "{count, plural, =0 {Heute keine Termine mehr.} one {Heute noch ein Termin.} other {Heute noch # Termine.}}",
+      "tasks": "{count, plural, =0 {Keine Follow-ups fällig.} one {Ein Follow-up fällig.} other {# Follow-ups fällig.}}",
+      "calls": "{count, plural, one {Ein Gespräch hat noch keinen nächsten Schritt.} other {# Gespräche haben noch keinen nächsten Schritt.}}"
+    },
+    "pipeline": "Offene Pipeline: {count, plural, one {ein Deal} other {# Deals}}, {value}",
+    "stale": "{count, plural, one {einer} other {#}} seit über {days} Tagen ohne Bewegung",
+    "partial": "Nicht alles geladen ({parts}). Lade die Seite neu oder prüfe die GHL-Berechtigungen.",
+    "parts": {
+      "calendar": "Termine",
+      "tasks": "Follow-ups",
+      "opportunities": "Pipeline",
+      "calls": "Calls"
+    },
+    "calls": {
+      "title": "Ohne nächsten Schritt",
+      "lead": "Gespräche der letzten drei Wochen, bei denen in GHL weder ein Follow-up noch ein neuer Termin steht.",
+      "followUp": "Follow-up anlegen",
+      "offer": "Offerte erstellen",
+      "dismiss": "Kein Schritt nötig"
+    },
+    "open": "Kontakt öffnen",
+    "tasks": {
+      "title": "Follow-ups",
+      "overdue": "{count} überfällig",
+      "empty": "Heute ist nichts fällig.",
+      "soon": "{count, plural, one {Ein weiteres} other {# weitere}} in den nächsten 7 Tagen",
+      "noDate": "ohne Datum",
+      "done": "„{title}“ als erledigt markieren",
+      "contact": "Kontakt",
+      "move": "Verschieben",
+      "moveTomorrow": "Auf morgen",
+      "moveThree": "In 3 Werktagen",
+      "moveMonday": "Auf nächsten Montag"
+    },
+    "events": {
+      "title": "Termine",
+      "empty": "Heute keine Termine im GHL-Kalender.",
+      "tomorrow": "Morgen",
+      "join": "Beitreten",
+      "joinNow": "Jetzt beitreten"
+    },
+    "dismissed": "Ausgeblendet.",
+    "undo": "Rückgängig",
+    "completed": "Erledigt.",
+    "rescheduled": "Verschoben auf {date}.",
+    "created": "Follow-up in GHL angelegt.",
+    "failed": "Hat nicht geklappt. GHL hat die Änderung nicht übernommen."
+  },
+  "pipeline": {
+    "summary": "{count, plural, one {Ein offener Deal} other {# offene Deals}}, zusammen {value}",
+    "choose": "Pipeline wählen",
+    "empty": "In GHL sind keine Pipelines angelegt.",
+    "stageEmpty": "Keine Deals",
+    "stage": "Stage",
+    "won": "Gewonnen",
+    "lost": "Verloren",
+    "wonToast": "Als gewonnen markiert.",
+    "lostToast": "Als verloren markiert.",
+    "undo": "Rückgängig",
+    "moved": "Nach „{stage}“ verschoben.",
+    "quiet": "Letzte Bewegung {since}",
+    "staleHint": "Seit über {days} Tagen ohne Stage-Wechsel oder Änderung",
+    "failed": "Hat nicht geklappt. GHL hat die Änderung nicht übernommen.",
+    "loadFailed": "Die Pipeline konnte nicht aus GHL geladen werden. Lade die Seite neu."
+  },
+  "contact": {
+    "notFound": {
+      "title": "Kontakt nicht verfügbar",
+      "body": "Den Kontakt gibt es in GHL nicht, oder er ist einem anderen Sales-Mitarbeiter zugewiesen.",
+      "back": "Zu Heute"
+    },
+    "newFollowUp": "Follow-up anlegen",
+    "newOffer": "Offerte erstellen",
+    "openGhl": "In GHL öffnen",
+    "next": "Nächste Schritte",
+    "noNext": "Kein offenes Follow-up und kein Termin. Leg den nächsten Schritt fest.",
+    "meeting": "Termin",
+    "done": "„{title}“ als erledigt markieren",
+    "calls": "Gespräche",
+    "noCalls": "Noch keine Gespräche aufgezeichnet.",
+    "notes": "Notizen",
+    "notePlaceholder": "Notiz für GHL",
+    "saveNote": "Notiz speichern",
+    "noteSaved": "Notiz in GHL gespeichert.",
+    "deals": "Deals",
+    "noDeals": "Keine Opportunity in GHL.",
+    "stage": "Stage",
+    "stageSaved": "Stage geändert.",
+    "status": {
+      "won": "Gewonnen",
+      "lost": "Verloren",
+      "other": "Geschlossen"
+    },
+    "quotes": "Offerten",
+    "quoteSent": "versendet am {date}",
+    "quoteDraft": "Entwurf",
+    "created": "Follow-up in GHL angelegt.",
+    "failed": "Hat nicht geklappt. GHL hat die Änderung nicht übernommen."
+  }
+}

@@ -37,6 +37,11 @@ export default getRequestConfig(async () => {
   const locale = await resolveLocale();
   return {
     locale,
-    messages: (await import(`../../messages/${locale}.json`)).default
+    // Texte einzelner Apps liegen in eigenen Dateien (messages/<app>/<sprache>.json), damit Änderungen
+    // an einer App die gemeinsamen Dateien nicht berühren
+    messages: {
+      ...(await import(`../../messages/${locale}.json`)).default,
+      sales: (await import(`../../messages/sales/${locale}.json`)).default
+    }
   };
 });

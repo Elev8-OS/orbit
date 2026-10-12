@@ -1,0 +1,159 @@
+{
+  "appName": "Sales",
+  "back": "Back to Orbit",
+  "nav": {
+    "today": "Today",
+    "pipeline": "Pipeline"
+  },
+  "noAccess": {
+    "title": "No access to Sales",
+    "body": "This app needs the App.Sales role. Request it in Orbit under “Request access”."
+  },
+  "setup": {
+    "ghl_not_configured": {
+      "title": "GHL is not connected",
+      "body": "GHL_API_TOKEN and GHL_LOCATION_ID are missing in Railway. Without them Sales cannot load meetings, follow-ups or deals."
+    },
+    "no_ghl_user": {
+      "title": "No GHL user for {email}",
+      "body": "Sales shows the data of the GHL user with the same email as your Microsoft account. Create a GHL user with {email} or change that user's email."
+    },
+    "ghl_failed": {
+      "title": "GHL is not responding",
+      "body": "The GHL user list could not be loaded. Check that the token has the users.readonly scope, then reload."
+    }
+  },
+  "viewing": "You are viewing {name}'s day. Follow-ups you create here are assigned to {name}.",
+  "viewAs": "View as",
+  "viewAsMe": "{name} (me)",
+  "dialog": {
+    "title": "Add follow-up",
+    "afterCall": "After the call “{title}”",
+    "close": "Close",
+    "suggesting": "Noah is reading the call and suggesting the next step …",
+    "again": "Suggest again",
+    "contact": "Contact",
+    "change": "Change",
+    "taskTitle": "What needs doing?",
+    "body": "Note for you",
+    "dueDate": "Due on",
+    "due": {
+      "tomorrow": "Tomorrow",
+      "three": "In 3 working days",
+      "monday": "Next Monday",
+      "twoWeeks": "In 2 weeks"
+    },
+    "noteFromCall": "Save the call summary as a note in GHL",
+    "hint": "Created in GHL as a task on the contact.",
+    "cancel": "Cancel",
+    "saving": "Adding …",
+    "create": "Add follow-up",
+    "noClaude": "Without ANTHROPIC_API_KEY there is no suggestion. Enter the next step yourself.",
+    "suggestFailed": "The suggestion could not be created. Enter the next step yourself or try again.",
+    "forbidden": "This contact is assigned to another sales rep.",
+    "saveFailed": "Not added. GHL says: {detail}",
+    "searchContact": "Search name, company or email",
+    "noContacts": "No matching contact. Create it in GHL first."
+  },
+  "today": {
+    "summary": {
+      "events": "{count, plural, =0 {No more meetings today.} one {One more meeting today.} other {# more meetings today.}}",
+      "tasks": "{count, plural, =0 {No follow-ups due.} one {One follow-up due.} other {# follow-ups due.}}",
+      "calls": "{count, plural, one {One call has no next step yet.} other {# calls have no next step yet.}}"
+    },
+    "pipeline": "Open pipeline: {count, plural, one {one deal} other {# deals}}, {value}",
+    "stale": "{count, plural, one {one} other {#}} without movement for over {days} days",
+    "partial": "Not everything loaded ({parts}). Reload or check the GHL permissions.",
+    "parts": {
+      "calendar": "meetings",
+      "tasks": "follow-ups",
+      "opportunities": "pipeline",
+      "calls": "calls"
+    },
+    "calls": {
+      "title": "No next step",
+      "lead": "Calls from the last three weeks with neither a follow-up nor a new meeting in GHL.",
+      "followUp": "Add follow-up",
+      "offer": "Create offer",
+      "dismiss": "No step needed"
+    },
+    "open": "Open contact",
+    "tasks": {
+      "title": "Follow-ups",
+      "overdue": "{count} overdue",
+      "empty": "Nothing due today.",
+      "soon": "{count, plural, one {One more} other {# more}} in the next 7 days",
+      "noDate": "no date",
+      "done": "Mark “{title}” done",
+      "contact": "Contact",
+      "move": "Move",
+      "moveTomorrow": "To tomorrow",
+      "moveThree": "In 3 working days",
+      "moveMonday": "To next Monday"
+    },
+    "events": {
+      "title": "Meetings",
+      "empty": "No meetings in the GHL calendar today.",
+      "tomorrow": "Tomorrow",
+      "join": "Join",
+      "joinNow": "Join now"
+    },
+    "dismissed": "Hidden.",
+    "undo": "Undo",
+    "completed": "Done.",
+    "rescheduled": "Moved to {date}.",
+    "created": "Follow-up added in GHL.",
+    "failed": "That didn't work. GHL did not accept the change."
+  },
+  "pipeline": {
+    "summary": "{count, plural, one {One open deal} other {# open deals}}, {value} in total",
+    "choose": "Choose pipeline",
+    "empty": "There are no pipelines in GHL.",
+    "stageEmpty": "No deals",
+    "stage": "Stage",
+    "won": "Won",
+    "lost": "Lost",
+    "wonToast": "Marked as won.",
+    "lostToast": "Marked as lost.",
+    "undo": "Undo",
+    "moved": "Moved to “{stage}”.",
+    "quiet": "Last activity {since}",
+    "staleHint": "No stage change or update for over {days} days",
+    "failed": "That didn't work. GHL did not accept the change.",
+    "loadFailed": "The pipeline could not be loaded from GHL. Reload the page."
+  },
+  "contact": {
+    "notFound": {
+      "title": "Contact not available",
+      "body": "This contact does not exist in GHL or is assigned to another sales rep.",
+      "back": "To Today"
+    },
+    "newFollowUp": "Add follow-up",
+    "newOffer": "Create offer",
+    "openGhl": "Open in GHL",
+    "next": "Next steps",
+    "noNext": "No open follow-up and no meeting. Set the next step.",
+    "meeting": "Meeting",
+    "done": "Mark “{title}” done",
+    "calls": "Calls",
+    "noCalls": "No recorded calls yet.",
+    "notes": "Notes",
+    "notePlaceholder": "Note for GHL",
+    "saveNote": "Save note",
+    "noteSaved": "Note saved in GHL.",
+    "deals": "Deals",
+    "noDeals": "No opportunity in GHL.",
+    "stage": "Stage",
+    "stageSaved": "Stage changed.",
+    "status": {
+      "won": "Won",
+      "lost": "Lost",
+      "other": "Closed"
+    },
+    "quotes": "Offers",
+    "quoteSent": "sent on {date}",
+    "quoteDraft": "Draft",
+    "created": "Follow-up added in GHL.",
+    "failed": "That didn't work. GHL did not accept the change."
+  }
+}

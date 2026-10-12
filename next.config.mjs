@@ -16,11 +16,15 @@ const nextConfig = {
     ];
     return [
       // Orbit selbst darf nirgends eingebettet werden
-      { source: "/((?!offerten|api/offerten).*)", headers: [{ key: "X-Frame-Options", value: "DENY" }, ...common] },
+      { source: "/((?!offerten|api/offerten|sales|api/sales).*)", headers: [{ key: "X-Frame-Options", value: "DENY" }, ...common] },
       // Die Offerten-App läuft als Tab in Orbit (gleiche Domain) und öffnet PDFs in diesem Tab
       { source: "/offerten", headers: [{ key: "X-Frame-Options", value: "SAMEORIGIN" }, ...common] },
       { source: "/offerten/:path*", headers: [{ key: "X-Frame-Options", value: "SAMEORIGIN" }, ...common] },
-      { source: "/api/offerten/:path*", headers: [{ key: "X-Frame-Options", value: "SAMEORIGIN" }, ...common] }
+      { source: "/api/offerten/:path*", headers: [{ key: "X-Frame-Options", value: "SAMEORIGIN" }, ...common] },
+      // Sales läuft ebenfalls als Tab in Orbit
+      { source: "/sales", headers: [{ key: "X-Frame-Options", value: "SAMEORIGIN" }, ...common] },
+      { source: "/sales/:path*", headers: [{ key: "X-Frame-Options", value: "SAMEORIGIN" }, ...common] },
+      { source: "/api/sales/:path*", headers: [{ key: "X-Frame-Options", value: "SAMEORIGIN" }, ...common] }
     ];
   }
 };
