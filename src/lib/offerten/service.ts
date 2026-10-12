@@ -212,7 +212,7 @@ export async function personalizeDraft(quote: Quote, settings: QuoteSettings, se
   try {
     const { texts, sources } = await writeQuoteTexts(quote, settings, { name: senderName });
     const updated = await updateDraft(quote.id, { texts });
-    await logEvent(quote.id, "Claude", "personalized", { sources });
+    await logEvent(quote.id, "Noah", "personalized", { sources });
     return updated ?? quote;
   } catch (err) {
     console.error(`Offerte ${quote.number}: persönliche Texte nicht erstellt:`, err);

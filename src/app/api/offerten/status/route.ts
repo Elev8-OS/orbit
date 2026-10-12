@@ -15,7 +15,7 @@ export async function GET() {
   return Response.json({
     ghl,
     fireflies,
-    claude: { ok: claudeConfigured(), detail: claudeConfigured() ? "API-Key gesetzt" : "ANTHROPIC_API_KEY fehlt" },
+    claude: { ok: claudeConfigured(), detail: claudeConfigured() ? `bereit (${process.env.ANTHROPIC_MODEL || "claude-sonnet-5-5"})` : "ANTHROPIC_API_KEY fehlt" },
     mail: {
       ok: Boolean(provider),
       detail: provider === "graph" ? "Microsoft 365 (eigenes Postfach)" : provider === "resend" ? "Resend" : "nicht eingerichtet"
