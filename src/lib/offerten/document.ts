@@ -15,7 +15,7 @@ import {
   type QuoteTexts,
   type Recipient
 } from "./quote";
-import { fillTemplate, type QuoteSettings } from "./settings-shared";
+import { fillTemplate, formatPhone, whatsappLink, type QuoteSettings } from "./settings-shared";
 
 /**
  * Bereitet eine Offerte für die Ausgabe auf. PDF, Excel und die Vorschau im Editor nutzen dieses Modell,
@@ -72,10 +72,18 @@ export type QuoteDocument = {
   taxNote: string;
   reverseCharge: boolean;
   customerVatId: string;
+  /** Persönliche Anrede am Anfang (von Noah geschrieben oder aus dem Namen abgeleitet) */
+  salutation: string;
   intro: string;
   closing: string;
   notes: string;
   terms: string;
+  /** Überschrift der Angebotsseite: "Ihr Angebot" bzw. "Dein Angebot" */
+  offerHeading: string;
+  /** Noah, der Sales-Assistent, als Kontakt für Fragen (WhatsApp, 24/7) */
+  assistant: { text: string; phone: string; link: string } | null;
+  /** Hinweis auf die persönliche Ansprechperson im Fragen-Kasten */
+  personalText: string;
   lines: DocLine[];
   hasDiscount: boolean;
   totals: DocTotalRow[];
@@ -162,8 +170,20 @@ export function buildDocument(q: QuoteForDocument, settings: QuoteSettings): Quo
     taxNote: reverseCharge ? labels.reverseCharge : labels.vatNote,
     reverseCharge,
     customerVatId: reverseCharge ? (q.recipient.vatId ?? "") : "",
+    salutation: q.texts.salutation?.trim() || defaultSalutation(q),
     intro: q.texts.intro,
     closing: q.texts.closing,
+    offerHeading: du ? labels.yourOfferDu : labels.yourOffer,
+    assistant: settings.assistant?.whatsapp
+      ? {
+          text: fillTemplate(du ? labels.assistantDu : labels.assistant, { name: settings.assistant.name || "Noah" }),
+          phone: formatPhone(settings.assistant.whatsapp),
+          link: whatsappLink(settings.assistant.whatsapp)
+        }
+      : null,
+    personalText: fillTemplate(du ? labels.personalDu : labels.personal, {
+      name: q.contactPerson?.name || q.ownerName || ""
+    }),
     notes: q.texts.notes,
     terms: fillTemplate(settings.texts.terms[lang], {
       currency: q.currency,
@@ -177,4 +197,17 @@ export function buildDocument(q: QuoteForDocument, settings: QuoteSettings): Quo
     firstYear: t.firstYear,
     fileBase: `${lang === "de" ? "Angebot" : "Offer"}-${q.number}${safe ? `-${safe}` : ""}`
   };
+}
+
+/**
+ * Anrede, falls Noah keine geschrieben hat: Du-Form mit Vorname, sonst mit vollem Namen.
+ * Ohne bekanntes Geschlecht bewusst neutral ("Guten Tag Rico Kümin" statt "Herr/Frau").
+ */
+export function defaultSalutation(q: Pick<QuoteForDocument, "language" | "recipient" | "texts">): string {
+  const first = q.recipient.firstName?.trim();
+  const full = q.recipient.name?.trim();
+  const du = q.texts.addressForm === "du";
+  if (q.language === "en") return first ? `Dear ${first},` : "Hello,";
+  if (du) return first ? `Hallo ${first}` : "Hallo zusammen";
+  return full ? `Guten Tag ${full}` : "Guten Tag";
 }

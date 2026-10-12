@@ -734,6 +734,13 @@ export function QuoteEditor({ initial, events, settings, user, mailProvider, ghl
                 {t("texts.sources", { list: aiSources.length ? aiSources.join(", ") : t("texts.noSources") })}
               </p>
             )}
+            <Field label={t("texts.salutation")} hint={t("texts.salutationHint", { example: doc.salutation })}>
+              <input
+                value={draft.texts.salutation}
+                placeholder={doc.salutation}
+                onChange={(e) => update({ texts: { ...draft.texts, salutation: e.target.value } })}
+              />
+            </Field>
             <Field label={t("texts.intro")}>
               <textarea rows={4} value={draft.texts.intro} onChange={(e) => update({ texts: { ...draft.texts, intro: e.target.value } })} />
             </Field>

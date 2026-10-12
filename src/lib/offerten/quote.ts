@@ -49,6 +49,8 @@ export const recipientSchema = z.object({
 export type Recipient = z.infer<typeof recipientSchema>;
 
 export const textsSchema = z.object({
+  /** Persönliche Anrede am Anfang der Offerte, z.B. "Guten Tag Herr Kümin" oder "Hallo Rico" */
+  salutation: z.string().max(200).default(""),
   intro: z.string().max(3000),
   closing: z.string().max(3000),
   notes: z.string().max(3000),
@@ -74,6 +76,7 @@ export const EMPTY_RECIPIENT: Recipient = {
 /** Ältere Datensätze haben noch nicht alle Felder: mit Standardwerten auffüllen. */
 export const normalizeRecipient = (r: Partial<Recipient> | null | undefined): Recipient => ({ ...EMPTY_RECIPIENT, ...(r ?? {}) });
 export const normalizeTexts = (t: Partial<QuoteTexts> | null | undefined): QuoteTexts => ({
+  salutation: "",
   intro: "",
   closing: "",
   notes: "",
@@ -310,7 +313,16 @@ export const DOC_LABELS = {
     page: "Seite",
     sheetQuote: "Angebot",
     sheetHint: "Mengen und Rabatte in den gelben Feldern anpassen, die Beträge rechnen automatisch.",
-    included: "Inklusive"
+    included: "Inklusive",
+    offerFor: "Angebot für",
+    yourOffer: "Ihr Angebot",
+    yourOfferDu: "Dein Angebot",
+    questions: "Fragen?",
+    assistant: "{name}, unser Sales-Assistent, beantwortet Fragen rund um die Uhr per WhatsApp:",
+    assistantDu: "{name}, unser Sales-Assistent, beantwortet deine Fragen rund um die Uhr per WhatsApp:",
+    personal: "Persönlich erreichen Sie {name}:",
+    personalDu: "Persönlich erreichst du {name}:",
+    validShort: "gültig bis"
   },
   en: {
     document: "Offer",
@@ -340,6 +352,15 @@ export const DOC_LABELS = {
     page: "Page",
     sheetQuote: "Offer",
     sheetHint: "Change quantities and discounts in the yellow cells; amounts update automatically.",
-    included: "Included"
+    included: "Included",
+    offerFor: "Offer for",
+    yourOffer: "Your offer",
+    yourOfferDu: "Your offer",
+    questions: "Questions?",
+    assistant: "{name}, our sales assistant, answers questions around the clock on WhatsApp:",
+    assistantDu: "{name}, our sales assistant, answers your questions around the clock on WhatsApp:",
+    personal: "To reach {name} personally:",
+    personalDu: "To reach {name} personally:",
+    validShort: "valid until"
   }
 } as const;

@@ -277,7 +277,9 @@
         "mailHint": "Wird beim Senden vorgeschlagen und lässt sich dort nochmals anpassen.",
         "emailSubject": "Betreff",
         "emailBody": "Text",
-        "emailFallback": "Leer lassen für den Standardtext"
+        "emailFallback": "Leer lassen für den Standardtext",
+        "salutation": "Anrede",
+        "salutationHint": "Leer lassen für: {example}"
       },
       "totals": {
         "title": "Zusammenfassung"
@@ -414,7 +416,11 @@
         "claude": "Noah (KI)",
         "mail": "Mailversand",
         "webhook": "Fireflies-Webhook"
-      }
+      },
+      "assistant": "Sales-Assistent",
+      "assistantHint": "Erscheint auf jedem Angebot im Kasten „Fragen?“ und wird von Noah in der Begleit-Mail erwähnt.",
+      "assistantName": "Name",
+      "assistantWhatsapp": "WhatsApp-Nummer"
     },
     "interval": {
       "once": "Einmalig",

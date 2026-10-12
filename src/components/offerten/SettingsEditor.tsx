@@ -267,6 +267,29 @@ export function SettingsEditor({ initial, defaults, canEdit }: Props) {
         </section>
 
         <section className="of-card">
+          <h2 className="of-h2">{t("assistant")}</h2>
+          <p className="of-hint">{t("assistantHint")}</p>
+          <div className="of-grid-2">
+            <label className="of-field">
+              <span className="field-label">{t("assistantName")}</span>
+              <input
+                value={s.assistant?.name ?? ""}
+                onChange={(e) => set({ assistant: { name: e.target.value, whatsapp: s.assistant?.whatsapp ?? "" } })}
+              />
+            </label>
+            <label className="of-field">
+              <span className="field-label">{t("assistantWhatsapp")}</span>
+              <input
+                inputMode="tel"
+                value={s.assistant?.whatsapp ?? ""}
+                placeholder="+41585909971"
+                onChange={(e) => set({ assistant: { name: s.assistant?.name ?? "Noah", whatsapp: e.target.value } })}
+              />
+            </label>
+          </div>
+        </section>
+
+        <section className="of-card">
           <h2 className="of-h2">{t("issuer")}</h2>
           <div className="of-grid-2">
             <label className="of-field">
