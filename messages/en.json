@@ -277,7 +277,9 @@
         "mailHint": "Suggested when sending, where you can adjust it again.",
         "emailSubject": "Subject",
         "emailBody": "Text",
-        "emailFallback": "Leave empty for the default text"
+        "emailFallback": "Leave empty for the default text",
+        "salutation": "Greeting",
+        "salutationHint": "Leave empty for: {example}"
       },
       "totals": {
         "title": "Summary"
@@ -414,7 +416,11 @@
         "claude": "Noah (AI)",
         "mail": "Email sending",
         "webhook": "Fireflies webhook"
-      }
+      },
+      "assistant": "Sales assistant",
+      "assistantHint": "Shown on every offer in the “Questions?” box and mentioned by Noah in the cover email.",
+      "assistantName": "Name",
+      "assistantWhatsapp": "WhatsApp number"
     },
     "interval": {
       "once": "One-time",
