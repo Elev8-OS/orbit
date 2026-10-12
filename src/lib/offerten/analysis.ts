@@ -26,6 +26,10 @@ export const analysisSchema = z.object({
   agreedDiscountPercent: z.number().min(0).max(100).nullable().default(null),
   pricingDiscussed: z.string().nullable().default(null),
   nextStep: z.string().nullable().default(null),
+  onboardingFee: z.number().min(0).max(1_000_000).nullable().default(null),
+  onboardingCurrency: z.string().max(8).nullable().default(null),
+  onboardingNote: z.string().nullable().default(null),
+  salutation: z.string().nullable().default(null),
   needs: z.array(z.string()),
   summary: z.string()
 });
@@ -84,6 +88,24 @@ const TOOL = {
         type: ["string", "null"],
         description: "Der im Gespräch vereinbarte nächste Schritt (z.B. Entscheid bis Freitag, Folgetermin, Testzugang). null, wenn keiner."
       },
+      onboardingFee: {
+        type: ["number", "null"],
+        description:
+          "Nur wenn im Gespräch eine Onboarding-, Einrichtungs- oder Setup-Gebühr mit Betrag genannt wurde: der Betrag als Zahl. Sonst null. Nichts schätzen."
+      },
+      onboardingCurrency: {
+        type: ["string", "null"],
+        description: "Währung der genannten Onboarding-Gebühr (z.B. USD, CHF, EUR), falls genannt, sonst null."
+      },
+      onboardingNote: {
+        type: ["string", "null"],
+        description: "Kurz, was zum Onboarding vereinbart wurde (z.B. 'inkl. Datenmigration und Schulung'), sonst null."
+      },
+      salutation: {
+        type: ["string", "null"],
+        description:
+          "Passende Anrede für die Offerte, wie im Gespräch üblich: bei Sie-Form mit Nachnamen und Herr/Frau, wenn eindeutig erkennbar (z.B. 'Guten Tag Herr Kümin'), bei Du-Form mit Vornamen (z.B. 'Hallo Rico'). null, wenn unklar."
+      },
       needs: {
         type: "array",
         items: { type: "string" },
@@ -94,7 +116,7 @@ const TOOL = {
     required: [
       "offerRequested", "confidence", "evidence", "language", "company", "contactName", "contactEmail", "units",
       "bookingsPerYear", "model", "billing", "channelManager", "startDate", "addressForm", "agreedDiscountPercent",
-      "pricingDiscussed", "nextStep", "needs", "summary"
+      "pricingDiscussed", "nextStep", "onboardingFee", "onboardingCurrency", "onboardingNote", "salutation", "needs", "summary"
     ]
   }
 } as const;

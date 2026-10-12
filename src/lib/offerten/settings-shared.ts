@@ -55,6 +55,13 @@ export const settingsSchema = z.object({
   reverseChargeCountries: z.array(z.string().regex(/^[A-Z]{2}$/)).default(["DE"]),
   /** Tage bis zum ersten Nachfassen nach dem Versand und zwischen weiteren Nachfass-Mails */
   followUpDays: z.number().int().min(1).max(60).default(4),
+  /** Noah, der Sales-Assistent: erscheint auf dem Angebot als Kontakt für Fragen (WhatsApp, 24/7) */
+  assistant: z
+    .object({
+      name: z.string().max(40),
+      whatsapp: z.string().max(30)
+    })
+    .default({ name: "Noah", whatsapp: "+41585909971" }),
   issuer: z.object({
     company: z.string().max(120),
     addressLines: z.array(z.string().max(120)).max(5),
@@ -102,6 +109,7 @@ export const DEFAULT_SETTINGS: QuoteSettings = {
   addons: [],
   reverseChargeCountries: ["DE"],
   followUpDays: 4,
+  assistant: { name: "Noah", whatsapp: "+41585909971" },
   issuer: {
     company: "Elev8 Software AG",
     addressLines: ["Hauptgasse 33", "CH-4600 Olten"],
@@ -138,3 +146,16 @@ export const DEFAULT_SETTINGS: QuoteSettings = {
 export function fillTemplate(template: string, values: Record<string, string | number>): string {
   return template.replace(/\{(\w+)\}/g, (match, key: string) => (key in values ? String(values[key]) : match));
 }
+
+/** Telefonnummer lesbar formatieren: +41585909971 → +41 58 590 99 71 */
+export function formatPhone(raw: string): string {
+  const digits = raw.replace(/[^\d+]/g, "");
+  const ch = digits.match(/^\+41(\d{2})(\d{3})(\d{2})(\d{2})$/);
+  if (ch) return `+41 ${ch[1]} ${ch[2]} ${ch[3]} ${ch[4]}`;
+  const de = digits.match(/^\+49(\d{3,4})(\d+)$/);
+  if (de) return `+49 ${de[1]} ${de[2]}`;
+  return raw.trim();
+}
+
+/** wa.me-Link für eine Telefonnummer */
+export const whatsappLink = (raw: string) => `https://wa.me/${raw.replace(/\D/g, "")}`;
