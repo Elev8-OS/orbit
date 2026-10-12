@@ -171,7 +171,8 @@ export function buildDocument(q: QuoteForDocument, settings: QuoteSettings): Quo
     contact: {
       name: q.contactPerson?.name ?? q.ownerName ?? "",
       email: q.contactPerson?.email || q.ownerEmail || settings.issuer.email,
-      phone: formatPhone(q.contactPerson?.phone ?? "")
+      // Telefonnummer der Sales-Person bewusst nicht auf dem Angebot: für Fragen ist Noah da (WhatsApp, 24/7)
+      phone: ""
     },
     taxNote: reverseCharge ? labels.reverseCharge : labels.vatNote,
     reverseCharge,
