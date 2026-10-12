@@ -126,3 +126,20 @@ apps:
     roles: [App.SupportBot]
     requestableBy: [Orbit.Staff]
     embed: true
+
+  # OTA Listing QA – Inserate auf Airbnb und Booking.com mit Vier-Augen-Prinzip prüfen
+  # (Repo ota-listing-qa, Railway-Projekt ota-listing-qa). Öffnet als Tab, Anmeldung über den Orbit-Pass.
+  # Rollen im Tool kommen aus Entra: App.OtaQA (Bearbeiter), App.OtaQA.Reviewer (Prüfer), App.OtaQA.Admin.
+  # Erst aktivieren, wenn ota-qa.elev8-suite.com im DNS steht und ORBIT_URL beim Tool gesetzt ist (ORBIT.md im Repo).
+  - id: ota-qa
+    name: { de: OTA Listing QA, en: OTA Listing QA }
+    description:
+      de: Inserate auf Airbnb und Booking.com prüfen, Texte mit Claude verbessern und im Vier-Augen-Prinzip freigeben.
+      en: Check Airbnb and Booking.com listings, improve texts with Claude and approve them with a second pair of eyes.
+    url: https://ota-qa.elev8-suite.com/
+    icon: ListChecks
+    category: revenue
+    roles: [App.OtaQA, App.OtaQA.Reviewer, App.OtaQA.Admin]
+    requestableBy: [Orbit.Staff]
+    embed: true
+    enabled: false

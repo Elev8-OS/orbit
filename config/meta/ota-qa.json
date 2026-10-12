@@ -1,0 +1,20 @@
+{
+  "app": "ota-qa",
+  "changelog": [
+    {
+      "version": "1.0",
+      "date": "2026-10-12",
+      "title": { "de": "OTA Listing QA in Orbit", "en": "OTA Listing QA in Orbit" },
+      "changes": [
+        { "de": "Das QA-Tool öffnet als Tab in Orbit, mit der Anmeldung von Orbit. Passwörter entfallen.", "en": "The QA tool opens as a tab in Orbit, using the Orbit sign-in. No more passwords." },
+        { "de": "Deine Rolle (Bearbeiter, Prüfer, Admin) kommt aus deinem Microsoft-Konto.", "en": "Your role (editor, reviewer, admin) comes from your Microsoft account." },
+        { "de": "Das Vier-Augen-Prinzip bleibt: Eigene Vorschläge kann niemand selbst freigeben.", "en": "The four-eyes principle stays: nobody can approve their own proposals." }
+      ]
+    }
+  ],
+  "glossary": [
+    { "term": "Vier-Augen-Prinzip", "name": { "de": "Vier-Augen-Prinzip", "en": "Four-eyes principle" }, "definition": { "de": "Jede Korrektur am Inserat schlägt eine Person vor, eine zweite gibt sie frei.", "en": "One person proposes each listing correction, a second person approves it." } },
+    { "term": "Befund", "name": { "de": "Befund", "en": "Finding" }, "definition": { "de": "Automatisch erkannte Unstimmigkeit, z.B. mehr Betten in der Kopfzeile als in den Zimmern.", "en": "An inconsistency found automatically, e.g. more beds in the summary than in the rooms." } },
+    { "term": "Chrome-Extension", "name": { "de": "Chrome-Extension", "en": "Chrome extension" }, "definition": { "de": "Liest die Inseratsdaten aus deiner eingeloggten Airbnb-Sitzung und füllt freigegebene Texte ein. Gespeichert wird in Airbnb immer von Hand.", "en": "Reads listing data from your signed-in Airbnb session and fills in approved texts. Saving in Airbnb is always done by hand." } }
+  ]
+}
