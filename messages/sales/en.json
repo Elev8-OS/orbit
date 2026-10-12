@@ -120,7 +120,15 @@
     "quiet": "Last activity {since}",
     "staleHint": "No stage change or update for over {days} days",
     "failed": "That didn't work. GHL did not accept the change.",
-    "loadFailed": "The pipeline could not be loaded from GHL. Reload the page."
+    "loadFailed": "The pipeline could not be loaded from GHL. Reload the page.",
+    "dragHint": "Drag cards to another column to change the stage. While dragging, “Won” and “Lost” appear at the bottom.",
+    "a11y": {
+      "instructions": "Press space to pick up the deal. Use the arrow keys to reach the stage, space to drop, escape to cancel."
+    },
+    "dropWon": "Drop as won",
+    "dropLost": "Drop as lost",
+    "actions": "Actions for {name}",
+    "moveTo": "Move to"
   },
   "contact": {
     "notFound": {

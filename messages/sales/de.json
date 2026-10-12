@@ -120,7 +120,15 @@
     "quiet": "Letzte Bewegung {since}",
     "staleHint": "Seit über {days} Tagen ohne Stage-Wechsel oder Änderung",
     "failed": "Hat nicht geklappt. GHL hat die Änderung nicht übernommen.",
-    "loadFailed": "Die Pipeline konnte nicht aus GHL geladen werden. Lade die Seite neu."
+    "loadFailed": "Die Pipeline konnte nicht aus GHL geladen werden. Lade die Seite neu.",
+    "dragHint": "Karten in eine andere Spalte ziehen, um die Stage zu wechseln. Beim Ziehen erscheinen unten „Gewonnen“ und „Verloren“.",
+    "a11y": {
+      "instructions": "Leertaste drücken, um den Deal aufzunehmen. Mit den Pfeiltasten zur Ziel-Stage, mit Leertaste ablegen, mit Escape abbrechen."
+    },
+    "dropWon": "Als gewonnen ablegen",
+    "dropLost": "Als verloren ablegen",
+    "actions": "Aktionen für {name}",
+    "moveTo": "Verschieben nach"
   },
   "contact": {
     "notFound": {
