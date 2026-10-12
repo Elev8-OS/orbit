@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
-import { AlertTriangle, FileText, Mic, Plus, Search, X } from "lucide-react";
+import { AlertTriangle, Ban, Check, FileText, Mail, Mic, Plus, RotateCcw, Search, X } from "lucide-react";
 import { formatMoney } from "@/lib/offerten/quote";
+import { FollowUpDialog } from "./FollowUpDialog";
+import { useGhlSearch } from "./useGhlSearch";
 import { relativeTime } from "./useRelativeTime";
 
 export type QuoteRow = {
@@ -20,9 +22,14 @@ export type QuoteRow = {
   updatedAt: string;
   sentAt: string | null;
   ghlIncomplete: boolean;
+  followUpAt: string | null;
+  followUpCount: number;
+  lastFollowUpAt: string | null;
+  outcome: "open" | "won" | "lost";
+  validUntil: string;
 };
 
-type Tab = "drafts" | "sent" | "calls";
+type Tab = "drafts" | "follow" | "sent" | "calls";
 
 type Meeting = {
   id: string;
@@ -33,16 +40,21 @@ type Meeting = {
   status: string | null;
   reason: string | null;
   quoteId: string | null;
+  dismissedBy: string | null;
 };
 
 type Props = { quotes: QuoteRow[]; initialTab: Tab; ghlEnabled: boolean; locale: "de" | "en" };
 
-export function OffertenOverview({ quotes, initialTab, ghlEnabled, locale }: Props) {
+const today = () => new Date().toISOString().slice(0, 10);
+
+export function OffertenOverview({ quotes: initialQuotes, initialTab, ghlEnabled, locale }: Props) {
   const t = useTranslations("offerten");
+  const [quotes, setQuotes] = useState(initialQuotes);
   const [tab, setTab] = useState<Tab>(initialTab);
   const [dialogOpen, setDialogOpen] = useState(false);
   const drafts = quotes.filter((q) => q.status === "draft");
   const sent = quotes.filter((q) => q.status === "sent");
+  const due = sent.filter((q) => q.outcome === "open" && q.followUpAt && q.followUpAt <= today());
 
   const selectTab = (next: Tab) => {
     setTab(next);
@@ -68,26 +80,27 @@ export function OffertenOverview({ quotes, initialTab, ghlEnabled, locale }: Pro
       <div className="of-tabs" role="tablist">
         {(
           [
-            ["drafts", t("overview.tabs.drafts"), drafts.length],
-            ["sent", t("overview.tabs.sent"), sent.length],
-            ["calls", t("overview.tabs.calls"), null]
-          ] as [Tab, string, number | null][]
-        ).map(([id, label, count]) => (
-          <button
-            key={id}
-            type="button"
-            role="tab"
-            aria-selected={tab === id}
-            className="of-tab"
-            onClick={() => selectTab(id)}
-          >
+            ["drafts", t("overview.tabs.drafts"), drafts.length, false],
+            ["follow", t("overview.tabs.follow"), due.length, due.length > 0],
+            ["sent", t("overview.tabs.sent"), sent.length, false],
+            ["calls", t("overview.tabs.calls"), null, false]
+          ] as [Tab, string, number | null, boolean][]
+        ).map(([id, label, count, alert]) => (
+          <button key={id} type="button" role="tab" aria-selected={tab === id} className="of-tab" onClick={() => selectTab(id)}>
             {label}
-            {count !== null && <span className="of-tab-count">{count}</span>}
+            {count !== null && <span className={alert ? "of-tab-count of-tab-count-alert" : "of-tab-count"}>{count}</span>}
           </button>
         ))}
       </div>
 
       {tab === "drafts" && <QuoteList rows={drafts} empty={t("overview.empty.drafts")} locale={locale} />}
+      {tab === "follow" && (
+        <FollowUpList
+          rows={sent}
+          locale={locale}
+          onChange={(id, patch) => setQuotes((qs) => qs.map((q) => (q.id === id ? { ...q, ...patch } : q)))}
+        />
+      )}
       {tab === "sent" && <QuoteList rows={sent} empty={t("overview.empty.sent")} locale={locale} />}
       {tab === "calls" && <CallList locale={locale} />}
 
@@ -118,6 +131,9 @@ function QuoteList({ rows, empty, locale }: { rows: QuoteRow[]; empty: string; l
             <span className="of-row-main">
               <span className="of-row-title">
                 {q.recipient || <em className="of-muted">{t("noRecipient")}</em>}
+                {q.status === "sent" && q.outcome !== "open" && (
+                  <span className={`of-chip of-chip-${q.outcome}`}>{t(`outcome.${q.outcome}`)}</span>
+                )}
                 {q.ghlIncomplete && (
                   <span className="of-chip of-chip-warn">
                     <AlertTriangle size={12} aria-hidden="true" />
@@ -147,11 +163,159 @@ function QuoteList({ rows, empty, locale }: { rows: QuoteRow[]; empty: string; l
   );
 }
 
+// ── Nachverfolgen ───────────────────────────────────────────
+
+function FollowUpList({
+  rows,
+  locale,
+  onChange
+}: {
+  rows: QuoteRow[];
+  locale: "de" | "en";
+  onChange: (id: string, patch: Partial<QuoteRow>) => void;
+}) {
+  const t = useTranslations("offerten.follow");
+  const [writing, setWriting] = useState<QuoteRow | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const now = today();
+
+  const groups = useMemo(() => {
+    const open = rows.filter((q) => q.outcome === "open");
+    return {
+      due: open.filter((q) => q.followUpAt && q.followUpAt <= now).sort((a, b) => (a.followUpAt ?? "").localeCompare(b.followUpAt ?? "")),
+      upcoming: open.filter((q) => !q.followUpAt || q.followUpAt > now).sort((a, b) => (a.followUpAt ?? "9").localeCompare(b.followUpAt ?? "9")),
+      closed: rows.filter((q) => q.outcome !== "open")
+    };
+  }, [rows, now]);
+
+  const patch = async (q: QuoteRow, body: { followUpAt?: string | null; outcome?: "open" | "won" | "lost" }) => {
+    setBusy(q.id);
+    setError(null);
+    const res = await fetch(`/api/offerten/${q.id}/tracking`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    }).catch(() => null);
+    setBusy(null);
+    const data = (await res?.json().catch(() => null)) as {
+      quote?: { followUpAt: string | null; outcome: QuoteRow["outcome"] };
+      ghl?: { ok: boolean; error?: string } | null;
+    } | null;
+    if (!res?.ok || !data?.quote) {
+      setError(t("saveFailed"));
+      return;
+    }
+    onChange(q.id, { followUpAt: data.quote.followUpAt, outcome: data.quote.outcome });
+    if (data.ghl && !data.ghl.ok) setError(t("ghlFailed", { detail: data.ghl.error ?? "" }));
+  };
+
+  const afterSent = async (id: string) => {
+    const res = await fetch(`/api/offerten/${id}`).catch(() => null);
+    const data = (await res?.json().catch(() => null)) as {
+      quote?: { followUpAt: string | null; followUpCount: number; lastFollowUpAt: string | null };
+    } | null;
+    if (data?.quote) {
+      onChange(id, { followUpAt: data.quote.followUpAt, followUpCount: data.quote.followUpCount, lastFollowUpAt: data.quote.lastFollowUpAt });
+    }
+  };
+
+  const row = (q: QuoteRow) => {
+    const expired = q.validUntil < now;
+    const overdueDays = q.followUpAt && q.followUpAt < now ? Math.round((Date.parse(now) - Date.parse(q.followUpAt)) / 86_400_000) : 0;
+    return (
+      <li key={q.id} className="of-row of-row-static of-follow-row">
+        <span className="of-row-icon" aria-hidden="true">
+          <Mail size={18} />
+        </span>
+        <span className="of-row-main">
+          <a href={`/offerten/${q.id}`} className="of-row-title of-row-link">
+            {q.recipient || q.number}
+            {expired && q.outcome === "open" && <span className="of-chip of-chip-warn">{t("expired")}</span>}
+            {q.outcome !== "open" && <span className={`of-chip of-chip-${q.outcome}`}>{t(`outcome.${q.outcome}`)}</span>}
+          </a>
+          <span className="of-row-sub" suppressHydrationWarning>
+            {q.number} · {q.firstYear ? formatMoney(q.firstYear, q.currency, locale) : "–"} ·{" "}
+            {q.sentAt ? t("sentAgo", { time: relativeTime(q.sentAt, locale) }) : ""}
+            {q.followUpCount ? ` · ${t("followedUp", { count: q.followUpCount })}` : ""}
+            {overdueDays > 0 ? ` · ${t("overdue", { days: overdueDays })}` : ""}
+          </span>
+        </span>
+        <span className="of-follow-actions">
+          {q.outcome === "open" ? (
+            <>
+              <label className="of-follow-date">
+                <span className="of-muted of-small">{t("next")}</span>
+                <input
+                  type="date"
+                  value={q.followUpAt ?? ""}
+                  disabled={busy === q.id}
+                  onChange={(e) => patch(q, { followUpAt: e.target.value || null })}
+                />
+              </label>
+              <button type="button" className="button-yellow" onClick={() => setWriting(q)}>
+                <Mail size={16} aria-hidden="true" /> {t("followUp")}
+              </button>
+              <button type="button" className="button-secondary of-icon-only" title={t("won")} aria-label={t("won")} disabled={busy === q.id} onClick={() => patch(q, { outcome: "won" })}>
+                <Check size={16} />
+              </button>
+              <button type="button" className="button-secondary of-icon-only" title={t("lost")} aria-label={t("lost")} disabled={busy === q.id} onClick={() => patch(q, { outcome: "lost" })}>
+                <X size={16} />
+              </button>
+            </>
+          ) : (
+            <button type="button" className="button-ghost" disabled={busy === q.id} onClick={() => patch(q, { outcome: "open" })}>
+              <RotateCcw size={16} aria-hidden="true" /> {t("reopen")}
+            </button>
+          )}
+        </span>
+      </li>
+    );
+  };
+
+  if (!rows.length) return <p className="of-empty">{t("empty")}</p>;
+  return (
+    <div className="of-follow">
+      <p className="of-muted">{t("lead")}</p>
+      {error && <p className="form-error">{error}</p>}
+      {(
+        [
+          ["due", groups.due],
+          ["upcoming", groups.upcoming],
+          ["closed", groups.closed]
+        ] as const
+      ).map(([key, list]) =>
+        list.length ? (
+          <section key={key} className="of-follow-group">
+            <h2 className="of-h3">
+              {t(`groups.${key}`)} <span className="of-muted">({list.length})</span>
+            </h2>
+            <ul className="of-list">{list.map(row)}</ul>
+          </section>
+        ) : key === "due" ? (
+          <p key={key} className="of-ok-line">
+            <Check size={16} aria-hidden="true" /> {t("nothingDue")}
+          </p>
+        ) : null
+      )}
+      <FollowUpDialog
+        quoteId={writing?.id ?? null}
+        title={writing?.recipient ?? ""}
+        onClose={() => setWriting(null)}
+        onSent={afterSent}
+      />
+    </div>
+  );
+}
+
+// ── Calls ───────────────────────────────────────────────────
+
 function CallList({ locale }: { locale: "de" | "en" }) {
   const t = useTranslations("offerten.calls");
   const [meetings, setMeetings] = useState<Meeting[] | null>(null);
   const [error, setError] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
+  const [showDone, setShowDone] = useState(false);
 
   useEffect(() => {
     fetch("/api/offerten/meetings")
@@ -177,18 +341,46 @@ function CallList({ locale }: { locale: "de" | "en" }) {
     }
   };
 
+  const mark = async (m: Meeting, action: "dismiss" | "restore") => {
+    setBusy(m.id);
+    const res = await fetch(`/api/offerten/meetings/${m.id}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action, title: m.title })
+    }).catch(() => null);
+    setBusy(null);
+    if (!res?.ok) return;
+    setMeetings((list) =>
+      (list ?? []).map((x) =>
+        x.id === m.id ? { ...x, status: action === "dismiss" ? "dismissed" : null, dismissedBy: action === "dismiss" ? "–" : null } : x
+      )
+    );
+  };
+
+  const isDone = (m: Meeting) => m.status === "dismissed" || m.status === "internal";
+  const visible = (meetings ?? []).filter((m) => showDone || !isDone(m));
+  const doneCount = (meetings ?? []).filter(isDone).length;
+
   return (
     <div className="of-calls">
-      <p className="of-muted">{t("lead")}</p>
+      <div className="of-calls-head">
+        <p className="of-muted">{t("lead")}</p>
+        {doneCount > 0 && (
+          <label className="of-check of-small">
+            <input type="checkbox" checked={showDone} onChange={(e) => setShowDone(e.target.checked)} />
+            {t("showDone", { count: doneCount })}
+          </label>
+        )}
+      </div>
       {error && <p className="form-error">{t("error")}</p>}
       {!meetings && !error && <p className="of-empty">{t("loading")}</p>}
-      {meetings && !meetings.length && <p className="of-empty">{t("empty")}</p>}
-      {meetings && meetings.length > 0 && (
+      {meetings && !visible.length && <p className="of-empty">{t("empty")}</p>}
+      {visible.length > 0 && (
         <ul className="of-list">
-          {meetings.map((m) => {
+          {visible.map((m) => {
             const status = m.status ?? "none";
             return (
-              <li key={m.id} className="of-row of-row-static">
+              <li key={m.id} className={`of-row of-row-static${isDone(m) ? " is-done" : ""}`}>
                 <span className="of-row-icon" aria-hidden="true">
                   <Mic size={18} />
                 </span>
@@ -201,17 +393,26 @@ function CallList({ locale }: { locale: "de" | "en" }) {
                     {m.date ? relativeTime(m.date, locale) : ""}
                     {m.external.length ? ` · ${m.external.join(", ")}` : ""}
                   </span>
-                  {m.reason && status !== "quote_created" && <span className="of-row-reason">{m.reason}</span>}
+                  {m.reason && !["quote_created", "dismissed"].includes(status) && <span className="of-row-reason">{m.reason}</span>}
                 </span>
-                <span className="of-row-side">
+                <span className="of-row-side of-row-actions">
                   {m.quoteId ? (
                     <a className="button-secondary" href={`/offerten/${m.quoteId}`}>
                       {t("open")}
                     </a>
-                  ) : (
-                    <button type="button" className="button-secondary" disabled={busy !== null} onClick={() => create(m.id)}>
-                      {busy === m.id ? t("creating") : t("create")}
+                  ) : status === "dismissed" ? (
+                    <button type="button" className="button-ghost" disabled={busy !== null} onClick={() => mark(m, "restore")}>
+                      <RotateCcw size={16} aria-hidden="true" /> {t("restore")}
                     </button>
+                  ) : (
+                    <>
+                      <button type="button" className="button-ghost" disabled={busy !== null} onClick={() => mark(m, "dismiss")}>
+                        <Ban size={16} aria-hidden="true" /> {t("dismiss")}
+                      </button>
+                      <button type="button" className="button-secondary" disabled={busy !== null} onClick={() => create(m.id)}>
+                        {busy === m.id ? t("creating") : t("create")}
+                      </button>
+                    </>
                   )}
                 </span>
               </li>
@@ -223,7 +424,7 @@ function CallList({ locale }: { locale: "de" | "en" }) {
   );
 }
 
-type ContactHit = { id: string; name: string; email: string; company: string };
+// ── Neue Offerte ────────────────────────────────────────────
 
 function NewQuoteDialog({
   open,
@@ -239,9 +440,8 @@ function NewQuoteDialog({
   const t = useTranslations("offerten.newDialog");
   const ref = useRef<HTMLDialogElement>(null);
   const [q, setQ] = useState("");
-  const [hits, setHits] = useState<ContactHit[] | null>(null);
-  const [searching, setSearching] = useState(false);
   const [creating, setCreating] = useState(false);
+  const { hits, searching, error } = useGhlSearch(q, ghlEnabled && open);
 
   useEffect(() => {
     const dialog = ref.current;
@@ -249,21 +449,6 @@ function NewQuoteDialog({
     if (open && !dialog.open) dialog.showModal();
     if (!open && dialog.open) dialog.close();
   }, [open]);
-
-  useEffect(() => {
-    if (!ghlEnabled || q.trim().length < 2) {
-      setHits(null);
-      return;
-    }
-    setSearching(true);
-    const timer = setTimeout(async () => {
-      const res = await fetch(`/api/offerten/ghl/contacts?q=${encodeURIComponent(q.trim())}`).catch(() => null);
-      const data = res?.ok ? ((await res.json()) as { contacts: ContactHit[] }) : { contacts: [] };
-      setHits(data.contacts);
-      setSearching(false);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [q, ghlEnabled]);
 
   const create = async (ghlContactId?: string) => {
     setCreating(true);
@@ -292,17 +477,13 @@ function NewQuoteDialog({
             <span className="field-label">{t("search")}</span>
             <span className="of-search">
               <Search size={16} aria-hidden="true" />
-              <input
-                type="search"
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder={t("searchPlaceholder")}
-                autoFocus
-              />
+              <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("searchPlaceholder")} autoFocus />
             </span>
           </label>
         )}
         {searching && <p className="of-muted">{t("searching")}</p>}
+        {error && <p className="form-error">{t(error === "wrong_location" ? "ghlWrongLocation" : "ghlFailed")}</p>}
+        {creating && <p className="of-muted">{t("creating")}</p>}
         {hits && !searching && hits.length === 0 && <p className="of-muted">{t("noResults")}</p>}
         {hits && hits.length > 0 && (
           <ul className="of-hits">

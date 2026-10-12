@@ -38,8 +38,8 @@ export function SendDialog({ open, onClose, quote, settings, user, provider, onS
       senderName: user.name
     };
     return {
-      subject: fillTemplate(settings.texts.emailSubject[lang], values),
-      body: fillTemplate(settings.texts.emailBody[lang], values)
+      subject: quote.texts.emailSubject || fillTemplate(settings.texts.emailSubject[lang], values),
+      body: quote.texts.emailBody || fillTemplate(settings.texts.emailBody[lang], values)
     };
   }, [quote, settings, user, lang]);
 

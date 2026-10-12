@@ -12,6 +12,7 @@ import {
   MoreHorizontal,
   Plus,
   Send,
+  Sparkles,
   Trash2
 } from "lucide-react";
 import { buildDocument } from "@/lib/offerten/document";
@@ -20,6 +21,7 @@ import {
   formatDate,
   formatMoney,
   tierForUnits,
+  type ContactPerson,
   type Interval,
   type Lang,
   type QuoteConfig,
@@ -47,6 +49,7 @@ type Draft = {
   ghlContactId: string | null;
   ghlOpportunityId: string | null;
   ghlPipelineId: string | null;
+  contactPerson: ContactPerson | null;
 };
 
 type Props = {
@@ -58,6 +61,7 @@ type Props = {
   ghlEnabled: boolean;
   ghlContactBase: string | null;
   uiLocale: "de" | "en";
+  aiEnabled: boolean;
 };
 
 type SaveState = "idle" | "saving" | "saved" | "error";
@@ -71,12 +75,13 @@ const pick = (q: Quote): Draft => ({
   validUntil: q.validUntil,
   ghlContactId: q.ghlContactId,
   ghlOpportunityId: q.ghlOpportunityId,
-  ghlPipelineId: q.ghlPipelineId
+  ghlPipelineId: q.ghlPipelineId,
+  contactPerson: q.contactPerson
 });
 
 const newId = () => `c${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 
-export function QuoteEditor({ initial, events, settings, user, mailProvider, ghlEnabled, ghlContactBase, uiLocale }: Props) {
+export function QuoteEditor({ initial, events, settings, user, mailProvider, ghlEnabled, ghlContactBase, uiLocale, aiEnabled }: Props) {
   const t = useTranslations("offerten.editor");
   const tIntervals = useTranslations("offerten.interval");
   const tLang = useTranslations("offerten.lang");
@@ -88,6 +93,8 @@ export function QuoteEditor({ initial, events, settings, user, mailProvider, ghl
   const [previewFormat, setPreviewFormat] = useState<"pdf" | "xlsx">("pdf");
   const [sendOpen, setSendOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [aiState, setAiState] = useState<"idle" | "busy" | "error">("idle");
+  const [aiSources, setAiSources] = useState<string[] | null>(null);
   const readOnly = quote.status !== "draft";
   const lang = draft.language;
   const money = (n: number) => formatMoney(n, quote.currency, lang);
@@ -192,7 +199,8 @@ export function QuoteEditor({ initial, events, settings, user, mailProvider, ghl
         recipient: p.recipient,
         ghlContactId: p.ghlContactId,
         ghlOpportunityId: p.ghlOpportunityId,
-        ghlPipelineId: p.ghlPipelineId
+        ghlPipelineId: p.ghlPipelineId,
+        contactPerson: p.contactPerson ?? d.contactPerson
       };
       if (p.units && d.config.model === "per_unit") {
         next.config = { ...d.config, units: p.units };
@@ -210,12 +218,45 @@ export function QuoteEditor({ initial, events, settings, user, mailProvider, ghl
       createdAt: quote.createdAt,
       sentAt: quote.sentAt,
       ownerName: readOnly ? quote.sentByName : user.name,
-      ownerEmail: readOnly ? quote.sentByEmail : user.email
+      ownerEmail: readOnly ? quote.sentByEmail : user.email,
+      contactPerson:
+        draft.contactPerson ??
+        (readOnly
+          ? { name: quote.sentByName ?? "", email: quote.sentByEmail ?? "", phone: "" }
+          : { name: user.name, email: user.email, phone: "" })
     }),
     [draft, quote, readOnly, user]
   );
   const doc = useMemo(() => buildDocument(docQuote, settings), [docQuote, settings]);
   const tier = tierForUnits(settings.perUnit.tiers, draft.config.units);
+  const reverseCharge = (settings.reverseChargeCountries ?? ["DE"]).includes(draft.recipient.country);
+
+  /** Texte und Mail aus Gespräch und GHL-Verlauf neu schreiben lassen. */
+  const personalize = async (addressForm?: "du" | "sie") => {
+    const hasCustomText = draft.texts.emailBody || draft.texts.intro !== settings.texts.intro[draft.language];
+    if (hasCustomText && !window.confirm(t("texts.regenerateConfirm"))) return;
+    setAiState("busy");
+    // Ausstehende Änderungen zuerst speichern, damit Claude den aktuellen Stand sieht
+    await fetch(`/api/offerten/${quote.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(draft)
+    }).catch(() => null);
+    const res = await fetch(`/api/offerten/${quote.id}/personalize`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(addressForm ? { addressForm } : {})
+    }).catch(() => null);
+    const data = (await res?.json().catch(() => null)) as { quote?: Quote; sources?: string[] } | null;
+    if (!res?.ok || !data?.quote) {
+      setAiState("error");
+      return;
+    }
+    firstRender.current = true; // kein erneutes Speichern auslösen
+    setDraft((d) => ({ ...d, texts: data.quote!.texts }));
+    setAiSources(data.sources ?? []);
+    setAiState("idle");
+  };
 
   const discard = async () => {
     if (!window.confirm(t("discardConfirm"))) return;
@@ -374,6 +415,13 @@ export function QuoteEditor({ initial, events, settings, user, mailProvider, ghl
               ) : (
                 <p className="of-warn">{t("recipient.ghlNotLinked")}</p>
               )}
+              {draft.contactPerson && (
+                <p className="of-muted of-small">
+                  {t("recipient.contactPerson", {
+                    name: [draft.contactPerson.name, draft.contactPerson.phone].filter(Boolean).join(" · ") || draft.contactPerson.email
+                  })}
+                </p>
+              )}
               {ghlEnabled && !readOnly && (
                 <ContactPicker
                   label={draft.ghlContactId ? t("recipient.change") : t("recipient.link")}
@@ -408,6 +456,23 @@ export function QuoteEditor({ initial, events, settings, user, mailProvider, ghl
                   }
                 />
               </Field>
+              <Field label={t("recipient.country")} hint={reverseCharge ? t("recipient.reverseChargeHint") : t("recipient.countryHint")}>
+                <input
+                  value={draft.recipient.country}
+                  maxLength={2}
+                  placeholder="CH"
+                  onChange={(e) =>
+                    update({ recipient: { ...draft.recipient, country: e.target.value.toUpperCase().replace(/[^A-Z]/g, "") } })
+                  }
+                />
+              </Field>
+              {reverseCharge ? (
+                <Field label={t("recipient.vatId")}>
+                  <input value={draft.recipient.vatId} placeholder="DE123456789" onChange={(e) => update({ recipient: { ...draft.recipient, vatId: e.target.value } })} />
+                </Field>
+              ) : (
+                <div />
+              )}
               <Field label={t("recipient.language")}>
                 <select value={draft.language} onChange={(e) => setLanguage(e.target.value as Lang)}>
                   <option value="de">{tLang("de")}</option>
@@ -643,16 +708,60 @@ export function QuoteEditor({ initial, events, settings, user, mailProvider, ghl
 
           {/* Texte */}
           <section className="of-card">
-            <h2 className="of-h2">{t("texts.title")}</h2>
+            <div className="of-card-head">
+              <h2 className="of-h2">{t("texts.title")}</h2>
+              {aiEnabled && !readOnly && (
+                <div className="of-ai-tools">
+                  <select
+                    aria-label={t("texts.addressForm")}
+                    className="of-inline-select"
+                    value={draft.texts.addressForm}
+                    onChange={(e) => update({ texts: { ...draft.texts, addressForm: e.target.value as "du" | "sie" } })}
+                  >
+                    <option value="sie">{t("texts.formSie")}</option>
+                    <option value="du">{t("texts.formDu")}</option>
+                  </select>
+                  <button type="button" className="button-secondary" disabled={aiState === "busy"} onClick={() => personalize(draft.texts.addressForm)}>
+                    <Sparkles size={16} aria-hidden="true" />
+                    {aiState === "busy" ? t("texts.regenerating") : t("texts.regenerate")}
+                  </button>
+                </div>
+              )}
+            </div>
+            {aiState === "error" && <p className="form-error">{t("texts.regenerateError")}</p>}
+            {aiSources && (
+              <p className="of-muted of-small">
+                {t("texts.sources", { list: aiSources.length ? aiSources.join(", ") : t("texts.noSources") })}
+              </p>
+            )}
             <Field label={t("texts.intro")}>
-              <textarea rows={3} value={draft.texts.intro} onChange={(e) => update({ texts: { ...draft.texts, intro: e.target.value } })} />
+              <textarea rows={4} value={draft.texts.intro} onChange={(e) => update({ texts: { ...draft.texts, intro: e.target.value } })} />
             </Field>
             <Field label={t("texts.notes")} hint={t("texts.notesHint")}>
-              <textarea rows={4} value={draft.texts.notes} onChange={(e) => update({ texts: { ...draft.texts, notes: e.target.value } })} />
+              <textarea rows={5} value={draft.texts.notes} onChange={(e) => update({ texts: { ...draft.texts, notes: e.target.value } })} />
             </Field>
             <Field label={t("texts.closing")}>
               <textarea rows={2} value={draft.texts.closing} onChange={(e) => update({ texts: { ...draft.texts, closing: e.target.value } })} />
             </Field>
+            <div className="of-mail-block">
+              <h3 className="of-h3">{t("texts.mailTitle")}</h3>
+              <p className="of-hint">{t("texts.mailHint")}</p>
+              <Field label={t("texts.emailSubject")}>
+                <input
+                  value={draft.texts.emailSubject}
+                  placeholder={t("texts.emailFallback")}
+                  onChange={(e) => update({ texts: { ...draft.texts, emailSubject: e.target.value } })}
+                />
+              </Field>
+              <Field label={t("texts.emailBody")}>
+                <textarea
+                  rows={8}
+                  value={draft.texts.emailBody}
+                  placeholder={t("texts.emailFallback")}
+                  onChange={(e) => update({ texts: { ...draft.texts, emailBody: e.target.value } })}
+                />
+              </Field>
+            </div>
           </section>
 
           {events.length > 0 && (

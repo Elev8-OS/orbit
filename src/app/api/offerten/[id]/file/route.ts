@@ -1,5 +1,5 @@
 import { requireOffertenUser } from "@/lib/offerten/access";
-import { documentFor, renderFile, type Format } from "@/lib/offerten/service";
+import { documentFor, refreshLines, renderFile, type Format } from "@/lib/offerten/service";
 import { getSettings } from "@/lib/offerten/settings";
 import { getQuote } from "@/lib/offerten/store";
 
@@ -16,10 +16,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   const quote = await getQuote((await params).id);
   if (!quote) return Response.json({ error: "not_found" }, { status: 404 });
   const settings = await getSettings();
-  // Entwürfe zeigen den angemeldeten User als Kontakt, so wie sie beim Versand aussehen
-  const view =
-    quote.status === "draft" ? { ...quote, ownerName: access.user.name, ownerEmail: access.user.email || quote.ownerEmail } : quote;
-  const file = await renderFile(documentFor(view, settings), format);
+  // Entwürfe immer mit aktuellen Preisen; ohne GHL-Owner erscheint der angemeldete User als Kontakt
+  const view = quote.status === "draft" ? { ...quote, lines: refreshLines(quote, settings) } : quote;
+  const file = await renderFile(documentFor(view, settings, { name: access.user.name, email: access.user.email }), format);
   const disposition = url.searchParams.get("download") === "1" || format === "xlsx" ? "attachment" : "inline";
   return new Response(new Uint8Array(file.data), {
     headers: {

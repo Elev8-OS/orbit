@@ -51,7 +51,10 @@ export async function renderQuoteXlsx(doc: QuoteDocument): Promise<Buffer> {
     [L.number, doc.number],
     [L.date, doc.dateText],
     [L.validUntil, doc.validUntilText],
-    ...(doc.contact.name ? ([[L.contact, [doc.contact.name, doc.contact.email].filter(Boolean).join(", ")]] as [string, string][]) : [])
+    ...(doc.customerVatId ? ([[L.customerVatId, doc.customerVatId]] as [string, string][]) : []),
+    ...(doc.contact.name
+      ? ([[L.contact, [doc.contact.name, doc.contact.email, doc.contact.phone].filter(Boolean).join(", ")]] as [string, string][])
+      : [])
   ];
   let r = 4;
   for (const [k, v] of meta) {
@@ -118,27 +121,25 @@ export async function renderQuoteXlsx(doc: QuoteDocument): Promise<Buffer> {
   const tax = doc.taxPercent;
   const firstYearParts: string[] = [];
   const sumIf = (label: string) => `SUMIF($G$${first}:$G$${last},"${label}",$H$${first}:$H$${last})`;
-  const labelOf = { once: L.totalOnce, monthly: L.totalMonthly, yearly: L.totalYearly } as const;
-  const resultOf = (interval: "once" | "monthly" | "yearly") =>
-    doc.totals.find((t) => t.interval === interval && t.strong)?.amount ?? 0;
+  const totalRow = (interval: "once" | "monthly" | "yearly") => doc.totals.find((t) => t.interval === interval && t.kind === "total");
 
   for (const interval of ["once", "monthly", "yearly"] as const) {
     if (!doc.lines.some((l) => l.interval === interval)) continue;
     const intervalText = INTERVAL_LABEL[doc.lang][interval];
     const formula = tax > 0 ? `${sumIf(intervalText)}*(1+${tax}/100)` : sumIf(intervalText);
-    ws.getCell(r, 7).value = labelOf[interval];
+    ws.getCell(r, 7).value = totalRow(interval)?.label ?? interval;
     ws.getCell(r, 7).font = { ...font, bold: true };
     ws.getCell(r, 7).alignment = { horizontal: "right" };
-    ws.getCell(r, 8).value = { formula, result: resultOf(interval) };
+    ws.getCell(r, 8).value = { formula, result: totalRow(interval)?.amount ?? 0 };
     ws.getCell(r, 8).numFmt = fmtMoney;
     ws.getCell(r, 8).font = { ...font, bold: true };
     ws.getCell(r, 8).fill = { type: "pattern", pattern: "solid", fgColor: { argb: YELLOW_SOFT } };
     firstYearParts.push(interval === "monthly" ? `H${r}*12` : `H${r}`);
     r++;
   }
-  const firstYearRow = doc.totals.find((t) => t.label === L.firstYear);
+  const firstYearRow = doc.totals.find((t) => t.kind === "firstYear");
   if (firstYearRow) {
-    ws.getCell(r, 7).value = L.firstYear;
+    ws.getCell(r, 7).value = firstYearRow.label;
     ws.getCell(r, 7).font = { ...font, bold: true };
     ws.getCell(r, 7).alignment = { horizontal: "right" };
     ws.getCell(r, 8).value = { formula: firstYearParts.join("+"), result: firstYearRow.amount };
@@ -172,7 +173,7 @@ export async function renderQuoteXlsx(doc: QuoteDocument): Promise<Buffer> {
   ws.getCell(r, 1).font = { ...font, bold: true };
   r++;
   ws.mergeCells(r, 1, r, 8);
-  ws.getCell(r, 1).value = doc.terms;
+  ws.getCell(r, 1).value = [doc.taxNote, doc.terms].join(" ");
   ws.getCell(r, 1).alignment = { wrapText: true, vertical: "top" };
   ws.getCell(r, 1).font = { ...font, size: 10, color: { argb: GREY } };
   ws.getRow(r).height = Math.max(30, Math.ceil(doc.terms.length / 140) * 15);
@@ -182,7 +183,7 @@ export async function renderQuoteXlsx(doc: QuoteDocument): Promise<Buffer> {
   ws.getCell(r, 1).alignment = { wrapText: true, vertical: "top" };
   ws.getRow(r).height = Math.max(20, Math.ceil(doc.closing.length / 140) * 16);
   r += 2;
-  const footer = [doc.issuer.company, ...doc.issuer.addressLines, doc.issuer.website, doc.issuer.email].filter(Boolean).join(" · ");
+  const footer = [doc.issuer.company, ...doc.issuer.addressLines, doc.issuer.taxId, doc.issuer.website].filter(Boolean).join(" · ");
   if (footer) {
     ws.mergeCells(r, 1, r, 8);
     ws.getCell(r, 1).value = footer;

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { requireOffertenUser } from "@/lib/offerten/access";
 import { sendQuoteMail } from "@/lib/offerten/mailer";
-import { documentFor, renderFile, syncToGhl } from "@/lib/offerten/service";
+import { documentFor, refreshLines, renderFile, syncToGhl } from "@/lib/offerten/service";
 import { getSettings } from "@/lib/offerten/settings";
 import { claimSend, getQuote, logEvent, markSent, releaseSend } from "@/lib/offerten/store";
 
@@ -27,14 +27,21 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (!user.email) return Response.json({ error: "no_sender_email" }, { status: 400 });
 
   const id = (await params).id;
-  const quote = await getQuote(id);
-  if (!quote) return Response.json({ error: "not_found" }, { status: 404 });
-  if (quote.status !== "draft") return Response.json({ error: "already_sent" }, { status: 409 });
+  const stored = await getQuote(id);
+  if (!stored) return Response.json({ error: "not_found" }, { status: 404 });
+  if (stored.status !== "draft") return Response.json({ error: "already_sent" }, { status: 409 });
+
+  // Immer mit den aktuellen Preisen versenden; Mailtext so festhalten, wie er rausgeht
+  const settings = await getSettings();
+  const quote = {
+    ...stored,
+    lines: refreshLines(stored, settings),
+    texts: { ...stored.texts, emailSubject: input.subject, emailBody: input.body }
+  };
   if (!quote.lines.length) return Response.json({ error: "no_lines" }, { status: 400 });
 
-  // Dateien mit Versanddatum und Absender rendern, bevor der Status wechselt
-  const settings = await getSettings();
-  const doc = documentFor({ ...quote, sentAt: new Date().toISOString(), ownerName: user.name, ownerEmail: user.email }, settings);
+  // Dateien mit Versanddatum rendern, bevor der Status wechselt
+  const doc = documentFor({ ...quote, sentAt: new Date().toISOString() }, settings, { name: user.name, email: user.email });
   const formats = [...new Set(input.formats)];
   const files = await Promise.all(formats.map((f) => renderFile(doc, f)));
 
@@ -59,7 +66,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     );
   }
 
-  await markSent(id, { byName: user.name, byEmail: user.email, formats, to: input.to });
+  await markSent(id, {
+    byName: user.name,
+    byEmail: user.email,
+    formats,
+    to: input.to,
+    followUpDays: settings.followUpDays,
+    texts: quote.texts,
+    lines: quote.lines
+  });
   await logEvent(id, user.name, "sent", { to: input.to, cc: input.cc, formats, provider: sent.provider, subject: input.subject });
 
   const fresh = (await getQuote(id))!;

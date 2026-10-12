@@ -1,5 +1,14 @@
 import { sql } from "@/lib/db";
-import type { Lang, QuoteConfig, QuoteLine, QuoteTexts, Recipient } from "./quote";
+import {
+  normalizeRecipient,
+  normalizeTexts,
+  type ContactPerson,
+  type Lang,
+  type QuoteConfig,
+  type QuoteLine,
+  type QuoteTexts,
+  type Recipient
+} from "./quote";
 import type { CallAnalysis } from "./analysis";
 
 export type QuoteStatus = "draft" | "sent" | "discarded";
@@ -39,9 +48,19 @@ export type Quote = {
   sentFormats: string[] | null;
   sentTo: string[] | null;
   ghlSync: GhlSyncResult | null;
+  /** Ansprechperson auf dem Dokument (Owner in GHL); null = Absender */
+  contactPerson: ContactPerson | null;
+  followUpAt: string | null;
+  followUpCount: number;
+  lastFollowUpAt: string | null;
+  outcome: Outcome;
+  outcomeAt: string | null;
+  outcomeNote: string | null;
   createdAt: string;
   updatedAt: string;
 };
+
+export type Outcome = "open" | "won" | "lost";
 
 type Row = Record<string, unknown>;
 
@@ -63,10 +82,10 @@ function toQuote(r: Row): Quote {
     ghlContactId: (r.ghl_contact_id as string) ?? null,
     ghlOpportunityId: (r.ghl_opportunity_id as string) ?? null,
     ghlPipelineId: (r.ghl_pipeline_id as string) ?? null,
-    recipient: r.recipient as Recipient,
+    recipient: normalizeRecipient(r.recipient as Partial<Recipient>),
     config: r.config as QuoteConfig,
     lines: r.lines as QuoteLine[],
-    texts: r.texts as QuoteTexts,
+    texts: normalizeTexts(r.texts as Partial<QuoteTexts>),
     validUntil: dateOnly(r.valid_until),
     ownerId: (r.owner_id as string) ?? null,
     ownerName: (r.owner_name as string) ?? null,
@@ -77,6 +96,13 @@ function toQuote(r: Row): Quote {
     sentFormats: (r.sent_formats as string[]) ?? null,
     sentTo: (r.sent_to as string[]) ?? null,
     ghlSync: (r.ghl_sync as GhlSyncResult) ?? null,
+    contactPerson: (r.contact_person as ContactPerson) ?? null,
+    followUpAt: r.follow_up_at ? dateOnly(r.follow_up_at) : null,
+    followUpCount: Number(r.follow_up_count ?? 0),
+    lastFollowUpAt: iso(r.last_follow_up_at),
+    outcome: ((r.outcome as Outcome) ?? "open") as Outcome,
+    outcomeAt: iso(r.outcome_at),
+    outcomeNote: (r.outcome_note as string) ?? null,
     createdAt: iso(r.created_at)!,
     updatedAt: iso(r.updated_at)!
   };
@@ -106,6 +132,7 @@ export type NewQuote = {
   ownerId?: string | null;
   ownerName?: string | null;
   ownerEmail?: string | null;
+  contactPerson?: ContactPerson | null;
 };
 
 export async function createQuote(input: NewQuote, numberPrefix: string, actor: string): Promise<Quote> {
@@ -114,7 +141,7 @@ export async function createQuote(input: NewQuote, numberPrefix: string, actor: 
     INSERT INTO quotes (
       number, language, currency, source, meeting_id, meeting_title, meeting_date, analysis,
       ghl_contact_id, ghl_opportunity_id, ghl_pipeline_id, recipient, config, lines, texts, valid_until,
-      owner_id, owner_name, owner_email
+      owner_id, owner_name, owner_email, contact_person
     ) VALUES (
       ${number}, ${input.language}, ${input.currency}, ${input.source}, ${input.meetingId ?? null},
       ${input.meetingTitle ?? null}, ${input.meetingDate ?? null},
@@ -122,7 +149,8 @@ export async function createQuote(input: NewQuote, numberPrefix: string, actor: 
       ${input.ghlContactId ?? null}, ${input.ghlOpportunityId ?? null}, ${input.ghlPipelineId ?? null},
       ${sql.json(input.recipient as never)}, ${sql.json(input.config as never)}, ${sql.json(input.lines as never)},
       ${sql.json(input.texts as never)}, ${input.validUntil},
-      ${input.ownerId ?? null}, ${input.ownerName ?? null}, ${input.ownerEmail ?? null}
+      ${input.ownerId ?? null}, ${input.ownerName ?? null}, ${input.ownerEmail ?? null},
+      ${input.contactPerson ? sql.json(input.contactPerson as never) : null}
     ) RETURNING *`;
   const quote = toQuote(row);
   await logEvent(quote.id, actor, "created", { source: input.source, meetingId: input.meetingId ?? null });
@@ -137,7 +165,8 @@ export async function getQuote(id: string): Promise<Quote | null> {
 
 export type QuoteListItem = Pick<
   Quote,
-  "id" | "number" | "status" | "recipient" | "source" | "meetingTitle" | "ownerName" | "sentAt" | "updatedAt" | "createdAt" | "currency" | "language" | "lines" | "ghlSync"
+  | "id" | "number" | "status" | "recipient" | "source" | "meetingTitle" | "ownerName" | "sentAt" | "updatedAt" | "createdAt"
+  | "currency" | "language" | "lines" | "ghlSync" | "followUpAt" | "followUpCount" | "lastFollowUpAt" | "outcome" | "validUntil"
 >;
 
 export async function listQuotes(status: QuoteStatus | "all", limit = 200): Promise<QuoteListItem[]> {
@@ -149,7 +178,10 @@ export async function listQuotes(status: QuoteStatus | "all", limit = 200): Prom
 }
 
 export type QuotePatch = Partial<
-  Pick<Quote, "language" | "recipient" | "config" | "lines" | "texts" | "validUntil" | "ghlContactId" | "ghlOpportunityId" | "ghlPipelineId">
+  Pick<
+    Quote,
+    "language" | "recipient" | "config" | "lines" | "texts" | "validUntil" | "ghlContactId" | "ghlOpportunityId" | "ghlPipelineId" | "contactPerson"
+  >
 >;
 
 /** Speichert Änderungen an einem Entwurf. Versendete Offerten bleiben unverändert (Rückgabe null). */
@@ -168,6 +200,7 @@ export async function updateDraft(id: string, patch: QuotePatch): Promise<Quote 
       ghl_contact_id = ${next.ghlContactId},
       ghl_opportunity_id = ${next.ghlOpportunityId},
       ghl_pipeline_id = ${next.ghlPipelineId},
+      contact_person = ${next.contactPerson ? sql.json(next.contactPerson as never) : null},
       updated_at = now()
     WHERE id = ${id} AND status = 'draft'
     RETURNING *`;
@@ -188,11 +221,51 @@ export async function releaseSend(id: string): Promise<void> {
 
 export async function markSent(
   id: string,
-  data: { byName: string; byEmail: string; formats: string[]; to: string[] }
+  data: { byName: string; byEmail: string; formats: string[]; to: string[]; followUpDays: number; texts: QuoteTexts; lines: QuoteLine[] }
 ): Promise<void> {
+  // Texte und Positionen so festhalten, wie sie verschickt wurden (inkl. aktueller Preise und Mailtext)
   await sql`
     UPDATE quotes SET sent_by_name = ${data.byName}, sent_by_email = ${data.byEmail},
-      sent_formats = ${data.formats}, sent_to = ${data.to}, updated_at = now()
+      sent_formats = ${data.formats}, sent_to = ${data.to},
+      texts = ${sql.json(data.texts as never)}, lines = ${sql.json(data.lines as never)},
+      follow_up_at = (now() + make_interval(days => ${data.followUpDays}))::date,
+      outcome = 'open', updated_at = now()
+    WHERE id = ${id}`;
+}
+
+// ── Nachverfolgen ───────────────────────────────────────────
+
+export async function listFollowUps(limit = 300): Promise<Quote[]> {
+  const rows = await sql<Row[]>`
+    SELECT * FROM quotes WHERE status = 'sent'
+    ORDER BY (outcome = 'open') DESC, follow_up_at ASC NULLS LAST, sent_at DESC
+    LIMIT ${limit}`;
+  return rows.map(toQuote);
+}
+
+export async function setTracking(
+  id: string,
+  patch: { followUpAt?: string | null; outcome?: Outcome; outcomeNote?: string | null }
+): Promise<Quote | null> {
+  const current = await getQuote(id);
+  if (!current || current.status !== "sent") return null;
+  const outcome = patch.outcome ?? current.outcome;
+  const outcomeChanged = outcome !== current.outcome;
+  const [row] = await sql<Row[]>`
+    UPDATE quotes SET
+      follow_up_at = ${patch.followUpAt !== undefined ? patch.followUpAt : current.followUpAt},
+      outcome = ${outcome},
+      outcome_at = ${outcomeChanged ? (outcome === "open" ? null : new Date().toISOString()) : current.outcomeAt},
+      outcome_note = ${patch.outcomeNote !== undefined ? patch.outcomeNote : current.outcomeNote},
+      updated_at = now()
+    WHERE id = ${id} RETURNING *`;
+  return row ? toQuote(row) : null;
+}
+
+export async function recordFollowUp(id: string, nextInDays: number): Promise<void> {
+  await sql`
+    UPDATE quotes SET follow_up_count = follow_up_count + 1, last_follow_up_at = now(),
+      follow_up_at = (now() + make_interval(days => ${nextInDays}))::date, updated_at = now()
     WHERE id = ${id}`;
 }
 
@@ -232,7 +305,7 @@ export async function listEvents(quoteId: string): Promise<QuoteEvent[]> {
 
 // ── Calls von Fireflies ─────────────────────────────────────
 
-export type MeetingStatus = "processing" | "no_offer" | "uncertain" | "quote_created" | "internal" | "error";
+export type MeetingStatus = "processing" | "no_offer" | "uncertain" | "quote_created" | "internal" | "error" | "dismissed";
 
 export type MeetingRow = {
   meetingId: string;
@@ -244,6 +317,8 @@ export type MeetingRow = {
   analysis: CallAnalysis | null;
   quoteId: string | null;
   receivedAt: string;
+  dismissedBy: string | null;
+  dismissedAt: string | null;
 };
 
 /** Registriert einen Call. false = wurde schon verarbeitet (Fireflies sendet Webhooks teils mehrfach). */
@@ -294,8 +369,29 @@ export async function listMeetings(limit = 50): Promise<MeetingRow[]> {
     reason: (r.reason as string) ?? null,
     analysis: (r.analysis as CallAnalysis) ?? null,
     quoteId: (r.quote_id as string) ?? null,
-    receivedAt: iso(r.received_at)!
+    receivedAt: iso(r.received_at)!,
+    dismissedBy: (r.dismissed_by as string) ?? null,
+    dismissedAt: iso(r.dismissed_at)
   }));
+}
+
+/** Call von Hand als "kein Angebot nötig" markieren. Ein späterer Webhook ändert daran nichts mehr. */
+export async function dismissMeeting(meetingId: string, by: string, title?: string | null): Promise<void> {
+  await sql`
+    INSERT INTO quote_meetings (meeting_id, status, title, dismissed_by, dismissed_at, processed_at)
+    VALUES (${meetingId}, 'dismissed', ${title ?? null}, ${by}, now(), now())
+    ON CONFLICT (meeting_id) DO UPDATE SET
+      previous_status = CASE WHEN quote_meetings.status = 'dismissed' THEN quote_meetings.previous_status ELSE quote_meetings.status END,
+      status = 'dismissed', dismissed_by = ${by}, dismissed_at = now()`;
+}
+
+export async function restoreMeeting(meetingId: string): Promise<void> {
+  await sql`
+    UPDATE quote_meetings SET status = COALESCE(previous_status, 'no_offer'), dismissed_by = NULL, dismissed_at = NULL
+    WHERE meeting_id = ${meetingId} AND status = 'dismissed'`;
+  // Ohne vorherigen Status (nie automatisch verarbeitet): Eintrag entfernen, damit er wieder offen erscheint
+  await sql`DELETE FROM quote_meetings WHERE meeting_id = ${meetingId} AND status = 'no_offer' AND processed_at IS NOT NULL
+    AND analysis IS NULL AND quote_id IS NULL AND reason IS NULL`;
 }
 
 export async function openQuoteForMeeting(meetingId: string): Promise<string | null> {

@@ -6,6 +6,7 @@ import { auth } from "@/auth";
 import { currentOffertenUser } from "@/lib/offerten/access";
 import { Elev8Logo } from "@/components/Elev8Logo";
 import { OffertenNav } from "@/components/offerten/OffertenNav";
+import { PrefsListener } from "@/components/offerten/PrefsListener";
 import "./offerten.css";
 
 export const dynamic = "force-dynamic";
@@ -20,6 +21,7 @@ export default async function OffertenLayout({ children }: { children: React.Rea
 
   return (
     <div className={embedded ? "of-shell is-embedded" : "of-shell"}>
+      {embedded && <PrefsListener />}
       <header className="of-bar">
         <div className="of-bar-inner">
           {!embedded && (

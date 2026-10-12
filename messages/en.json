@@ -111,7 +111,8 @@
       "tabs": {
         "drafts": "Drafts",
         "sent": "Sent",
-        "calls": "Calls"
+        "calls": "Calls",
+        "follow": "Follow-up"
       },
       "empty": {
         "drafts": "No open drafts. New ones appear here automatically after a demo call where the prospect asks for an offer.",
@@ -124,7 +125,11 @@
       "sentOn": "Sent {time}",
       "by": "by {name}",
       "noRecipient": "Recipient missing",
-      "ghlMissing": "GHL filing incomplete"
+      "ghlMissing": "GHL filing incomplete",
+      "outcome": {
+        "won": "Won",
+        "lost": "Lost"
+      }
     },
     "calls": {
       "lead": "The latest Fireflies calls with external participants. If no offer request was detected, you can still create an offer.",
@@ -141,8 +146,12 @@
         "internal": "Internal",
         "error": "Error",
         "processing": "Checking",
-        "none": "Not checked automatically"
-      }
+        "none": "Not checked automatically",
+        "dismissed": "No offer needed"
+      },
+      "showDone": "Show done ({count})",
+      "dismiss": "No offer needed",
+      "restore": "Reopen"
     },
     "newDialog": {
       "title": "New offer",
@@ -154,7 +163,10 @@
       "ghlUnavailable": "GHL isn't connected. You can still start blank.",
       "blank": "Start without contact",
       "fromCall": "Start from a call",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "ghlWrongLocation": "GHL denies access: the token doesn't belong to the Elev8 sub-account. Details under Prices & settings → Connections.",
+      "ghlFailed": "GHL can't be reached right now. Details under Prices & settings → Connections.",
+      "creating": "Creating the offer, Claude is writing the texts …"
     },
     "editor": {
       "status": {
@@ -203,7 +215,12 @@
         "address": "Address",
         "addressHint": "One line per address line",
         "language": "Offer language",
-        "validUntil": "Valid until"
+        "validUntil": "Valid until",
+        "country": "Country (ISO code)",
+        "countryHint": "E.g. CH, DE, AT. Controls the VAT note.",
+        "reverseChargeHint": "Reverse charge: a note appears on the offer.",
+        "vatId": "Customer VAT ID",
+        "contactPerson": "Contact person on the offer: {name}"
       },
       "config": {
         "title": "Package",
@@ -244,9 +261,23 @@
       "texts": {
         "title": "Texts",
         "intro": "Introduction",
-        "notes": "Notes",
+        "notes": "From our conversation",
         "notesHint": "One line per point",
-        "closing": "Closing"
+        "closing": "Closing",
+        "addressForm": "Form of address",
+        "formSie": "Formal (Sie)",
+        "formDu": "Informal (du)",
+        "regenerate": "Rewrite texts",
+        "regenerating": "Claude is writing …",
+        "regenerateError": "The texts couldn't be written. Try again.",
+        "regenerateConfirm": "Introduction, discussion points, closing and email will be rewritten. Your edits to them will be lost. Continue?",
+        "sources": "Written from: {list}",
+        "noSources": "no conversation context (offer only)",
+        "mailTitle": "Cover email",
+        "mailHint": "Suggested when sending, where you can adjust it again.",
+        "emailSubject": "Subject",
+        "emailBody": "Text",
+        "emailFallback": "Leave empty for the default text"
       },
       "totals": {
         "title": "Summary"
@@ -258,7 +289,13 @@
         "send_failed": "Sending failed",
         "ghl_sync": "Filed in GHL",
         "discarded": "Discarded",
-        "duplicated": "Copied from {from}"
+        "duplicated": "Copied from {from}",
+        "personalized": "Texts personalized",
+        "follow_up_sent": "Followed up",
+        "outcome_won": "Marked as won",
+        "outcome_lost": "Marked as lost",
+        "outcome_open": "Reopened",
+        "follow_up_moved": "Follow-up date changed"
       },
       "preview": {
         "pdf": "PDF",
@@ -364,7 +401,20 @@
       "none": "no limit",
       "add": "Add",
       "remove": "Remove",
-      "error": "Not saved: {detail}"
+      "error": "Not saved: {detail}",
+      "reverseCharge": "Reverse charge for countries",
+      "reverseChargeHint": "ISO codes, comma-separated, e.g. DE, AT",
+      "followUpDays": "Follow up after days",
+      "connections": {
+        "title": "Connections",
+        "check": "Check again",
+        "checking": "Checking …",
+        "ghl": "GoHighLevel",
+        "fireflies": "Fireflies",
+        "claude": "Claude",
+        "mail": "Email sending",
+        "webhook": "Fireflies webhook"
+      }
     },
     "interval": {
       "once": "One-time",
@@ -374,6 +424,47 @@
     "lang": {
       "de": "German",
       "en": "English"
+    },
+    "follow": {
+      "lead": "Sent offers with their next follow-up date. Claude suggests a personal follow-up email; it's sent from your mailbox.",
+      "empty": "No offers sent yet.",
+      "groups": {
+        "due": "Due today",
+        "upcoming": "Scheduled",
+        "closed": "Closed"
+      },
+      "nothingDue": "Nothing due today.",
+      "next": "Follow up on",
+      "followUp": "Follow up",
+      "won": "Mark as won",
+      "lost": "Mark as lost",
+      "reopen": "Reopen",
+      "expired": "Expired",
+      "outcome": {
+        "won": "Won",
+        "lost": "Lost"
+      },
+      "sentAgo": "sent {time}",
+      "followedUp": "followed up {count}×",
+      "overdue": "{days} days overdue",
+      "saveFailed": "Not saved. Try again.",
+      "ghlFailed": "Saved, but not updated in GHL: {detail}"
+    },
+    "followUp": {
+      "title": "Follow up with {name}",
+      "drafting": "Claude is drafting a suggestion from the call and history …",
+      "to": "To",
+      "cc": "Cc",
+      "subject": "Subject",
+      "body": "Message",
+      "attachPdf": "Attach the offer PDF again",
+      "hint": "Sent from your mailbox and filed in GHL as a note. The next date is set automatically.",
+      "cancel": "Cancel",
+      "send": "Send",
+      "sending": "Sending …",
+      "draftFailed": "No suggestion available. Write the message yourself or try again later.",
+      "invalid": "Enter valid email addresses, a subject and a message.",
+      "sendFailed": "Not sent: {detail}"
     }
   }
 }

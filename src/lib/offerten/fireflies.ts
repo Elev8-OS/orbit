@@ -151,3 +151,44 @@ export function transcriptText(t: Transcript, maxChars = 120_000): string {
   const head = Math.floor(maxChars * 0.35);
   return `${full.slice(0, head)}\n[… gekürzt …]\n${full.slice(-(maxChars - head))}`;
 }
+
+export type EarlierCall = { id: string; title: string; dateString: string | null; summary: string };
+
+/**
+ * Frühere Calls mit derselben Person (Kontext für persönliche Texte). Fehler werden geschluckt:
+ * Fehlt dieser Kontext, schreibt Claude die Texte trotzdem, nur ohne Vorgeschichte.
+ */
+export async function earlierCalls(email: string, excludeId: string | null, max = 3): Promise<EarlierCall[]> {
+  try {
+    const data = await query<{
+      transcripts: { id: string; title: string | null; dateString: string | null; summary: { short_summary: string | null; overview: string | null } | null }[];
+    }>(
+      `query Earlier($email: String, $limit: Int) {
+        transcripts(participant_email: $email, limit: $limit) { id title dateString summary { short_summary overview } }
+      }`,
+      { email, limit: max + 1 }
+    );
+    return data.transcripts
+      .filter((t) => t.id !== excludeId)
+      .slice(0, max)
+      .map((t) => ({
+        id: t.id,
+        title: t.title ?? "",
+        dateString: t.dateString,
+        summary: (t.summary?.short_summary || t.summary?.overview || "").slice(0, 1500)
+      }));
+  } catch (err) {
+    console.error(`Fireflies: frühere Calls für ${email}:`, err);
+    return [];
+  }
+}
+
+export async function checkConnection(): Promise<{ ok: boolean; detail: string }> {
+  if (!firefliesConfigured()) return { ok: false, detail: "FIREFLIES_API_KEY fehlt" };
+  try {
+    const data = await query<{ user: { email: string | null } | null }>(`query { user { email } }`, {});
+    return { ok: true, detail: data.user?.email ?? "verbunden" };
+  } catch (err) {
+    return { ok: false, detail: err instanceof Error ? err.message : String(err) };
+  }
+}

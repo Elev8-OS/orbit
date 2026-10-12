@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Search } from "lucide-react";
-import type { Recipient } from "@/lib/offerten/quote";
+import type { ContactPerson, Recipient } from "@/lib/offerten/quote";
+import { useGhlSearch } from "./useGhlSearch";
 
 export type Prefill = {
   recipient: Recipient;
@@ -12,29 +13,16 @@ export type Prefill = {
   ghlContactId: string;
   ghlOpportunityId: string | null;
   ghlPipelineId: string | null;
+  contactPerson: ContactPerson | null;
 };
 
-type Hit = { id: string; name: string; email: string; company: string };
-
-/** GHL-Kontakt suchen und übernehmen (Empfängerdaten, Opportunity, Pipeline). */
+/** GHL-Kontakt suchen und übernehmen (Empfängerdaten, Land, Opportunity, Owner). */
 export function ContactPicker({ label, onPick }: { label: string; onPick: (p: Prefill) => void }) {
   const t = useTranslations("offerten.newDialog");
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
-  const [hits, setHits] = useState<Hit[] | null>(null);
   const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    if (q.trim().length < 2) {
-      setHits(null);
-      return;
-    }
-    const timer = setTimeout(async () => {
-      const res = await fetch(`/api/offerten/ghl/contacts?q=${encodeURIComponent(q.trim())}`).catch(() => null);
-      setHits(res?.ok ? ((await res.json()) as { contacts: Hit[] }).contacts : []);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [q]);
+  const { hits, searching, error } = useGhlSearch(q, open);
 
   const pick = async (id: string) => {
     setBusy(true);
@@ -67,7 +55,9 @@ export function ContactPicker({ label, onPick }: { label: string; onPick: (p: Pr
           onKeyDown={(e) => e.key === "Escape" && setOpen(false)}
         />
       </span>
-      {hits && hits.length === 0 && <p className="of-muted of-small">{t("noResults")}</p>}
+      {searching && <p className="of-muted of-small">{t("searching")}</p>}
+      {error && <p className="form-error">{t(error === "wrong_location" ? "ghlWrongLocation" : "ghlFailed")}</p>}
+      {hits && hits.length === 0 && !searching && <p className="of-muted of-small">{t("noResults")}</p>}
       {hits && hits.length > 0 && (
         <ul className="of-hits">
           {hits.map((h) => (

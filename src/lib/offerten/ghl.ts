@@ -2,7 +2,9 @@
  * GoHighLevel (LeadConnector) API v2.
  * Benötigt GHL_API_TOKEN (Private Integration Token der Subaccount-Location) und GHL_LOCATION_ID.
  * Nötige Scopes: contacts.readonly, contacts.write, opportunities.readonly, opportunities.write,
- * locations/customFields.readonly, medias.write.
+ * locations.readonly, locations/customFields.readonly, medias.write, users.readonly,
+ * conversations.readonly, conversations/message.readonly.
+ * Der Token muss im Sub-Account (Location) selbst erstellt werden, nicht auf Agenturebene.
  */
 
 const BASE = "https://services.leadconnectorhq.com";
@@ -44,6 +46,7 @@ type RawContact = {
   postalCode?: string | null;
   state?: string | null;
   country?: string | null;
+  assignedTo?: string | null;
   customFields?: { id: string; value?: unknown; field_value?: unknown }[];
 };
 
@@ -55,7 +58,21 @@ export type GhlContact = {
   phone: string;
   company: string;
   addressLines: string[];
+  /** ISO-Ländercode laut GHL, z.B. "CH" oder "DE" */
+  country: string;
+  /** GHL-User-ID des Owners */
+  assignedTo: string | null;
   custom: Record<string, unknown>;
+};
+
+const COUNTRY_NAMES: Record<string, string> = {
+  CH: "Schweiz",
+  DE: "Deutschland",
+  AT: "Österreich",
+  LI: "Liechtenstein",
+  IT: "Italien",
+  FR: "Frankreich",
+  ID: "Indonesia"
 };
 
 const titleCase = (s: string) => s.replace(/\b\p{L}/gu, (c) => c.toUpperCase());
@@ -64,7 +81,8 @@ function toContact(c: RawContact): GhlContact {
   const firstName = c.firstName?.trim() ?? "";
   const name = [c.firstName, c.lastName].filter(Boolean).join(" ").trim() || c.contactName || c.name || "";
   const cityLine = [c.postalCode, c.city].filter(Boolean).join(" ");
-  const countryLine = [c.state, c.country].filter(Boolean).join(", ");
+  const country = (c.country ?? "").trim().toUpperCase();
+  const countryLine = [c.state, COUNTRY_NAMES[country] ?? c.country].filter(Boolean).join(", ");
   return {
     id: c.id,
     name: titleCase(name),
@@ -73,6 +91,8 @@ function toContact(c: RawContact): GhlContact {
     phone: c.phone ?? "",
     company: c.companyName ?? "",
     addressLines: [c.address1 ?? "", cityLine, countryLine].map((s) => s.trim()).filter(Boolean),
+    country: /^[A-Z]{2}$/.test(country) ? country : "",
+    assignedTo: c.assignedTo ?? null,
     custom: Object.fromEntries((c.customFields ?? []).map((f) => [f.id, f.value ?? f.field_value]))
   };
 }
@@ -208,4 +228,99 @@ export async function uploadToContactField(
 
 export function contactUrl(contactId: string): string {
   return `https://app.gohighlevel.com/v2/location/${locationId()}/contacts/detail/${contactId}`;
+}
+
+export async function updateOpportunityStatus(id: string, status: "won" | "lost" | "open"): Promise<void> {
+  await ghl(`/opportunities/${encodeURIComponent(id)}/status`, { method: "PUT", body: JSON.stringify({ status }) });
+}
+
+// ── Owner des Kontakts ──────────────────────────────────────
+
+export type GhlUser = { id: string; name: string; email: string; phone: string };
+
+const userCache = new Map<string, { at: number; user: GhlUser }>();
+
+export async function getUser(id: string): Promise<GhlUser | null> {
+  const cached = userCache.get(id);
+  if (cached && Date.now() - cached.at < 30 * 60_000) return cached.user;
+  try {
+    const u = await ghl<Record<string, unknown>>(`/users/${encodeURIComponent(id)}`);
+    const user: GhlUser = {
+      id,
+      name: String(u.name ?? [u.firstName, u.lastName].filter(Boolean).join(" ") ?? "").trim(),
+      email: String(u.email ?? ""),
+      phone: String(u.phone ?? "")
+    };
+    userCache.set(id, { at: Date.now(), user });
+    return user;
+  } catch (err) {
+    console.error(`GHL-User ${id}:`, err);
+    return null;
+  }
+}
+
+// ── Bisherige Kommunikation (Kontext für persönliche Texte) ──
+
+export type HistoryItem = { at: string; kind: "note" | "message"; channel?: string; direction?: string; text: string };
+
+const clean = (s: string) =>
+  s
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+export async function contactNotes(contactId: string): Promise<HistoryItem[]> {
+  const data = await ghl<{ notes?: { body?: string; dateAdded?: string }[] }>(
+    `/contacts/${encodeURIComponent(contactId)}/notes`
+  );
+  return (data.notes ?? [])
+    .filter((n) => n.body && !n.body.startsWith("Offerte OF-"))
+    .map((n) => ({ at: n.dateAdded ?? "", kind: "note" as const, text: clean(n.body ?? "").slice(0, 1500) }));
+}
+
+/** Letzte Nachrichten (E-Mail, SMS, WhatsApp …) mit dem Kontakt, neueste zuerst. */
+export async function contactMessages(contactId: string, max = 30): Promise<HistoryItem[]> {
+  const params = new URLSearchParams({ locationId: locationId(), contactId, limit: "5" });
+  const convs = await ghl<{ conversations?: { id: string }[] }>(`/conversations/search?${params}`);
+  const items: HistoryItem[] = [];
+  for (const conv of (convs.conversations ?? []).slice(0, 3)) {
+    const data = await ghl<{
+      messages?: { messages?: { body?: string; dateAdded?: string; direction?: string; messageType?: string }[] };
+    }>(`/conversations/${encodeURIComponent(conv.id)}/messages?limit=20`);
+    for (const m of data.messages?.messages ?? []) {
+      const text = clean(m.body ?? "");
+      if (!text) continue;
+      items.push({
+        at: m.dateAdded ?? "",
+        kind: "message",
+        channel: (m.messageType ?? "").replace(/^TYPE_/, "").toLowerCase(),
+        direction: m.direction,
+        text: text.slice(0, 1200)
+      });
+    }
+  }
+  return items.sort((a, b) => b.at.localeCompare(a.at)).slice(0, max);
+}
+
+// ── Verbindung prüfen ───────────────────────────────────────
+
+export async function checkConnection(): Promise<{ ok: boolean; detail: string }> {
+  if (!ghlConfigured()) return { ok: false, detail: "GHL_API_TOKEN oder GHL_LOCATION_ID fehlt" };
+  try {
+    const data = await ghl<{ location?: { name?: string } }>(`/locations/${locationId()}`);
+    return { ok: true, detail: data.location?.name ?? locationId() };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (/does not have access to this location/i.test(msg)) {
+      return {
+        ok: false,
+        detail:
+          "Der Token gehört nicht zu dieser Location. Den Private Integration Token im Elev8-Sub-Account erstellen (nicht auf Agenturebene) und GHL_LOCATION_ID prüfen."
+      };
+    }
+    if (/GHL 401/.test(msg)) return { ok: false, detail: "Token ungültig oder abgelaufen" };
+    return { ok: false, detail: msg };
+  }
 }

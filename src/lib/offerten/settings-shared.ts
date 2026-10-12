@@ -50,7 +50,11 @@ export const settingsSchema = z.object({
   perBooking: z.object({
     packages: z.array(bookingPackageSchema).min(1)
   }),
-  addons: z.array(addonSchema),
+  addons: z.array(addonSchema).default([]),
+  /** Länder (ISO-Code), für die auf dem Angebot das Reverse-Charge-Verfahren vermerkt wird */
+  reverseChargeCountries: z.array(z.string().regex(/^[A-Z]{2}$/)).default(["DE"]),
+  /** Tage bis zum ersten Nachfassen nach dem Versand und zwischen weiteren Nachfass-Mails */
+  followUpDays: z.number().int().min(1).max(60).default(4),
   issuer: z.object({
     company: z.string().max(120),
     addressLines: z.array(z.string().max(120)).max(5),
@@ -94,27 +98,17 @@ export const DEFAULT_SETTINGS: QuoteSettings = {
       { id: "enterprise", name: "Enterprise", quota: 1000, price: 7.42, priceWithCm: 9.9 }
     ]
   },
-  addons: [
-    {
-      id: "coins",
-      name: { de: "Coins für Cleaning- und Maintenance-Management", en: "Coins for cleaning and maintenance management" },
-      description: {
-        de: "1 Coin pro Reinigungs- oder Wartungsauftrag. Coins verfallen nicht.",
-        en: "1 coin per cleaning or maintenance task. Coins don't expire."
-      },
-      unit: { de: "Coin", en: "coin" },
-      price: 1.5,
-      defaultQty: 50,
-      interval: "once"
-    }
-  ],
+  // Zusatzleistungen (z.B. Coins) erst aufnehmen, wenn sie produktiv verfügbar sind
+  addons: [],
+  reverseChargeCountries: ["DE"],
+  followUpDays: 4,
   issuer: {
-    company: "Elev8 Suite",
-    addressLines: [],
+    company: "Elev8 Software AG",
+    addressLines: ["Hauptgasse 33", "CH-4600 Olten"],
     email: "",
     website: "elev8-suite.com",
     phone: "",
-    taxId: ""
+    taxId: "UID CHE-398.140.212"
   },
   texts: {
     intro: {
@@ -126,8 +120,8 @@ export const DEFAULT_SETTINGS: QuoteSettings = {
       en: "If you have any questions, just reply to this email. We look forward to welcoming you to Elev8."
     },
     terms: {
-      de: "Alle Preise in {currency}, exklusive allfälliger Steuern. Per-Unit-Abos laufen {contractMonths} Monate und werden mindestens für die Paketuntergrenze verrechnet. Per-Booking-Kontingente verfallen nicht. Das Angebot ist gültig bis {validUntil}.",
-      en: "All prices in {currency}, excluding applicable taxes. Per-unit subscriptions run for {contractMonths} months and are billed for at least the package minimum. Per-booking quotas don't expire. This offer is valid until {validUntil}."
+      de: "Alle Preise in {currency} exkl. MwSt. Per-Unit-Abos laufen {contractMonths} Monate und werden mindestens für die Paketuntergrenze verrechnet. Per-Booking-Kontingente verfallen nicht. Das Angebot ist gültig bis {validUntil}.",
+      en: "All prices in {currency} excl. VAT. Per-unit subscriptions run for {contractMonths} months and are billed for at least the package minimum. Per-booking quotas don't expire. This offer is valid until {validUntil}."
     },
     emailSubject: {
       de: "Ihr Angebot für die Elev8 Suite ({number})",

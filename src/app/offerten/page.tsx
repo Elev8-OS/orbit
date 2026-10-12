@@ -26,13 +26,18 @@ export default async function OffertenPage({ searchParams }: { searchParams: Pro
     updatedAt: q.updatedAt,
     sentAt: q.sentAt,
     ghlIncomplete:
-      q.status === "sent" && (!q.ghlSync || q.ghlSync.note?.ok === false || q.ghlSync.file?.ok === false || q.ghlSync.opportunity?.ok === false)
+      q.status === "sent" && (!q.ghlSync || q.ghlSync.note?.ok === false || q.ghlSync.file?.ok === false || q.ghlSync.opportunity?.ok === false),
+    followUpAt: q.followUpAt,
+    followUpCount: q.followUpCount,
+    lastFollowUpAt: q.lastFollowUpAt,
+    outcome: q.outcome,
+    validUntil: q.validUntil
   }));
   const tab = (await searchParams).tab;
   return (
     <OffertenOverview
       quotes={rows}
-      initialTab={tab === "sent" || tab === "calls" ? tab : "drafts"}
+      initialTab={tab === "sent" || tab === "calls" || tab === "follow" ? tab : "drafts"}
       ghlEnabled={ghlConfigured()}
       locale={locale === "en" ? "en" : "de"}
     />
