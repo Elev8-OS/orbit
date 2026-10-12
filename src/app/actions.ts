@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { auth, signIn, signOut } from "@/auth";
 import { LOCALE_COOKIE, isLocale } from "@/i18n/config";
 import { saveLocale } from "@/lib/preferences";
+import { PASS_COOKIE, passCookieOptions } from "@/lib/orbit-pass";
 
 export async function setLocaleAction(locale: string) {
   if (!isLocale(locale)) return;
@@ -38,5 +39,7 @@ export async function signInAction(formData: FormData) {
 }
 
 export async function signOutAction() {
+  // Orbit-Pass sofort entfernen, damit eingebettete Tools die Abmeldung direkt mitbekommen
+  (await cookies()).set(PASS_COOKIE, "", passCookieOptions(0));
   await signOut({ redirectTo: "/signin" });
 }

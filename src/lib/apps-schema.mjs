@@ -29,6 +29,9 @@ export const appSchema = z.object({
   color: hex.optional(),
   // false = Kachel ausblenden, ohne den Eintrag zu löschen
   enabled: z.boolean().default(true),
+  // true = öffnet als Tab innerhalb von Orbit (Tool muss Orbit-Pass und Einbettung unterstützen).
+  // false = öffnet im neuen Browser-Tab, z.B. für externe Dienste wie Jira.
+  embed: z.boolean().default(true),
   // Wer diese App über "Zugriff anfragen" anfragen darf (App Roles, "*" = alle angemeldeten User).
   // Leer = App taucht in der Anfrageliste nicht auf, ihr Name bleibt für andere unsichtbar.
   requestableBy: z.array(z.string().min(1)).default([])

@@ -13,6 +13,10 @@
 # anfordern kann. Ohne Eintrag bleibt die App für alle anderen unsichtbar
 # – sinnvoll, damit externe Partner keine internen Tools sehen.
 #
+# "embed: true" öffnet die App als Tab innerhalb von Orbit (Standard).
+# Voraussetzung: Das Tool prüft den Orbit-Pass und erlaubt die Einbettung
+# durch Orbit. "embed: false" öffnet im neuen Browser-Tab (z.B. Jira).
+#
 # Prüfen: npm run apps:check
 # ─────────────────────────────────────────────────────────────
 
@@ -31,15 +35,16 @@ categories:
     color: "#6B6B6B"
 
 apps:
-  # Elev8 Reporting Tool – Microsoft SSO über die gemeinsame Entra-App-Registrierung.
-  # Die URL startet direkt den Microsoft-Login; ERT leitet danach je nach Rolle weiter.
+  # Elev8 Reporting Tool – öffnet als Tab in Orbit. Anmeldung über den Orbit-Pass,
+  # ERT leitet danach je nach Rolle auf die passende Startseite.
   - id: ert
     name: { de: Elev8 Reporting Tool, en: Elev8 Reporting Tool }
     description:
       de: Umsatz, Lizenzen, Sales-Pipeline, Support und Roadmap der Elev8 Suite auf einen Blick.
       en: Elev8 Suite revenue, licences, sales pipeline, support and roadmap at a glance.
-    url: https://ert.elev8-suite.com/api/auth/microsoft
+    url: https://ert.elev8-suite.com/api/auth/orbit
     icon: ChartNoAxesCombined
     category: reporting
     roles: [App.ERT.Admin, App.ERT.Management, App.ERT.Sales, App.ERT.Investor, App.ERT.Support]
     requestableBy: [Orbit.Staff]
+    embed: true
