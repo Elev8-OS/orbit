@@ -111,7 +111,8 @@
       "tabs": {
         "drafts": "Entwürfe",
         "sent": "Versendet",
-        "calls": "Calls"
+        "calls": "Calls",
+        "follow": "Nachverfolgen"
       },
       "empty": {
         "drafts": "Keine offenen Entwürfe. Neue erscheinen hier automatisch nach einem Democall mit Offertwunsch.",
@@ -124,7 +125,11 @@
       "sentOn": "Versendet {time}",
       "by": "von {name}",
       "noRecipient": "Empfänger offen",
-      "ghlMissing": "GHL-Ablage unvollständig"
+      "ghlMissing": "GHL-Ablage unvollständig",
+      "outcome": {
+        "won": "Gewonnen",
+        "lost": "Verloren"
+      }
     },
     "calls": {
       "lead": "Die letzten Fireflies-Calls mit externen Teilnehmern. Wurde kein Offertwunsch erkannt, kannst du trotzdem eine Offerte erstellen.",
@@ -141,8 +146,12 @@
         "internal": "Intern",
         "error": "Fehler",
         "processing": "Wird geprüft",
-        "none": "Nicht automatisch geprüft"
-      }
+        "none": "Nicht automatisch geprüft",
+        "dismissed": "Kein Angebot nötig"
+      },
+      "showDone": "Erledigte anzeigen ({count})",
+      "dismiss": "Kein Angebot nötig",
+      "restore": "Wieder öffnen"
     },
     "newDialog": {
       "title": "Neue Offerte",
@@ -154,7 +163,10 @@
       "ghlUnavailable": "GHL ist nicht verbunden. Du kannst trotzdem leer starten.",
       "blank": "Ohne Kontakt starten",
       "fromCall": "Aus einem Call starten",
-      "cancel": "Abbrechen"
+      "cancel": "Abbrechen",
+      "ghlWrongLocation": "GHL lehnt den Zugriff ab: Der Token gehört nicht zum Elev8-Sub-Account. Details unter Preise & Einstellungen → Verbindungen.",
+      "ghlFailed": "GHL ist gerade nicht erreichbar. Details unter Preise & Einstellungen → Verbindungen.",
+      "creating": "Offerte wird erstellt, Claude schreibt die Texte …"
     },
     "editor": {
       "status": {
@@ -203,7 +215,12 @@
         "address": "Adresse",
         "addressHint": "Eine Zeile pro Adresszeile",
         "language": "Sprache der Offerte",
-        "validUntil": "Gültig bis"
+        "validUntil": "Gültig bis",
+        "country": "Land (ISO-Code)",
+        "countryHint": "Z.B. CH, DE, AT. Steuert den MwSt-Hinweis.",
+        "reverseChargeHint": "Reverse-Charge-Verfahren: Hinweis erscheint auf dem Angebot.",
+        "vatId": "USt-IdNr. des Kunden",
+        "contactPerson": "Ansprechperson auf dem Angebot: {name}"
       },
       "config": {
         "title": "Paket",
@@ -244,9 +261,23 @@
       "texts": {
         "title": "Texte",
         "intro": "Einleitung",
-        "notes": "Hinweise",
+        "notes": "Aus unserem Gespräch",
         "notesHint": "Eine Zeile pro Punkt",
-        "closing": "Schluss"
+        "closing": "Schluss",
+        "addressForm": "Anrede",
+        "formSie": "Sie-Form",
+        "formDu": "Du-Form",
+        "regenerate": "Texte neu schreiben",
+        "regenerating": "Claude schreibt …",
+        "regenerateError": "Texte konnten nicht geschrieben werden. Versuche es erneut.",
+        "regenerateConfirm": "Einleitung, Gesprächspunkte, Schluss und Mail werden neu geschrieben. Deine Änderungen daran gehen verloren. Fortfahren?",
+        "sources": "Geschrieben aus: {list}",
+        "noSources": "keinem Gesprächskontext (nur Angebot)",
+        "mailTitle": "Begleit-Mail",
+        "mailHint": "Wird beim Senden vorgeschlagen und lässt sich dort nochmals anpassen.",
+        "emailSubject": "Betreff",
+        "emailBody": "Text",
+        "emailFallback": "Leer lassen für den Standardtext"
       },
       "totals": {
         "title": "Zusammenfassung"
@@ -258,7 +289,13 @@
         "send_failed": "Versand fehlgeschlagen",
         "ghl_sync": "GHL-Ablage",
         "discarded": "Verworfen",
-        "duplicated": "Kopiert aus {from}"
+        "duplicated": "Kopiert aus {from}",
+        "personalized": "Texte persönlich geschrieben",
+        "follow_up_sent": "Nachgefasst",
+        "outcome_won": "Als gewonnen markiert",
+        "outcome_lost": "Als verloren markiert",
+        "outcome_open": "Wieder geöffnet",
+        "follow_up_moved": "Nachfass-Termin geändert"
       },
       "preview": {
         "pdf": "PDF",
@@ -364,7 +401,20 @@
       "none": "unbegrenzt",
       "add": "Hinzufügen",
       "remove": "Entfernen",
-      "error": "Nicht gespeichert: {detail}"
+      "error": "Nicht gespeichert: {detail}",
+      "reverseCharge": "Reverse Charge für Länder",
+      "reverseChargeHint": "ISO-Codes, kommagetrennt, z.B. DE, AT",
+      "followUpDays": "Nachfassen nach Tagen",
+      "connections": {
+        "title": "Verbindungen",
+        "check": "Erneut prüfen",
+        "checking": "Wird geprüft …",
+        "ghl": "GoHighLevel",
+        "fireflies": "Fireflies",
+        "claude": "Claude",
+        "mail": "Mailversand",
+        "webhook": "Fireflies-Webhook"
+      }
     },
     "interval": {
       "once": "Einmalig",
@@ -374,6 +424,47 @@
     "lang": {
       "de": "Deutsch",
       "en": "Englisch"
+    },
+    "follow": {
+      "lead": "Versendete Offerten mit dem nächsten Nachfass-Termin. Claude schlägt eine persönliche Nachfass-Mail vor, gesendet wird aus deinem Postfach.",
+      "empty": "Noch keine versendeten Offerten.",
+      "groups": {
+        "due": "Heute fällig",
+        "upcoming": "Geplant",
+        "closed": "Abgeschlossen"
+      },
+      "nothingDue": "Heute ist nichts fällig.",
+      "next": "Nachfassen am",
+      "followUp": "Nachfassen",
+      "won": "Als gewonnen markieren",
+      "lost": "Als verloren markieren",
+      "reopen": "Wieder öffnen",
+      "expired": "Abgelaufen",
+      "outcome": {
+        "won": "Gewonnen",
+        "lost": "Verloren"
+      },
+      "sentAgo": "versendet {time}",
+      "followedUp": "{count}× nachgefasst",
+      "overdue": "{days} Tage überfällig",
+      "saveFailed": "Nicht gespeichert. Versuche es erneut.",
+      "ghlFailed": "Gespeichert, aber in GHL nicht aktualisiert: {detail}"
+    },
+    "followUp": {
+      "title": "Nachfassen bei {name}",
+      "drafting": "Claude schreibt einen Vorschlag aus Gespräch und Verlauf …",
+      "to": "An",
+      "cc": "Kopie an",
+      "subject": "Betreff",
+      "body": "Nachricht",
+      "attachPdf": "Angebot nochmals als PDF anhängen",
+      "hint": "Wird aus deinem Postfach gesendet und in GHL als Notiz abgelegt. Der nächste Termin wird automatisch gesetzt.",
+      "cancel": "Abbrechen",
+      "send": "Senden",
+      "sending": "Wird gesendet …",
+      "draftFailed": "Kein Vorschlag möglich. Schreib die Nachricht selbst oder versuche es später.",
+      "invalid": "Bitte gültige E-Mail-Adressen, Betreff und Nachricht angeben.",
+      "sendFailed": "Nicht gesendet: {detail}"
     }
   }
 }
