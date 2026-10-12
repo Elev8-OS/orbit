@@ -24,6 +24,9 @@ categories:
   - id: reporting
     name: { de: Reporting & KPIs, en: Reporting & KPIs }
     color: "#F6BB12"
+  - id: revenue
+    name: { de: Umsatz & Preise, en: Revenue & pricing }
+    color: "#8C6D1F"
   - id: operations
     name: { de: Betrieb, en: Operations }
     color: "#C8A84B"
@@ -46,5 +49,19 @@ apps:
     icon: ChartNoAxesCombined
     category: reporting
     roles: [App.ERT.Admin, App.ERT.Management, App.ERT.Sales, App.ERT.Investor, App.ERT.Support]
+    requestableBy: [Orbit.Staff]
+    embed: true
+
+  # Revenue Desk (AirROI) – Markt-Radar, Pacing, Comp-Sets, Preise und Kunden-Reports.
+  # Geteilte Kunden-Reports (insights.elev8-suite.com/r/…) bleiben öffentlich.
+  - id: revenue-desk
+    name: { de: Revenue Desk, en: Revenue Desk }
+    description:
+      de: Marktdaten, Comp-Sets, Preisempfehlungen und Kunden-Reports aus AirROI.
+      en: Market data, comp sets, price recommendations and client reports from AirROI.
+    url: https://insights.elev8-suite.com/
+    icon: TrendingUp
+    category: revenue
+    roles: [App.RevenueDesk]
     requestableBy: [Orbit.Staff]
     embed: true
