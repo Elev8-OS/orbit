@@ -36,8 +36,9 @@
 .hero-orbit .orbit-ring { height: 9.5rem; width: auto; max-width: 100%; }
 .sky-v2 .topbar-actions { flex-shrink: 0; }
 
-/* Begrüssung */
-.hero-v2 { margin-top: 2rem; }
+/* Begrüssung. max-width: none hebt die 36rem-Grenze von .hero aus globals.css auf –
+   die Kennzahlen-Reihe nutzt die volle Spalte. */
+.hero-v2 { margin-top: 2rem; max-width: none; }
 .hero-greeting { margin: 0; font-size: 0.9375rem; line-height: 1.5; color: var(--sky-muted); }
 .hero-greeting strong { color: var(--sky-ink); font-weight: 600; }
 
