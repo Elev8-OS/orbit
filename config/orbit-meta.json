@@ -2,6 +2,17 @@
   "app": "orbit",
   "changelog": [
     {
+      "version": "2026.10.5",
+      "date": "2026-10-12",
+      "title": { "de": "Mein Tag, Noah und neue Apps", "en": "My day, Noah and new apps" },
+      "changes": [
+        { "de": "Mein Tag: Termine, fällige Aufgaben, Offerten, Leads und Support-Tickets aus allen Apps auf der Startseite.", "en": "My day: meetings, due tasks, offers, leads and support tickets from every app on the home page." },
+        { "de": "Suche und Noah mit ⌘K oder Strg+K: Kunden, Offerten, Tickets, E-Mails und Apps finden oder Noah fragen.", "en": "Search and Noah with ⌘K or Ctrl+K: find customers, offers, tickets, emails and apps, or ask Noah." },
+        { "de": "Kunden-360: alles zu einem Kunden auf einer Seite, mit Support-Tickets und Briefing von Noah.", "en": "Customer 360: everything about a customer on one page, with support tickets and a briefing from Noah." },
+        { "de": "Orbit als App: auf dem Handy zum Home-Bildschirm hinzufügen oder am Computer installieren.", "en": "Orbit as an app: add it to your phone's home screen or install it on your computer." }
+      ]
+    },
+    {
       "version": "2026.10.4",
       "date": "2026-10-12",
       "title": { "de": "Ein Design für alle Apps", "en": "One design for every app" },
@@ -39,6 +50,9 @@
     }
   ],
   "glossary": [
+    { "term": "Mein Tag", "name": { "de": "Mein Tag", "en": "My day" }, "definition": { "de": "Übersicht auf der Startseite mit allem, was heute in deinen Apps ansteht.", "en": "Overview on the home page with everything due today in your apps." } },
+    { "term": "Noah", "definition": { "de": "Der Assistent in Orbit. Beantwortet Fragen zur Elev8 Suite und schaut in den Daten nach, die du sehen darfst. Noah ändert nichts.", "en": "The assistant in Orbit. Answers questions about the Elev8 Suite and looks things up in the data you may see. Noah never changes anything." } },
+    { "term": "Kunden-360", "name": { "de": "Kunden-360", "en": "Customer 360" }, "definition": { "de": "Eine Seite pro Kunde mit Kontakt, Opportunities, Calls, Offerten, Nachrichten und Support.", "en": "One page per customer with contact, opportunities, calls, offers, messages and support." } },
     { "term": "Orbit", "definition": { "de": "Der gemeinsame Einstieg zu allen Elev8-Tools. Einmal mit Microsoft anmelden, dann öffnet jede App als Tab.", "en": "The shared entry point to every Elev8 tool. Sign in once with Microsoft and every app opens as a tab." } },
     { "term": "Rolle", "name": { "de": "App-Rolle", "en": "App role" }, "definition": { "de": "Bestimmt, welche Apps du siehst und was du darin tun darfst. Rollen vergibt die Administration in Microsoft Entra.", "en": "Decides which apps you see and what you may do in them. Your administrator assigns roles in Microsoft Entra." } },
     { "term": "Zugriff anfragen", "name": { "de": "Zugriffsanfrage", "en": "Access request" }, "definition": { "de": "Fehlt dir eine App, fragst du sie in der Übersicht an. Die Administration bekommt eine E-Mail und schaltet dich frei.", "en": "Missing an app? Request it from the overview. Your administrator gets an email and grants access." } },

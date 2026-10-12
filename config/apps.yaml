@@ -115,6 +115,11 @@ apps:
     roles: [App.LeadBot]
     requestableBy: [Orbit.Staff]
     embed: true
+    # Übergebene Gespräche in „Mein Tag“, Leads in Suche und Kunden-360 (src/orbit-api.js im Bot)
+    integrations:
+      today: https://add-converter.elev8-suite.com/orbit/today
+      search: https://add-converter.elev8-suite.com/orbit/search
+      customer: https://add-converter.elev8-suite.com/orbit/customer
 
   # Support Bot – WhatsApp-Support für Bestandskunden mit desk365-Tickets und Lark-Eskalation
   # (gleiches Repo, Railway-Dienst support-bot). Öffnet als Tab, Anmeldung über den Orbit-Pass.
@@ -129,6 +134,11 @@ apps:
     roles: [App.SupportBot]
     requestableBy: [Orbit.Staff]
     embed: true
+    # Tickets ohne Antwort in „Mein Tag“, Tickets in Suche und Kunden-360 (src/orbit-api.js im Bot)
+    integrations:
+      today: https://support-bot.elev8-suite.com/orbit/today
+      search: https://support-bot.elev8-suite.com/orbit/search
+      customer: https://support-bot.elev8-suite.com/orbit/customer
 
   # OTA Listing QA – Inserate auf Airbnb und Booking.com mit Vier-Augen-Prinzip prüfen
   # (Repo ota-listing-qa, Railway-Projekt ota-listing-qa). Öffnet als Tab, Anmeldung über den Orbit-Pass.
