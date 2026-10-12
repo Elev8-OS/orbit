@@ -114,6 +114,7 @@ const s = StyleSheet.create({
   questionsMain: { flex: 1, paddingRight: 16 },
   questionsTitle: { fontSize: 13, fontWeight: 700, color: "#FFFFFF", marginBottom: 5 },
   questionsText: { fontSize: 9.5, color: DARK_MUTED, lineHeight: 1.5 },
+  questionsTip: { fontSize: 8.5, color: "#FFFFFF", lineHeight: 1.5, marginTop: 7 },
   waBox: { backgroundColor: YELLOW, paddingVertical: 10, paddingHorizontal: 14, textDecoration: "none" },
   waLabel: { fontSize: 7, fontWeight: 700, color: "#3A2E00", letterSpacing: 0.9, textTransform: "uppercase" },
   waPhone: { fontSize: 14, fontWeight: 700, color: INK, marginTop: 2 },
@@ -364,6 +365,7 @@ function QuotePdf({ doc }: { doc: QuoteDocument }) {
               <View style={s.questionsMain}>
                 <Text style={s.questionsTitle}>{L.questions}</Text>
                 <Text style={s.questionsText}>{doc.assistant.text.replace(/:$/, ".")}</Text>
+                <Text style={s.questionsTip}>{doc.assistant.tip}</Text>
               </View>
               <Link src={doc.assistant.link} style={s.waBox}>
                 <Text style={s.waLabel}>{L.whatsappCta.replace("{name}", doc.assistantName)}</Text>
