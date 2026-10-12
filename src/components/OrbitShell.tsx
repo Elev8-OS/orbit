@@ -16,8 +16,8 @@ export type ShellApp = {
 };
 
 type ShellContextValue = {
-  /** Öffnet eine App als Tab. Gibt false zurück, wenn die App nicht eingebettet werden kann. */
-  openApp: (id: string) => boolean;
+  /** Öffnet eine App als Tab (optional direkt auf einer Seite). Gibt false zurück, wenn die App nicht eingebettet werden kann. */
+  openApp: (id: string, path?: string) => boolean;
   isEmbedded: (id: string) => boolean;
 };
 
@@ -250,7 +250,7 @@ export function OrbitShell({ apps, initialApp, initialPath, locale, theme, child
   }, [active, byId]);
 
   const ctx = useMemo<ShellContextValue>(
-    () => ({ openApp: (id) => openApp(id), isEmbedded: (id) => byId.has(id) }),
+    () => ({ openApp: (id, path) => openApp(id, path ?? null), isEmbedded: (id) => byId.has(id) }),
     [openApp, byId]
   );
 
