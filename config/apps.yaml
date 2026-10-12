@@ -1,0 +1,99 @@
+# ─────────────────────────────────────────────────────────────
+# Orbit App-Registry
+#
+# Jede App erscheint als Kachel, wenn der User mindestens eine der
+# unter "roles" genannten Entra App Roles hat. Wer die Admin-Rolle
+# (ORBIT_ADMIN_ROLE, Standard "Orbit.Admin") hat, sieht alles.
+#
+# Wichtig: Das Ausblenden einer Kachel ist KEIN Zugriffsschutz.
+# Jedes Tool muss den Login selbst prüfen – nativ über Entra oder
+# über einen vorgeschalteten Auth-Proxy (siehe proxy/README.md).
+#
+# "requestableBy" legt fest, wer eine App über "Zugriff anfragen"
+# anfordern kann. Ohne Eintrag bleibt die App für alle anderen unsichtbar
+# – sinnvoll, damit externe Partner keine internen Tools sehen.
+#
+# Prüfen: npm run apps:check
+# ─────────────────────────────────────────────────────────────
+
+categories:
+  - id: operations
+    name: { de: Betrieb, en: Operations }
+    color: "#F6BB12"
+  - id: revenue
+    name: { de: Umsatz & Preise, en: Revenue & pricing }
+    color: "#C8A84B"
+  - id: guests
+    name: { de: Gäste, en: Guests }
+    color: "#A3A3A3"
+  - id: internal
+    name: { de: Intern, en: Internal }
+    color: "#6B6B6B"
+
+apps:
+  - id: pricing-cockpit
+    name: { de: Pricing Cockpit, en: Pricing Cockpit }
+    description:
+      de: Preise und Mindestaufenthalte für alle Listings prüfen und anpassen.
+      en: Review and adjust prices and minimum stays for all listings.
+    url: https://pricing.example.com
+    icon: TrendingUp
+    category: revenue
+    roles: [App.Pricing]
+    requestableBy: [Orbit.Staff]
+
+  - id: cleaning-planner
+    name: { de: Reinigungsplaner, en: Cleaning planner }
+    description:
+      de: Reinigungen nach Check-out planen und dem Team zuweisen.
+      en: Schedule cleanings after check-out and assign them to the team.
+    url: https://cleaning.example.com
+    icon: Sparkles
+    category: operations
+    roles: [App.Operations]
+    requestableBy: [Orbit.Staff]
+
+  - id: owner-statements
+    name: { de: Eigentümer-Abrechnungen, en: Owner statements }
+    description:
+      de: Monatliche Abrechnungen erstellen und an Eigentümer senden.
+      en: Create monthly statements and send them to owners.
+    url: https://statements.example.com
+    icon: ReceiptText
+    category: revenue
+    roles: [App.Finance, App.OwnerPortal]
+
+  - id: guest-inbox
+    name: { de: Gäste-Postfach, en: Guest inbox }
+    description:
+      de: Nachrichten aller Kanäle an einem Ort beantworten.
+      en: Answer messages from every channel in one place.
+    url: https://inbox.example.com
+    icon: MessagesSquare
+    category: guests
+    roles: [App.Guests]
+    requestableBy: [Orbit.Staff]
+
+  # Beispiel für ein Legacy-Tool ohne eigenen Login:
+  # Die URL zeigt auf den Auth-Proxy, nicht direkt auf das Tool.
+  - id: legacy-reports
+    name: { de: Berichte (alt), en: Reports (legacy) }
+    description:
+      de: Historische Auslastungs- und Umsatzberichte bis 2025.
+      en: Historical occupancy and revenue reports up to 2025.
+    url: https://reports-auth.example.com
+    icon: ChartColumn
+    category: internal
+    roles: [App.Reports]
+    requestableBy: [Orbit.Staff]
+
+  - id: team-handbook
+    name: { de: Team-Handbuch, en: Team handbook }
+    description:
+      de: Abläufe, Checklisten und Ansprechpartner nachschlagen.
+      en: Look up processes, checklists and contacts.
+    url: https://handbook.example.com
+    icon: BookOpen
+    category: internal
+    roles: ["*"]
+    openIn: sameTab

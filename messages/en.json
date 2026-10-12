@@ -1,0 +1,83 @@
+{
+  "meta": {
+    "description": "Every Elev8 tool. One login."
+  },
+  "signin": {
+    "headline": "Every tool.\nOne login.",
+    "lead": "Orbit puts your tools in one place. Sign in once with Microsoft – your role decides what you see.",
+    "button": "Sign in with Microsoft",
+    "hint": "External partners sign in with the account the invitation was sent to.",
+    "errors": {
+      "AccessDenied": "Orbit isn't enabled for this account. Ask your administrator for access.",
+      "Configuration": "Sign-in isn't set up correctly. Check the Entra app registration and environment variables.",
+      "default": "Sign-in didn't work. Try again."
+    }
+  },
+  "header": {
+    "greeting": "Hello, {name}",
+    "greetingFallback": "Hello",
+    "appCount": "{count, plural, =0 {No apps in your orbit yet} =1 {1 app in your orbit} other {# apps in your orbit}}",
+    "account": "Account",
+    "signOut": "Sign out",
+    "language": "Language",
+    "admin": "Admin – you see every app",
+    "skip": "Skip to content"
+  },
+  "dashboard": {
+    "search": "Search apps",
+    "searchHint": "Press / to search",
+    "clearSearch": "Clear search",
+    "categories": "Categories",
+    "allCategories": "All",
+    "new": "New",
+    "opensNewTab": "opens in a new tab",
+    "dragHandle": "Move {name}",
+    "dragHint": "Drag tiles by the handle to arrange them.",
+    "dragPaused": "Sorting is paused while searching or filtering.",
+    "saving": "Saving …",
+    "saved": "Layout saved",
+    "saveError": "Layout not saved. Check your connection and move the tile again.",
+    "reset": "Default order",
+    "noResults": "No app found for “{query}”.",
+    "noResultsCategory": "There's no app for you in this category.",
+    "clearFilters": "Clear filters",
+    "emptyTitle": "No apps enabled yet",
+    "emptyBody": "Your account doesn't have any apps assigned yet. Ask your administrator to give you the right roles.",
+    "contact": "Contact administrator"
+  },
+  "dnd": {
+    "instructions": "Press space or enter to pick up a tile. Use the arrow keys to move it, space or enter to drop it, and escape to cancel.",
+    "pickedUp": "Picked up {name}.",
+    "movedOver": "{name} is now in position {position}.",
+    "dropped": "Dropped {name} in position {position}.",
+    "cancelled": "Move cancelled."
+  },
+  "welcome": {
+    "returning": "Welcome back, {name}",
+    "first": "Welcome to Orbit, {name}",
+    "fallback": "Welcome to Orbit",
+    "ready": "{count, plural, =0 {Your orbit is ready} =1 {1 app ready to go} other {# apps ready to go}}",
+    "skip": "Skip"
+  },
+  "request": {
+    "button": "Request access",
+    "title": "Request access",
+    "intro": "Pick an app. Your administrator gets your request by email and enables your access.",
+    "app": "App",
+    "message": "Message (optional)",
+    "messagePlaceholder": "What do you need the app for?",
+    "submit": "Send request",
+    "sending": "Sending …",
+    "cancel": "Cancel",
+    "close": "Close",
+    "pending": "Requested",
+    "successTitle": "Request sent",
+    "successBody": "You'll get a confirmation by email. Once approved, the app appears the next time you sign in.",
+    "errors": {
+      "rate_limited": "You've sent several requests in the last hour. Try again later.",
+      "already_requested": "You already have an open request for this app.",
+      "mail_not_configured": "Requests aren't set up yet. Contact your administrator directly.",
+      "default": "The request wasn't sent. Try again."
+    }
+  }
+}

@@ -1,0 +1,83 @@
+{
+  "meta": {
+    "description": "Alle Elev8-Tools. Ein Login."
+  },
+  "signin": {
+    "headline": "Alle Tools.\nEin Login.",
+    "lead": "Orbit bündelt deine Tools an einem Ort. Einmal mit Microsoft anmelden – was du siehst, regelt deine Rolle.",
+    "button": "Mit Microsoft anmelden",
+    "hint": "Externe Partner melden sich mit dem Konto an, an das die Einladung gesendet wurde.",
+    "errors": {
+      "AccessDenied": "Für dieses Konto ist Orbit nicht freigeschaltet. Bitte deine Administration um Zugriff.",
+      "Configuration": "Die Anmeldung ist falsch eingerichtet. Prüfe die Entra-App-Registrierung und die Umgebungsvariablen.",
+      "default": "Die Anmeldung hat nicht geklappt. Versuche es erneut."
+    }
+  },
+  "header": {
+    "greeting": "Hallo, {name}",
+    "greetingFallback": "Hallo",
+    "appCount": "{count, plural, =0 {Noch keine Apps in deinem Orbit} =1 {1 App in deinem Orbit} other {# Apps in deinem Orbit}}",
+    "account": "Konto",
+    "signOut": "Abmelden",
+    "language": "Sprache",
+    "admin": "Admin – du siehst alle Apps",
+    "skip": "Zum Inhalt springen"
+  },
+  "dashboard": {
+    "search": "Apps durchsuchen",
+    "searchHint": "Drücke / zum Suchen",
+    "clearSearch": "Suche leeren",
+    "categories": "Kategorien",
+    "allCategories": "Alle",
+    "new": "Neu",
+    "opensNewTab": "öffnet in neuem Tab",
+    "dragHandle": "{name} verschieben",
+    "dragHint": "Kacheln am Griff ziehen, um sie anzuordnen.",
+    "dragPaused": "Sortieren ist während Suche und Filter pausiert.",
+    "saving": "Wird gespeichert …",
+    "saved": "Anordnung gespeichert",
+    "saveError": "Anordnung nicht gespeichert. Prüfe deine Verbindung und verschiebe die Kachel erneut.",
+    "reset": "Standardreihenfolge",
+    "noResults": "Keine App gefunden für „{query}“.",
+    "noResultsCategory": "In dieser Kategorie gibt es keine App für dich.",
+    "clearFilters": "Filter zurücksetzen",
+    "emptyTitle": "Noch keine Apps freigeschaltet",
+    "emptyBody": "Deinem Konto sind noch keine Apps zugewiesen. Bitte deine Administration, dir die passenden Rollen zu geben.",
+    "contact": "Administration kontaktieren"
+  },
+  "dnd": {
+    "instructions": "Drücke Leertaste oder Enter, um die Kachel aufzunehmen. Mit den Pfeiltasten verschieben, mit Leertaste oder Enter ablegen, mit Escape abbrechen.",
+    "pickedUp": "{name} aufgenommen.",
+    "movedOver": "{name} ist jetzt auf Position {position}.",
+    "dropped": "{name} auf Position {position} abgelegt.",
+    "cancelled": "Verschieben abgebrochen."
+  },
+  "welcome": {
+    "returning": "Willkommen zurück, {name}",
+    "first": "Willkommen bei Orbit, {name}",
+    "fallback": "Willkommen bei Orbit",
+    "ready": "{count, plural, =0 {Dein Orbit ist bereit} =1 {1 App ist startklar} other {# Apps sind startklar}}",
+    "skip": "Überspringen"
+  },
+  "request": {
+    "button": "Zugriff anfragen",
+    "title": "Zugriff anfragen",
+    "intro": "Wähle eine App. Die Administration bekommt deine Anfrage per E-Mail und schaltet dich frei.",
+    "app": "App",
+    "message": "Nachricht (optional)",
+    "messagePlaceholder": "Wofür brauchst du die App?",
+    "submit": "Anfrage senden",
+    "sending": "Wird gesendet …",
+    "cancel": "Abbrechen",
+    "close": "Schliessen",
+    "pending": "Angefragt",
+    "successTitle": "Anfrage gesendet",
+    "successBody": "Du bekommst eine Bestätigung per E-Mail. Nach der Freischaltung erscheint die App bei deiner nächsten Anmeldung.",
+    "errors": {
+      "rate_limited": "Du hast in der letzten Stunde schon mehrere Anfragen gesendet. Versuche es später erneut.",
+      "already_requested": "Für diese App läuft bereits eine Anfrage von dir.",
+      "mail_not_configured": "Anfragen sind noch nicht eingerichtet. Wende dich direkt an deine Administration.",
+      "default": "Die Anfrage wurde nicht gesendet. Versuche es erneut."
+    }
+  }
+}
