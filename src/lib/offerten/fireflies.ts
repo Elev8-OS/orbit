@@ -93,14 +93,17 @@ export type TranscriptListItem = {
   participants: string[];
 };
 
-export async function listRecentTranscripts(limit = 25): Promise<TranscriptListItem[]> {
+/** Fireflies liefert pro Abfrage höchstens 50 Calls; ältere holt man über skip seitenweise nach. */
+export const TRANSCRIPT_PAGE_SIZE = 50;
+
+export async function listRecentTranscripts(limit = 25, skip = 0): Promise<TranscriptListItem[]> {
   const data = await query<{
     transcripts: { id: string; title: string | null; dateString: string | null; organizer_email: string | null; participants: string[] | null }[];
   }>(
-    `query Recent($limit: Int) {
-      transcripts(limit: $limit) { id title dateString organizer_email participants }
+    `query Recent($limit: Int, $skip: Int) {
+      transcripts(limit: $limit, skip: $skip) { id title dateString organizer_email participants }
     }`,
-    { limit }
+    { limit: Math.min(limit, TRANSCRIPT_PAGE_SIZE), skip }
   );
   return data.transcripts.map((t) => ({
     id: t.id,

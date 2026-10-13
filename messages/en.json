@@ -151,7 +151,10 @@
       },
       "showDone": "Show done ({count})",
       "dismiss": "No offer needed",
-      "restore": "Reopen"
+      "restore": "Reopen",
+      "loadMore": "Load older calls",
+      "loadingMore": "Loading …",
+      "noMore": "All calls from Fireflies loaded."
     },
     "newDialog": {
       "title": "New offer",

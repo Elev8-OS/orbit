@@ -1,16 +1,21 @@
 import { requireOffertenUser } from "@/lib/offerten/access";
-import { firefliesConfigured, isInternalEmail, listRecentTranscripts } from "@/lib/offerten/fireflies";
+import { TRANSCRIPT_PAGE_SIZE, firefliesConfigured, isInternalEmail, listRecentTranscripts } from "@/lib/offerten/fireflies";
 import { listMeetings } from "@/lib/offerten/store";
 
 export const dynamic = "force-dynamic";
 
-/** Letzte Fireflies-Calls mit externen Teilnehmern, ergänzt um den Verarbeitungsstand in Orbit. */
-export async function GET() {
+/**
+ * Fireflies-Calls mit externen Teilnehmern, ergänzt um den Verarbeitungsstand in Orbit.
+ * Seitenweise: ?skip=0 liefert die neuesten 50, ?skip=50 die nächsten usw.
+ */
+export async function GET(request: Request) {
   const access = await requireOffertenUser();
   if ("response" in access) return access.response;
   if (!firefliesConfigured()) return Response.json({ error: "fireflies_not_configured" }, { status: 503 });
   try {
-    const [recent, processed] = await Promise.all([listRecentTranscripts(30), listMeetings(200)]);
+    const skipParam = Number(new URL(request.url).searchParams.get("skip") ?? 0);
+    const skip = Number.isFinite(skipParam) && skipParam > 0 ? Math.min(Math.floor(skipParam), 5000) : 0;
+    const [recent, processed] = await Promise.all([listRecentTranscripts(TRANSCRIPT_PAGE_SIZE, skip), listMeetings(2000)]);
     const byId = new Map(processed.map((m) => [m.meetingId, m]));
     const meetings = recent
       .filter((t) => t.participants.some((p) => !isInternalEmail(p)))
@@ -28,7 +33,8 @@ export async function GET() {
           dismissedBy: m?.dismissedBy ?? null
         };
       });
-    return Response.json({ meetings });
+    // Volle Seite = es gibt vermutlich ältere Calls; nextSkip zählt alle Calls, auch interne, die wir ausfiltern
+    return Response.json({ meetings, nextSkip: skip + recent.length, hasMore: recent.length === TRANSCRIPT_PAGE_SIZE });
   } catch (err) {
     console.error("Fireflies-Liste:", err);
     return Response.json({ error: "fireflies_failed" }, { status: 502 });
