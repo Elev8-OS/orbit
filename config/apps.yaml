@@ -143,7 +143,6 @@ apps:
   # OTA Listing QA – Inserate auf Airbnb und Booking.com mit Vier-Augen-Prinzip prüfen
   # (Repo ota-listing-qa, Railway-Projekt ota-listing-qa). Öffnet als Tab, Anmeldung über den Orbit-Pass.
   # Rollen im Tool kommen aus Entra: App.OtaQA (Bearbeiter), App.OtaQA.Reviewer (Prüfer), App.OtaQA.Admin.
-  # Erst aktivieren, wenn ota-qa.elev8-suite.com im DNS steht und ORBIT_URL beim Tool gesetzt ist (ORBIT.md im Repo).
   - id: ota-qa
     name: { de: OTA Listing QA, en: OTA Listing QA }
     description:
@@ -155,7 +154,6 @@ apps:
     roles: [App.OtaQA, App.OtaQA.Reviewer, App.OtaQA.Admin]
     requestableBy: [Orbit.Staff]
     embed: true
-    enabled: false
 
   # Kunden-360 – direkt in Orbit gebaut (/kunden). Alles zu einem Kunden auf einer Seite: GHL, Calls, Offerten
   # und was andere Apps über ihre Kunden-Schnittstelle liefern. Rollen: KUNDEN_ROLES (Standard App.Kunden
