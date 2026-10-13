@@ -316,15 +316,33 @@ function CallList({ locale }: { locale: "de" | "en" }) {
   const [error, setError] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [showDone, setShowDone] = useState(false);
+  const [nextSkip, setNextSkip] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  /** Lädt eine Seite Calls von Fireflies (50 pro Seite) und hängt sie an die Liste an. */
+  const loadPage = async (skip: number) => {
+    const res = await fetch(`/api/offerten/meetings?skip=${skip}`);
+    if (!res.ok) throw new Error();
+    const data = (await res.json()) as { meetings: Meeting[]; nextSkip: number; hasMore: boolean };
+    setMeetings((list) => {
+      const known = new Set((list ?? []).map((m) => m.id));
+      return [...(skip === 0 ? [] : (list ?? [])), ...data.meetings.filter((m) => skip === 0 || !known.has(m.id))];
+    });
+    setNextSkip(data.nextSkip);
+    setHasMore(data.hasMore);
+  };
 
   useEffect(() => {
-    fetch("/api/offerten/meetings")
-      .then(async (res) => {
-        if (!res.ok) throw new Error();
-        setMeetings(((await res.json()) as { meetings: Meeting[] }).meetings);
-      })
-      .catch(() => setError(true));
+    loadPage(0).catch(() => setError(true));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const loadMore = async () => {
+    setLoadingMore(true);
+    await loadPage(nextSkip).catch(() => setError(true));
+    setLoadingMore(false);
+  };
 
   const create = async (meetingId: string) => {
     setBusy(meetingId);
@@ -419,6 +437,17 @@ function CallList({ locale }: { locale: "de" | "en" }) {
             );
           })}
         </ul>
+      )}
+      {meetings && (hasMore || nextSkip > 0) && (
+        <div style={{ display: "flex", justifyContent: "center", paddingTop: "0.5rem" }}>
+          {hasMore ? (
+            <button type="button" className="button-secondary" disabled={loadingMore} onClick={loadMore}>
+              {loadingMore ? t("loadingMore") : t("loadMore")}
+            </button>
+          ) : (
+            <p className="of-muted of-small">{t("noMore")}</p>
+          )}
+        </div>
       )}
     </div>
   );
