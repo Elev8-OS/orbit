@@ -9,6 +9,7 @@ import "./theme.css";
 import { cookies } from "next/headers";
 import { THEME_COOKIE, isTheme } from "@/lib/prefs";
 import "./platform.css";
+import "./platform-grid.css";
 import { PwaRegister } from "@/components/platform/PwaRegister";
 
 export async function generateMetadata(): Promise<Metadata> {
