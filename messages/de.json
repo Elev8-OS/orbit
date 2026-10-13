@@ -151,7 +151,10 @@
       },
       "showDone": "Erledigte anzeigen ({count})",
       "dismiss": "Kein Angebot nötig",
-      "restore": "Wieder öffnen"
+      "restore": "Wieder öffnen",
+      "loadMore": "Ältere Calls laden",
+      "loadingMore": "Wird geladen …",
+      "noMore": "Alle Calls aus Fireflies geladen."
     },
     "newDialog": {
       "title": "Neue Offerte",
