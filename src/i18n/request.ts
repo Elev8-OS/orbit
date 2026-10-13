@@ -42,7 +42,8 @@ export default getRequestConfig(async () => {
     messages: {
       ...(await import(`../../messages/${locale}.json`)).default,
       sales: (await import(`../../messages/sales/${locale}.json`)).default,
-      platform: (await import(`../../messages/platform/${locale}.json`)).default
+      platform: (await import(`../../messages/platform/${locale}.json`)).default,
+      push: (await import(`../../messages/push/${locale}.json`)).default
     }
   };
 });

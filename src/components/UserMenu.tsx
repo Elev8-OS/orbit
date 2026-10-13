@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { LayoutDashboard, LogOut, ShieldCheck } from "lucide-react";
+import { Bell, LayoutDashboard, LogOut, ShieldCheck } from "lucide-react";
 import { signOutAction } from "@/app/actions";
 import { InstallButton } from "./platform/InstallButton";
 
@@ -9,7 +9,7 @@ type Props = {
   name: string | null;
   email: string | null;
   admin: boolean;
-  labels: { account: string; signOut: string; admin: string; adminArea: string; install: string };
+  labels: { account: string; signOut: string; admin: string; adminArea: string; install: string; notifications: string };
 };
 
 function initials(name: string | null, email: string | null) {
@@ -59,6 +59,10 @@ export function UserMenu({ name, email, admin, labels }: Props) {
             {labels.adminArea}
           </a>
         )}
+        <a href="/mitteilungen" className="menu-action">
+          <Bell size={16} aria-hidden="true" />
+          {labels.notifications}
+        </a>
         <InstallButton label={labels.install} />
         <form action={signOutAction}>
           <button type="submit" className="menu-action">

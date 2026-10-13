@@ -12,6 +12,8 @@ import { getLocale } from "next-intl/server";
 import { recipientsFromEnv, sendMail, mailConfigured } from "@/lib/mail/send";
 import { accessRequestAdminEmail, accessRequestConfirmationEmail } from "@/lib/mail/templates";
 import { defaultLocale, isLocale } from "@/i18n/config";
+import { adminIds, notifySafe } from "@/lib/push/service";
+import { pushText } from "@/lib/push/texts";
 
 export const dynamic = "force-dynamic";
 
@@ -73,6 +75,11 @@ export async function POST(request: Request) {
     await deleteRequest(requestId).catch(() => {});
     return fail("mail_failed", 502);
   }
+
+  await notifySafe(await adminIds().catch(() => []), "requests", (prefs) => {
+    const t = pushText(prefs.locale);
+    return { title: t.accessRequest(name, app.name[prefs.locale]), body: message || t.accessRequestBody, url: "/admin/zugriffe", tag: `request-${requestId}` };
+  });
 
   // Bestätigung an die anfragende Person (Fehler hier sind nicht kritisch)
   if (user.email) {
