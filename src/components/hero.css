@@ -5,7 +5,8 @@
 .sky-v2 { overflow: visible; z-index: 5; }
 /* übersteuert Hintergrund und Unterkante von .sky aus globals.css/theme.css (auch im Dunkelmodus) */
 :root:root .sky.sky-v2 { background: transparent; border: 0; }
-.sky-v2 .sky-inner { padding-top: clamp(1rem, 2vw, 1.5rem); padding-bottom: 0; }
+/* Als App auf dem iPhone liegt die Statusleiste über dem Rand: der Kopf beginnt darunter */
+.sky-v2 .sky-inner { padding-top: max(clamp(1rem, 2vw, 1.5rem), env(safe-area-inset-top)); padding-bottom: 0; }
 .hero-card {
   position: relative;
   padding: clamp(1.5rem, 2.5vw, 2rem) clamp(1.25rem, 2.8vw, 2.25rem) clamp(1.75rem, 2.8vw, 2.25rem);
