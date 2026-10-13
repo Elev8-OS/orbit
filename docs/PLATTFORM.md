@@ -8,6 +8,7 @@ weiter wie bisher. Was fehlt, zeigt die Administration unter *Übersicht → Ein
 | Mein Tag | Startseite | nichts Zusätzliches (nutzt GHL, Offerten, Assistent) |
 | Suche und Noah | ⌘K / Strg+K, Kopfzeile, Tab-Leiste | `ANTHROPIC_API_KEY` für Noah |
 | Orbit als App (PWA) | Menü → „Als App installieren“ | nichts |
+| Push-Mitteilungen | Menü → „Mitteilungen“, Administration → Mitteilungen | nichts |
 | Statusseite und Alarme | Administration → Status | `RAILWAY_API_TOKEN`, `ORBIT_ALERT_TO` |
 | Administration | Menü → Administration (nur `Orbit.Admin`) | optional Rollenvergabe über Graph |
 | Kunden-360 | Kachel „Kunden“ (`/kunden`) | GHL wie Sales |
@@ -74,3 +75,24 @@ Miss Moneypenny (separater Dienst) läuft unabhängig weiter. Wer den Orbit-Assi
 Daten kommen live aus GHL (Kontakt, Opportunities, Tasks, Termine, Notizen, Nachrichten), dazu Calls und
 Offerten aus Orbit und alles, was andere Apps über die Kunden-Schnittstelle liefern (docs/INTEGRATION.md).
 Das Briefing von Noah wird 12 Stunden zwischengespeichert.
+
+## Push-Mitteilungen
+
+Web Push nach Standard (VAPID, aes128gcm), ohne Fremdanbieter: Orbit sendet direkt über die Push-Dienste von
+Apple, Google, Mozilla und Microsoft. Das Schlüsselpaar erzeugt Orbit beim ersten Gebrauch selbst (Tabelle `push_keys`).
+Nicht ändern oder löschen, sonst müssen alle Geräte Mitteilungen neu aktivieren.
+
+Jede Person aktiviert Mitteilungen pro Gerät unter *Menü → Mitteilungen*. Auf iPhone und iPad geht das erst,
+wenn Orbit zum Home-Bildschirm hinzugefügt wurde (iOS 16.4 oder neuer).
+
+| Mitteilung | An wen | Wann |
+|---|---|---|
+| Mein Tag | alle mit aktiviertem Gerät (abschaltbar) | Mo–Fr zur gewählten Uhrzeit (Standard 8 Uhr, eigene Zeitzone), nur wenn etwas ansteht |
+| Dringendes aus Apps | wer die App sehen darf | sobald eine App eine neue Meldung mit `tone: danger` oder `warning` liefert (Prüfung alle 5 Min.) |
+| Neue Antwortentwürfe | die Person selbst | nach jedem Lauf des E-Mail-Assistenten mit neuen Entwürfen |
+| Zugriff bewilligt/abgelehnt | die anfragende Person | sofort |
+| Neue Zugriffsanfrage, Störungen | Admins | sofort |
+| Mitteilung der Administration | alle, Rollen oder Personen | sofort oder geplant, höchstens 5 pro Tag |
+
+Variablen (alle optional): `ORBIT_PUSH=false` schaltet den Hintergrundversand aus, `ORBIT_VAPID_SUBJECT`
+(Standard `mailto:` + `ORBIT_SUPPORT_EMAIL`), `ORBIT_PUSH_BROADCASTS_PER_DAY` (Standard 5).

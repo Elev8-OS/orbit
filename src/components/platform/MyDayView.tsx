@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { ArrowRight, ChevronDown, ChevronUp } from "lucide-react";
 import type { TodayCard } from "@/lib/platform/today";
 import { useOpenTarget } from "./target";
+import { PushPrompt } from "@/components/push/PushPrompt";
 
 type Props = {
   title: string;
@@ -48,6 +49,7 @@ export function MyDayView({ title, date, empty, cards, labels }: Props) {
           {hidden ? labels.show : labels.hide}
         </button>
       </div>
+      {!hidden && <PushPrompt />}
       {!hidden &&
         (cards.length === 0 ? (
           <p className="p-today-clear">{empty}</p>
