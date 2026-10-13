@@ -5,6 +5,8 @@ import { z } from "zod";
 import { sql } from "@/lib/db";
 import { recipientsFromEnv, sendMail } from "@/lib/mail/send";
 import { renderEmail } from "@/lib/mail/layout";
+import { adminIds, notifySafe } from "@/lib/push/service";
+import { pushText } from "@/lib/push/texts";
 
 /**
  * Statusseite und Alarme. Prüft die Dienste aus config/services.yaml (http und/oder Railway),
@@ -147,6 +149,11 @@ async function alert(kind: "down" | "up", service: Service, message: string | nu
     kind === "down"
       ? `${service.name} ${de ? "ist gestört" : "is down"}${message ? `: ${message}` : ""}.`
       : `${service.name} ${de ? "läuft wieder" : "is back up"}${minutes ? (de ? ` (Dauer etwa ${minutes} Min.)` : ` (about ${minutes} min)`) : ""}.`;
+
+  await notifySafe(await adminIds().catch(() => []), "status", (prefs) => {
+    const t = pushText(prefs.locale);
+    return { title: kind === "down" ? t.down(service.name) : t.up(service.name), body: message ?? text, url: "/admin/status", tag: `status-${service.id}` };
+  }, { urgency: kind === "down" ? "high" : "normal" });
 
   const hook = process.env.ORBIT_ALERT_WEBHOOK;
   if (hook) {
