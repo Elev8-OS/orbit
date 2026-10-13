@@ -2,6 +2,16 @@
   "app": "support-bot",
   "changelog": [
     {
+      "version": "1.3",
+      "date": "2026-10-13",
+      "title": { "de": "Adam antwortet per E-Mail", "en": "Adam answers by email" },
+      "changes": [
+        { "de": "Adam beantwortet desk365-Tickets aus E-Mail, Portal und Webformular direkt per E-Mail. Tickets vom WhatsApp-Bot bleiben auf WhatsApp.", "en": "Adam answers desk365 tickets from email, portal and web form directly by email. Tickets from the WhatsApp bot stay on WhatsApp." },
+        { "de": "Neue Seite „E-Mail“ mit Schalter, Testadressen und Übersicht aller E-Mail-Tickets.", "en": "New page \"Email\" with a switch, test addresses and an overview of all email tickets." },
+        { "de": "Rechnungen, Kündigungen, Verträge und Beschwerden gehen immer ans Team. Sobald ein Agent antwortet, hält sich Adam raus.", "en": "Invoices, cancellations, contracts and complaints always go to the team. As soon as an agent replies, Adam steps back." }
+      ]
+    },
+    {
       "version": "1.2",
       "date": "2026-10-12",
       "title": { "de": "Deutsch und Englisch", "en": "German and English" },
