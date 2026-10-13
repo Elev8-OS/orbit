@@ -7,6 +7,8 @@ import { audit } from "@/lib/platform/audit";
 import { sendMail } from "@/lib/mail/send";
 import { accessDecisionEmail } from "@/lib/mail/platform-templates";
 import { defaultLocale } from "@/i18n/config";
+import { notifySafe } from "@/lib/push/service";
+import { pushText } from "@/lib/push/texts";
 
 export const dynamic = "force-dynamic";
 
@@ -62,5 +64,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       ...accessDecisionEmail(defaultLocale, request.user_name || request.user_email, app?.name[defaultLocale] ?? request.app_id, approve, parsed.data.note ?? null, assigned)
     });
   }
+  await notifySafe([request.user_id], "access", (prefs) => {
+    const t = pushText(prefs.locale);
+    const name = app?.name[prefs.locale] ?? request.app_id;
+    return {
+      title: approve ? t.accessApproved(name) : t.accessRejected(name),
+      body: parsed.data.note || (approve ? t.accessApprovedBody : ""),
+      url: "/",
+      tag: `access-${id}`
+    };
+  });
   return Response.json({ ok: true, assigned, role });
 }

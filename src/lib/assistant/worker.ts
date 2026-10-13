@@ -3,6 +3,8 @@ import * as store from "./store";
 import * as graph from "./graph";
 import { needsReconnect, refresh } from "./oauth";
 import { replyHtml, ruleSkip, triage } from "./brain";
+import { notifySafe } from "@/lib/push/service";
+import { pushText } from "@/lib/push/texts";
 
 /**
  * Ein Lauf des E-Mail-Assistenten für eine Person:
@@ -60,6 +62,7 @@ async function runLocked(userId: string): Promise<RunResult> {
     const known = await store.knownMessageIds(userId, inbox.map((m) => m.id));
     const fresh = inbox.filter((m) => !known.has(m.id)).reverse(); // älteste zuerst
     let claudeCalls = 0;
+    let urgentDrafts = 0;
 
     for (const m of fresh) {
       const fromAddress = addr(m.from);
@@ -107,6 +110,7 @@ async function runLocked(userId: string): Promise<RunResult> {
         if (d.decision === "reply") {
           draft = await graph.createReplyAllDraft(token, m.id, replyHtml(d.reply, account.signature));
           result.drafted++;
+          if (d.priority === "high") urgentDrafts++;
         } else if (d.decision === "info") result.info++;
         else result.skipped++;
         await store.saveItem(userId, {
@@ -135,6 +139,12 @@ async function runLocked(userId: string): Promise<RunResult> {
       }
     }
     await store.markRun(userId, null);
+    if (result.drafted) {
+      await notifySafe([userId], "assistant", (prefs) => {
+        const t = pushText(prefs.locale);
+        return { title: t.newDrafts(result.drafted, urgentDrafts), body: t.draftsBody, url: "/?app=assistent", tag: "assistant" };
+      }, { urgency: urgentDrafts ? "high" : "normal" });
+    }
     return result;
   } catch (err) {
     const msg = err instanceof Error ? err.message.slice(0, 300) : "Fehler";
