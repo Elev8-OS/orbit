@@ -1,0 +1,9 @@
+/* In Rastern (Kennzahlen, Mein Tag, Kunden-360) sind Karten Geschwister. Die allgemeine Regel
+   „.p-card + .p-card“ aus platform.css würde jede Karte ausser der ersten nach unten
+   schieben; im Raster kommt der Abstand vom gap. */
+.p-tiles > .p-card,
+.p-today-grid > .p-card,
+.p-customer-grid > .p-card,
+.p-briefing-cols > .p-card {
+  margin-top: 0;
+}
