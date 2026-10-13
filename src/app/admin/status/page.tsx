@@ -22,9 +22,12 @@ export default async function StatusPage() {
         </div>
         <RunChecksButton />
       </div>
-      <div className={`p-banner ${down.length ? "is-danger" : "is-success"}`} role="status">
-        {down.length ? t("summaryDown", { count: down.length, names: down.map((s) => s.name).join(", ") }) : t("summaryUp")}
-      </div>
+      {/* Erst eine Aussage machen, wenn wirklich geprüft wurde */}
+      {services.some((s) => s.checkedAt) && (
+        <div className={`p-banner ${down.length ? "is-danger" : "is-success"}`} role="status">
+          {down.length ? t("summaryDown", { count: down.length, names: down.map((s) => s.name).join(", ") }) : t("summaryUp")}
+        </div>
+      )}
       {groups.map((g) => {
         const list = services.filter((s) => s.group === g);
         if (!list.length) return null;
