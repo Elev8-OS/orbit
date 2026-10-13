@@ -6,6 +6,7 @@ import { SalesNav } from "@/components/sales/SalesNav";
 import { PrefsListener } from "@/components/sales/PrefsListener";
 import { ViewAsSwitch } from "@/components/sales/ViewAsSwitch";
 import { TimeZoneProvider } from "@/components/sales/shared";
+import { StandaloneOnly } from "@/components/platform/StandaloneOnly";
 import { pageContext } from "@/lib/sales/page";
 import "./sales.css";
 import "./sales-shell.css";
@@ -34,7 +35,8 @@ export default async function SalesLayout({ children }: { children: React.ReactN
 
   return (
     <div className={`sl-shell sl-v2${ctx.embedded ? " is-embedded" : ""}`}>
-      {ctx.embedded && <PrefsListener />}
+      {/* Immer aktiv: übernimmt Sprache und Darstellung aus Orbit, sobald Orbit sie sendet */}
+      <PrefsListener />
       {viewer && (
         <aside className="sl-side">
           <SalesNav
@@ -57,10 +59,12 @@ export default async function SalesLayout({ children }: { children: React.ReactN
               </div>
             )}
             {/* Nur ausserhalb von Orbit: zurück zur Übersicht (im Tab übernimmt das die Tab-Leiste) */}
-            <a href="/" className="sl-side-back">
-              <ArrowLeft size={14} aria-hidden="true" />
-              Orbit
-            </a>
+            <StandaloneOnly>
+              <a href="/" className="sl-side-back">
+                <ArrowLeft size={14} aria-hidden="true" />
+                Orbit
+              </a>
+            </StandaloneOnly>
           </div>
         </aside>
       )}

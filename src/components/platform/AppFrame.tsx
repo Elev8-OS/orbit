@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { ArrowLeft } from "lucide-react";
 import { PrefsListener } from "@/components/sales/PrefsListener";
 import { PaletteButton } from "./PaletteButton";
+import { StandaloneOnly } from "./StandaloneOnly";
 import "./app-frame.css";
 
 /**
@@ -29,8 +30,10 @@ export function AppFrame({
 }) {
   return (
     <div className={`p-app p-app-v2${embedded ? " is-embedded" : ""}`}>
-      {embedded && <PrefsListener />}
-      {!embedded && (
+      {/* Immer aktiv: übernimmt Sprache und Darstellung aus Orbit, sobald Orbit sie sendet */}
+      <PrefsListener />
+      {/* Nur ausserhalb von Orbit; im Tab übernimmt die Tab-Leiste Rückweg und Suche */}
+      <StandaloneOnly>
         <div className="p-app-top">
           <a href="/" className="p-app-orbit" aria-label={backLabel}>
             <ArrowLeft size={14} aria-hidden="true" />
@@ -38,7 +41,7 @@ export function AppFrame({
           </a>
           <PaletteButton label={searchLabel} />
         </div>
-      )}
+      </StandaloneOnly>
       {nav}
       <main className="p-app-main" id="main" aria-label={title}>
         {children}

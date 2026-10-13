@@ -85,6 +85,17 @@ export function OrbitShell({ apps, initialApp, initialPath, locale, theme, child
   const [dragging, setDragging] = useState<string | null>(null);
   const [infoNews, setInfoNews] = useState(false);
 
+  // Tabs ziehen nur mit Maus/Trackpad: Auf Touch-Geräten (iOS Safari) startet ein Antippen sonst
+  // das Ziehen, und der Tipp zum Wechseln des Tabs kommt nie an.
+  const [canDrag, setCanDrag] = useState(false);
+  useEffect(() => {
+    const media = window.matchMedia("(hover: hover) and (pointer: fine)");
+    const update = () => setCanDrag(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+
   // ── Sprache und Darstellung an alle offenen Tools weitergeben ──────────
   useEffect(() => {
     const media = window.matchMedia("(prefers-color-scheme: dark)");
@@ -320,7 +331,7 @@ export function OrbitShell({ apps, initialApp, initialPath, locale, theme, child
                   key={id}
                   className={`tab-wrap${active === id ? " is-active" : ""}${dragging === id ? " is-dragging" : ""}`}
                   style={{ "--tile-color": app.color } as CSSProperties}
-                  draggable
+                  draggable={canDrag}
                   onDragStart={(e) => {
                     dragId.current = id;
                     setDragging(id);
@@ -345,7 +356,7 @@ export function OrbitShell({ apps, initialApp, initialPath, locale, theme, child
                     aria-selected={active === id}
                     aria-controls={`frame-${id}`}
                     aria-keyshortcuts="Alt+ArrowLeft Alt+ArrowRight"
-                    title={locale === "en" ? "Drag to reorder (Alt + ← / →)" : "Ziehen zum Verschieben (Alt + ← / →)"}
+                    title={canDrag ? (locale === "en" ? "Drag to reorder (Alt + ← / →)" : "Ziehen zum Verschieben (Alt + ← / →)") : undefined}
                     className="tab"
                     onClick={() => openApp(id)}
                     onKeyDown={(e) => {
