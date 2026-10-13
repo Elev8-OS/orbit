@@ -1,13 +1,18 @@
 import type { ReactNode } from "react";
 import { ArrowLeft } from "lucide-react";
-import { Elev8Logo } from "@/components/Elev8Logo";
 import { PrefsListener } from "@/components/sales/PrefsListener";
 import { PaletteButton } from "./PaletteButton";
+import "./app-frame.css";
 
-/** Rahmen für Orbits eigene Apps im Tab: schmale Kopfleiste mit Titel, Navigation und Suche. */
+/**
+ * Rahmen für Orbits eigene Apps im Tab, nach dem Elev8 Design System ("Wer was zeigt"):
+ * kein eigenes Logo, kein App-Name, kein schwarzes Band – Orbit zeigt das im Tab, und die Suche
+ * sitzt in Orbits Tab-Leiste. Die Seite beginnt direkt mit ihrem Inhalt und eigenem Seitentitel.
+ * Apps mit mehreren Bereichen bekommen eine Seitenleiste links (Vorbild: src/app/sales/layout.tsx).
+ * Nur ausserhalb von Orbit gibt es oben einen dezenten Rückweg und die Suche.
+ */
 export function AppFrame({
   title,
-  href,
   embedded,
   nav,
   backLabel,
@@ -23,27 +28,19 @@ export function AppFrame({
   children: ReactNode;
 }) {
   return (
-    <div className={`p-app${embedded ? " is-embedded" : ""}`}>
+    <div className={`p-app p-app-v2${embedded ? " is-embedded" : ""}`}>
       {embedded && <PrefsListener />}
-      <header className="p-app-bar">
-        <div className="p-app-bar-inner">
-          {!embedded && (
-            <>
-              <a href="/" className="p-app-back" aria-label={backLabel}>
-                <ArrowLeft size={18} aria-hidden="true" />
-                <Elev8Logo height={22} />
-              </a>
-              <span className="p-app-divider" aria-hidden="true" />
-            </>
-          )}
-          <a href={href} className="p-app-title">
-            {title}
+      {!embedded && (
+        <div className="p-app-top">
+          <a href="/" className="p-app-orbit" aria-label={backLabel}>
+            <ArrowLeft size={14} aria-hidden="true" />
+            Orbit
           </a>
-          {nav}
           <PaletteButton label={searchLabel} />
         </div>
-      </header>
-      <main className="p-app-main" id="main">
+      )}
+      {nav}
+      <main className="p-app-main" id="main" aria-label={title}>
         {children}
       </main>
     </div>
