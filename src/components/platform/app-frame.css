@@ -11,7 +11,8 @@
   gap: 1rem;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 1rem clamp(1rem, 4vw, 2.5rem) 0;
+  /* Als App auf dem iPhone liegt die Statusleiste über dem Rand: darunter beginnen */
+  padding: max(1rem, env(safe-area-inset-top)) clamp(1rem, 4vw, 2.5rem) 0;
 }
 .p-app-orbit {
   display: inline-flex;

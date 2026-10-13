@@ -18,7 +18,7 @@
   flex-direction: column;
   justify-content: space-between;
   gap: 1.5rem;
-  padding: 1.75rem 0.75rem 1.25rem;
+  padding: max(1.75rem, env(safe-area-inset-top)) 0.75rem 1.25rem;
   background: var(--surface);
   border-right: 1px solid var(--line);
   overflow-y: auto;
@@ -102,7 +102,8 @@
     height: auto;
     flex-direction: row;
     align-items: center;
-    padding: 0.5rem 0.75rem;
+    /* Als App auf dem iPhone liegt die Statusleiste über dem Rand: darunter beginnen */
+    padding: max(0.5rem, env(safe-area-inset-top)) max(0.75rem, env(safe-area-inset-right)) 0.5rem max(0.75rem, env(safe-area-inset-left));
     border-right: 0;
     border-bottom: 1px solid var(--line);
     overflow-x: auto;
