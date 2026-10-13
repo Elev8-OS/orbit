@@ -3,9 +3,21 @@
    aus drei Kennzahlen und "Für dich": grosse ruhige Typografie, getrennt nur durch Haarlinien. */
 /* Kein Schwarz über die ganze Breite: Der Kopf ist eine Fläche in der Spalte, so breit wie die Kacheln */
 .sky-v2 { overflow: visible; z-index: 5; }
-/* übersteuert Hintergrund und Unterkante von .sky aus globals.css/theme.css (auch im Dunkelmodus) */
-:root:root .sky.sky-v2 { background: transparent; border: 0; }
-.sky-v2 .sky-inner { padding-top: clamp(1rem, 2vw, 1.5rem); padding-bottom: 0; }
+/* übersteuert Hintergrund und Unterkante von .sky aus globals.css/theme.css (auch im Dunkelmodus).
+   Als installierte App (viewport-fit: cover, Statusleiste "black-translucent") liegt die Seite unter der
+   Statusleiste des Handys: Der Kopf spart diesen Bereich aus und färbt ihn schwarz, damit Uhrzeit und
+   Akku lesbar bleiben und Tipps auf Einstellungen und Profil ankommen. */
+:root:root .sky.sky-v2 {
+  background: linear-gradient(var(--sky), var(--sky)) top / 100% env(safe-area-inset-top, 0px) no-repeat;
+  border: 0;
+}
+.sky-v2 .sky-inner {
+  padding-top: calc(env(safe-area-inset-top, 0px) + clamp(1rem, 2vw, 1.5rem));
+  padding-bottom: 0;
+}
+/* Sind Apps offen, steht die Tab-Leiste darüber und spart die Statusleiste bereits aus */
+:root:root .tabbar ~ .shell-home .sky.sky-v2 { background: transparent; }
+.tabbar ~ .shell-home .sky-v2 .sky-inner { padding-top: clamp(1rem, 2vw, 1.5rem); }
 .hero-card {
   position: relative;
   padding: clamp(1.5rem, 2.5vw, 2rem) clamp(1.25rem, 2.8vw, 2.25rem) clamp(1.75rem, 2.8vw, 2.25rem);
