@@ -88,6 +88,15 @@ services:
     name: The R Profit Management (Worker)
     group: background
     railway: { project: cba700cc-36d8-4fee-b04d-5bc43f08af8b, service: 764e57f1-fada-424d-b1ac-70a6a3115460, environment: aeadd937-7363-40d0-af6c-9d52cb87e027 }
+  - id: profit-management-db
+    name: The R Profit Management (Datenbank)
+    group: background
+    railway: { project: cba700cc-36d8-4fee-b04d-5bc43f08af8b, service: 9c1b99a0-f423-49fa-a2b7-990156753d88, environment: aeadd937-7363-40d0-af6c-9d52cb87e027 }
+  # Nächtliche Sicherung um 03:30 UTC (Cron, 14 Tage aufbewahrt). Schlägt sie fehl, ist die letzte Bereitstellung FAILED/CRASHED.
+  - id: profit-management-backup
+    name: The R Profit Management (nächtliche Sicherung)
+    group: background
+    railway: { project: cba700cc-36d8-4fee-b04d-5bc43f08af8b, service: d07e3add-e62b-4f70-abb1-0da7148bdb61, environment: aeadd937-7363-40d0-af6c-9d52cb87e027 }
   - id: meldeschein
     name: Meldeschein-Service
     group: background
