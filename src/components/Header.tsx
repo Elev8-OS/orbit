@@ -25,6 +25,7 @@ type Props = {
 export async function Header({ name, email, admin, locale, theme, dots }: Props) {
   const t = await getTranslations("header");
   const tp = await getTranslations("platform.header");
+  const tpush = await getTranslations("push");
   const firstName = name?.split(/[\s,]+/).find(Boolean);
   const today = new Date().toLocaleDateString(locale === "en" ? "en-GB" : "de-CH", {
     weekday: "long",
@@ -61,7 +62,7 @@ export async function Header({ name, email, admin, locale, theme, dots }: Props)
                 name={name}
                 email={email}
                 admin={admin}
-                labels={{ account: t("account"), signOut: t("signOut"), admin: t("admin"), adminArea: tp("adminArea"), install: tp("install") }}
+                labels={{ account: t("account"), signOut: t("signOut"), admin: t("admin"), adminArea: tp("adminArea"), install: tp("install"), notifications: tpush("menu") }}
               />
             </div>
           </div>

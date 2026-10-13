@@ -12,6 +12,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (!user) redirect("/signin");
   const t = await getTranslations("platform.admin");
   const tc = await getTranslations("platform.common");
+  const tpush = await getTranslations("push.admin");
   if (!user.admin) {
     return (
       <AppFrame title={t("title")} href="/admin" embedded={false} backLabel={tc("back")} searchLabel={tc("searchAll")}>
@@ -29,6 +30,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         { href: "/admin/benutzer", label: t("nav.users") },
         { href: "/admin/apps", label: t("nav.apps") },
         { href: "/admin/status", label: t("nav.status"), badge: down?.n },
+        { href: "/admin/mitteilungen", label: tpush("nav") },
         { href: "/admin/protokoll", label: t("nav.audit") }
       ]}
     />
