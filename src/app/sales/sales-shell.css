@@ -107,8 +107,12 @@
     border-bottom: 1px solid var(--line);
     overflow-x: auto;
   }
+  .sl-side { flex-wrap: wrap; row-gap: 0.5rem; }
   .sl-side-nav { flex-direction: row; align-items: center; }
   .sl-side-nav > .sl-side-label { display: none; }
-  .sl-side-foot { flex-direction: row; align-items: center; }
-  .sl-side-viewas .sl-side-label { display: none; }
+  /* Personenwahl in eigener Zeile über die volle Breite, damit der Name lesbar bleibt */
+  .sl-side-foot { flex-basis: 100%; flex-direction: row; align-items: center; }
+  .sl-side-viewas { flex: 1; flex-direction: row; align-items: center; gap: 0.5rem; }
+  .sl-side-viewas .sl-side-label { padding: 0; white-space: nowrap; }
+  .sl-side-viewas .sl-viewas { flex: 1; padding: 0; }
 }

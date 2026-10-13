@@ -31,3 +31,13 @@
   letter-spacing: -0.02em;
 }
 .p-app-v2 .p-page-lead { font-size: 0.9375rem; line-height: 1.375rem; color: var(--muted); }
+
+/* Gruppenlabels in normaler Schreibung statt Grossbuchstaben (Elev8 Design System: label 12/16, 500, muted) */
+.p-app-v2 .p-list-title {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 500;
+  color: var(--muted);
+}
