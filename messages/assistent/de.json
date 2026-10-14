@@ -1,0 +1,31 @@
+{
+  "rephrase": "Umformulieren",
+  "rephraseTitle": "Wie soll der Entwurf werden?",
+  "reply": "Antwort schreiben",
+  "replyTitle": "Was soll die Antwort enthalten? (optional)",
+  "presets": {
+    "shorter": "Kürzer",
+    "friendlier": "Freundlicher",
+    "formal": "Formeller",
+    "personal": "Persönlicher",
+    "english": "Auf Englisch",
+    "german": "Auf Deutsch"
+  },
+  "presetText": {
+    "shorter": "Deutlich kürzer, nur das Wesentliche.",
+    "friendlier": "Wärmer und freundlicher im Ton.",
+    "formal": "Formeller und sachlicher, mit Sie.",
+    "personal": "Persönlicher und direkter, weniger förmlich.",
+    "english": "Auf Englisch.",
+    "german": "Auf Deutsch (Schweiz, ohne ß)."
+  },
+  "rephrasePlaceholder": "Eigene Anweisung, z.B. „Termin am Donnerstag vorschlagen“",
+  "replyPlaceholder": "z.B. „Zusage für Donnerstag, Preisliste folgt nächste Woche“",
+  "go": "Neu formulieren",
+  "goReply": "Entwurf erstellen",
+  "cancel": "Abbrechen",
+  "working": "Noah schreibt …",
+  "doneRephrase": "Neuer Entwurf liegt in Outlook. Der alte wurde ersetzt.",
+  "doneReply": "Entwurf liegt in Outlook. Die Mail steht jetzt unter „Antworten“.",
+  "error": "Das hat nicht geklappt. Bitte nochmals versuchen."
+}

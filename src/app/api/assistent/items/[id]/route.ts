@@ -1,11 +1,15 @@
 import { z } from "zod";
 import { hasAssistentAccess, requireUser } from "@/lib/platform/access";
 import { getItem, setItemStatus } from "@/lib/assistant/store";
-import { discardDraft } from "@/lib/assistant/worker";
+import { discardDraft, redraft } from "@/lib/assistant/worker";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 120;
 
-const schema = z.object({ action: z.enum(["done", "discard", "reopen"]) });
+const schema = z.object({
+  action: z.enum(["done", "discard", "reopen", "reply", "rephrase"]),
+  instruction: z.string().trim().max(500).optional()
+});
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const r = await requireUser(hasAssistentAccess);
@@ -16,6 +20,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const item = await getItem(r.user.id, id);
   if (!item) return Response.json({ error: "not_found" }, { status: 404 });
   try {
+    if (parsed.data.action === "reply" || parsed.data.action === "rephrase") {
+      if (parsed.data.action === "rephrase" && !item.draftId) return Response.json({ error: "no_draft" }, { status: 409 });
+      const updated = await redraft(r.user.id, id, parsed.data.action, parsed.data.instruction || undefined);
+      return Response.json({ ok: true, item: updated });
+    }
     if (parsed.data.action === "discard") await discardDraft(r.user.id, id);
     else await setItemStatus(r.user.id, id, parsed.data.action === "done" ? "done" : "open");
     return Response.json({ ok: true });

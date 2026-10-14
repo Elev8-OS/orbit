@@ -1,0 +1,31 @@
+{
+  "rephrase": "Rephrase",
+  "rephraseTitle": "How should the draft change?",
+  "reply": "Write a reply",
+  "replyTitle": "What should the reply say? (optional)",
+  "presets": {
+    "shorter": "Shorter",
+    "friendlier": "Friendlier",
+    "formal": "More formal",
+    "personal": "More personal",
+    "english": "In English",
+    "german": "In German"
+  },
+  "presetText": {
+    "shorter": "Much shorter, only the essentials.",
+    "friendlier": "Warmer and friendlier in tone.",
+    "formal": "More formal and factual.",
+    "personal": "More personal and direct, less formal.",
+    "english": "In English.",
+    "german": "In German (Swiss, without ß)."
+  },
+  "rephrasePlaceholder": "Your own instruction, e.g. “suggest a meeting on Thursday”",
+  "replyPlaceholder": "e.g. “confirm Thursday, price list follows next week”",
+  "go": "Rephrase",
+  "goReply": "Create draft",
+  "cancel": "Cancel",
+  "working": "Noah is writing …",
+  "doneRephrase": "New draft is in Outlook. The old one was replaced.",
+  "doneReply": "Draft is in Outlook. The email is now under “To reply”.",
+  "error": "That didn't work. Please try again."
+}
