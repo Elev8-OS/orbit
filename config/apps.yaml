@@ -170,6 +170,22 @@ apps:
     requestableBy: [Orbit.Staff]
     embed: true
 
+  # Tenant-Aufnahme (ready.elev8-suite.com) – Onboarding neuer Tenants: Aufnahme mit Vorbelegung aus Elev8,
+  # Verträge und Unterschrift (Repo Elev8-Services-Onboarding, Railway-Projekt tenant-intake).
+  # Der interne Bereich (/admin) öffnet als Tab, Anmeldung über den Orbit-Pass. Das Formular für Tenants
+  # (/f/…) bleibt öffentlich, damit Kunden ihren Link ohne Orbit-Konto öffnen.
+  - id: tenant-intake
+    name: { de: Tenant-Aufnahme, en: Tenant onboarding }
+    description:
+      de: Neue Tenants aufnehmen – vorausgefüllt aus Elev8, mit Verträgen und Unterschrift, bereit für den Go-live.
+      en: Onboard new tenants – prefilled from Elev8, with contracts and signature, ready for go-live.
+    url: https://ready.elev8-suite.com/admin
+    icon: ClipboardCheck
+    category: customers
+    roles: [App.TenantIntake]
+    requestableBy: [Orbit.Staff]
+    embed: true
+
   # E-Mail-Assistent (Moneypenny für alle) – direkt in Orbit gebaut (/assistent). Jede Person verbindet ihr eigenes
   # Postfach; Noah sortiert neue E-Mails und legt Antwortentwürfe in Outlook an. Erst aktivieren, wenn die
   # Einrichtung in Entra erledigt ist und ASSISTENT_ENABLED=true gesetzt ist (docs/PLATTFORM.md).
