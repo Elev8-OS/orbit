@@ -2,7 +2,7 @@ import { exclusive } from "@/lib/platform/scheduler";
 import * as store from "./store";
 import * as graph from "./graph";
 import { needsReconnect, refresh } from "./oauth";
-import { replyHtml, ruleSkip, triage } from "./brain";
+import { replyHtml, ruleSkip, triage, writeReply } from "./brain";
 import { notifySafe } from "@/lib/push/service";
 import { pushText } from "@/lib/push/texts";
 
@@ -168,6 +168,39 @@ export async function discardDraft(userId: string, itemId: number): Promise<void
   if (!item) return;
   if (item.draftId) await graph.deleteDraft(await accessToken(userId), item.draftId);
   await store.setItemStatus(userId, itemId, "discarded");
+}
+
+/**
+ * Auf Wunsch der Person: "reply" schreibt einen Entwurf für eine Mail, die Noah nicht beantworten wollte;
+ * "rephrase" überarbeitet den bestehenden Entwurf nach einer Anweisung. Der alte Entwurf in Outlook wird ersetzt.
+ */
+export async function redraft(userId: string, itemId: number, mode: "reply" | "rephrase", instruction?: string): Promise<store.Item> {
+  const [account, item] = await Promise.all([store.getAccount(userId), store.getItem(userId, itemId)]);
+  if (!account || !item) throw new Error("not_found");
+  const token = await accessToken(userId);
+  const body = await graph.messageText(token, item.messageId);
+  const reply = await writeReply(
+    {
+      ownerName: account.name || account.email,
+      ownerEmail: account.email,
+      locale: account.locale,
+      styleNotes: account.styleNotes,
+      fromName: item.fromName,
+      fromAddress: item.fromAddress,
+      to: [],
+      cc: [],
+      subject: item.subject,
+      received: item.receivedAt ?? "",
+      body
+    },
+    { previous: mode === "rephrase" ? item.draftPreview || undefined : undefined, instruction },
+    process.env.ASSISTENT_MODEL || undefined
+  );
+  // Zuerst den neuen Entwurf anlegen, dann den alten löschen: So geht nie beides verloren
+  const draft = await graph.createReplyAllDraft(token, item.messageId, replyHtml(reply, account.signature));
+  if (item.draftId) await graph.deleteDraft(token, item.draftId).catch((err) => console.warn("Alter Entwurf nicht gelöscht:", err));
+  await store.updateDraft(userId, itemId, { draftId: draft.id, draftLink: draft.webLink, preview: reply });
+  return (await store.getItem(userId, itemId))!;
 }
 
 export async function runAll(): Promise<void> {

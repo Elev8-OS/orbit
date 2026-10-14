@@ -194,6 +194,14 @@ export async function getItem(userId: string, id: number): Promise<Item | null> 
   return row ? toItem(row) : null;
 }
 
+/** Neuer oder überarbeiteter Entwurf: Eintrag wird zu „Antworten“ und ist wieder offen. */
+export async function updateDraft(userId: string, id: number, draft: { draftId: string; draftLink: string | null; preview: string }) {
+  await sql`
+    UPDATE assistant_items SET decision = 'reply', draft_id = ${draft.draftId}, draft_link = ${draft.draftLink},
+      draft_preview = ${draft.preview.slice(0, 6000)}, status = 'open', error = NULL, updated_at = now()
+    WHERE user_id = ${userId} AND id = ${id}`;
+}
+
 export async function setItemStatus(userId: string, id: number, status: ItemStatus) {
   await sql`UPDATE assistant_items SET status = ${status}, updated_at = now() WHERE user_id = ${userId} AND id = ${id}`;
 }
