@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { AlertTriangle, Check, ExternalLink, Loader2, RefreshCw, Settings, Trash2, Undo2 } from "lucide-react";
 import type { Account, Item } from "@/lib/assistant/store";
+import { RedraftActions } from "./RedraftActions";
 
 type View = "open" | "info" | "skip" | "done";
 
@@ -184,6 +185,7 @@ export function AssistantHome({
                     )}
                   </>
                 )}
+                <RedraftActions item={item} view={view} />
               </div>
             </li>
           ))}

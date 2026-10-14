@@ -94,6 +94,48 @@ ${input.body.slice(0, 8000) || "(kein Text)"}`;
   return parsed.data;
 }
 
+const WRITE_TOOL = {
+  name: "write_reply",
+  description: "Schreibt den Antwortentwurf auf eine E-Mail.",
+  input_schema: {
+    type: "object",
+    properties: { reply: { type: "string", description: "Antworttext als reiner Text mit Absätzen, ohne Betreff und ohne Signatur." } },
+    required: ["reply"]
+  }
+};
+
+/**
+ * Antwort auf Wunsch der Person: neu schreiben (auch wenn Noah keine Antwort für nötig hielt)
+ * oder einen bestehenden Entwurf nach einer Anweisung überarbeiten (kürzer, formeller, auf Englisch …).
+ */
+export async function writeReply(input: MailInput, opts: { previous?: string; instruction?: string }, model?: string): Promise<string> {
+  const kb = process.env.KNOWLEDGE_BASE_URL || "https://docs.elev8-suite.com";
+  const task = opts.previous
+    ? `Überarbeite den bisherigen Antwortentwurf von ${input.ownerName}. Behalte Inhalt und Fakten, ändere nur, was die Anweisung verlangt.`
+    : `${input.ownerName} möchte auf diese E-Mail antworten. Schreibe einen Antwortentwurf, auch wenn die Mail zunächst nicht so aussah, als bräuchte sie eine Antwort.`;
+  const system = `Du bist Noah, der E-Mail-Assistent von ${input.ownerName} (${input.ownerEmail}) bei Elev8, einer Software für Ferienwohnungs- und Hotelverwaltung (Elev8 Suite).
+${task}
+
+Regeln:
+- Sprache und Anrede wie der Absender (Du oder Sie), ausser die Anweisung verlangt eine andere Sprache. Deutsch ohne ß.
+- Kurz, freundlich, konkret. Keine Floskeln.
+- Nichts erfinden: keine Termine, Preise, Zusagen oder Fakten, die nicht in der Mail, im bisherigen Entwurf oder in der Anweisung stehen. Wo etwas fehlt, eine Lücke in eckigen Klammern lassen, z.B. [Termin einsetzen].
+- Bei Produktfragen zur Elev8 Suite darf auf die Wissensdatenbank verwiesen werden: ${kb}
+- Ohne Betreff, ohne Signatur, ohne Grussformel-Namen am Schluss (die Signatur wird angehängt).
+${input.styleNotes ? `\nPersönlicher Stil und Hinweise von ${input.ownerName}:\n${input.styleNotes}` : ""}`;
+  const user = [
+    `Von: ${input.fromName} <${input.fromAddress}>\nDatum: ${input.received}\nBetreff: ${input.subject || "(ohne Betreff)"}\n\n${input.body.slice(0, 8000) || "(kein Text)"}`,
+    opts.previous ? `--- Bisheriger Entwurf ---\n${opts.previous}` : "",
+    opts.instruction ? `--- Anweisung von ${input.ownerName} ---\n${opts.instruction}` : ""
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+  const raw = await callClaudeTool({ system, user, tool: WRITE_TOOL, maxTokens: 4000, timeoutMs: 90_000, model });
+  const reply = z.object({ reply: text(6000) }).safeParse(raw);
+  if (!reply.success || !reply.data.reply.trim()) throw new Error("Kein Entwurf erhalten");
+  return reply.data.reply.trim();
+}
+
 /** Text mit Absätzen und Signatur als HTML für Outlook. */
 export function replyHtml(reply: string, signature: string): string {
   const paragraphs = reply
