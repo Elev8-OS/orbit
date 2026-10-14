@@ -2,14 +2,21 @@ import { z } from "zod";
 import { callClaudeTool } from "@/lib/offerten/claude";
 import { escapeHtml } from "@/lib/mail/layout";
 
-/** Einordnen und (wenn nötig) Antwort entwerfen, in einem Aufruf. */
-export const decisionSchema = z.object({
-  decision: z.enum(["reply", "info", "skip"]),
-  priority: z.enum(["high", "normal", "low"]).default("normal"),
-  summary: z.string().max(400).default(""),
-  reason: z.string().max(300).default(""),
-  reply: z.string().max(6000).optional().default("")
-});
+/** Text kürzen statt ablehnen: Ein zu langer Satz soll nie eine ganze Mail verwerfen. */
+const text = (max: number) => z.preprocess((v) => (typeof v === "string" ? v : v == null ? "" : String(v)).slice(0, max), z.string());
+const lower = (v: unknown) => (typeof v === "string" ? v.trim().toLowerCase() : v);
+
+/** Einordnen und (wenn nötig) Antwort entwerfen, in einem Aufruf. Nachsichtig: Unbekanntes wird sinnvoll ergänzt. */
+export const decisionSchema = z
+  .object({
+    decision: z.preprocess(lower, z.enum(["reply", "info", "skip"])).optional(),
+    priority: z.preprocess(lower, z.enum(["high", "normal", "low"])).catch("normal").default("normal"),
+    summary: text(400).default(""),
+    reason: text(300).default(""),
+    reply: text(6000).default("")
+  })
+  // Fehlt die Einordnung (z.B. abgeschnittene Antwort), entscheidet der Inhalt: mit Antworttext = reply, sonst info
+  .transform((d) => ({ ...d, decision: d.decision ?? (d.reply.trim() ? ("reply" as const) : ("info" as const)) }));
 export type Decision = z.infer<typeof decisionSchema>;
 
 const TOOL = {
@@ -74,9 +81,15 @@ Datum: ${input.received}
 Betreff: ${input.subject || "(ohne Betreff)"}
 
 ${input.body.slice(0, 8000) || "(kein Text)"}`;
-  const raw = await callClaudeTool({ system, user, tool: TOOL, maxTokens: 2000, timeoutMs: 90_000, model });
+  // Genug Platz für einen ausführlichen Entwurf, damit die Antwort nicht mitten im Text abbricht
+  const raw = await callClaudeTool({ system, user, tool: TOOL, maxTokens: 4000, timeoutMs: 90_000, model });
   const parsed = decisionSchema.safeParse(raw);
-  if (!parsed.success) throw new Error("Antwort des Assistenten nicht lesbar");
+  if (!parsed.success) {
+    // Genau protokollieren, was nicht passte (ohne Mailinhalt)
+    const shape = raw && typeof raw === "object" ? Object.fromEntries(Object.entries(raw).map(([k, v]) => [k, typeof v === "string" ? `string(${v.length})` : typeof v])) : typeof raw;
+    console.error("Assistent: Antwort nicht lesbar", JSON.stringify({ issues: parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`), shape }));
+    throw new Error("Antwort des Assistenten nicht lesbar");
+  }
   if (parsed.data.decision === "reply" && !parsed.data.reply.trim()) return { ...parsed.data, decision: "info" };
   return parsed.data;
 }
