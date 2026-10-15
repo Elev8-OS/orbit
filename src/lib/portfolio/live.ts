@@ -186,7 +186,19 @@ export type RawIssue = { id: string; key: string; date: string; text: string; so
 export async function fetchHostbuddy(): Promise<RawIssue[]> {
   const url = process.env.HOSTBUDDY_MCP_URL || "https://api.hostbuddy.ai/mcp";
   const tool = process.env.HOSTBUDDY_TOOL || "listActionItems";
-  const r = (await mcpCallTool(url, process.env.HOSTBUDDY_API_KEY ?? "", tool, { limit: 500 }, 120_000)) as Record<string, unknown>;
+  // Werkzeugname je nach HostBuddy-Version: zuerst der eingestellte, dann die snake_case-Variante
+  let r: Record<string, unknown> | null = null;
+  let lastErr: unknown = null;
+  for (const t of [...new Set([tool, "listActionItems", "list_action_items"])]) {
+    try {
+      r = (await mcpCallTool(url, process.env.HOSTBUDDY_API_KEY ?? "", t, { limit: 500 }, 120_000)) as Record<string, unknown>;
+      break;
+    } catch (err) {
+      lastErr = err;
+      if (!/tool|not found|unknown/i.test(String((err as Error)?.message ?? err))) throw err;
+    }
+  }
+  if (!r) throw lastErr ?? new Error("HostBuddy: keine Antwort");
   const list = (Array.isArray(r) ? r : (r?.data ?? r?.items ?? r?.action_items ?? [])) as Record<string, unknown>[];
   const out: RawIssue[] = [];
   for (const a of list) {
