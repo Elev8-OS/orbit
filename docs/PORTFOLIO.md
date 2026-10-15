@@ -20,15 +20,20 @@ Rollen in Entra anlegen und zuweisen. Überschreibbar mit `PORTFOLIO_ROLES` / `P
 |---|---|---|
 | Elev8 Suite MCP | `ELEV8_MCP_URL` (Standard `https://mcp.elev8-suite.com`), `ELEV8_MCP_TOKEN` | Reservierungen (Tag `Swiss`, Anreise 2024-10 bis 2027-12) und Kanal-Kennzahlen Aug/Sep 2026 (Kommissionssätze) |
 | MyDataValue über `mydatavalue-mcp` | `MDV_MCP_URL`, `MDV_MCP_TOKEN` (= `MCP_SERVICE_TOKEN` dort) | aktuelle Booking-Bewertungen |
-| Claude | `ANTHROPIC_API_KEY` | Neubeurteilung |
+| AirROI | `AIRROI_API_KEY` (gleicher Key wie im Dienst airroi-mcp) | Marktkennzahlen ganze Wohnungen der 6 Vergleichsorte, RevPAR-Verlauf Schaffhausen 24 Monate |
+| PriceLabs Customer API | `PRICELABS_API_KEY` (PriceLabs → Account Settings → API Details) | RevPAR pro Wohnung vs. Markt (90 Tage), Monatswerte des Portfolios (jeden Monat gespeichert in `pricelabs_monat`) |
+| HostBuddy MCP | `HOSTBUDDY_API_KEY`, optional `HOSTBUDDY_MCP_URL` (Standard `https://api.hostbuddy.ai/mcp`), `HOSTBUDDY_TOOL` (Standard `listActionItems`) | Action Items aus der Gästekommunikation |
+| Elev8-Kalendernotizen | – (aus den Reservierungen) | Direkt-Einträge ohne Betrag, deren Gastname eine Notiz ist (z. B. „Ozongerät“) |
+| Claude | `ANTHROPIC_API_KEY` | Neubeurteilung; Einordnung neuer Vorfälle (Kategorie, deutscher Kurztext), gespeichert in `vorfall_klass` |
 
 Optional: `PORTFOLIO_CACHE_MINUTES` (Standard 60), `PORTFOLIO_LISTING_TAG` (Standard `Swiss`), `PORTFOLIO_RES_FROM` / `PORTFOLIO_RES_TO`.
 
 - Live-Daten werden in `portfolio_cache` zwischengespeichert. „Daten neu laden“ im Modul holt sie sofort neu.
 - MyDataValue nie direkt mit einem eigenen Refresh-Token anbinden: der Token rotiert, doppelte Nutzung sperrt die Integration.
 - Gästenamen und Reservierungs-IDs werden nicht gespeichert.
-- Stammdaten (Empfehlungen, Märkte, Vorfälle, PriceLabs-Vergleich) liegen in `src/lib/portfolio/data/*.json` (Stand 15.10.2026).
-  Neubeurteilungen aus dem Modul überschreiben Empfehlung, Fazit, Ursachen und Massnahmen (`portfolio_docs`, collection `neubeurteilung`).
+- Ist eine Quelle nicht eingerichtet, gilt der feste Stand aus `src/lib/portfolio/data/*.json` (15.10.2026). Vorfälle: Bewertungen bleiben aus dem festen Stand, HostBuddy und Kalendernotizen kommen live (letzte 12 Monate, nur von Claude als relevant eingestufte Einträge).
+- Wohnungen werden über `elev8_names` und den Wohnungsnamen zugeordnet (`matchProperty` in `src/lib/portfolio/live.ts`). Listings ohne Treffer (z. B. Bali) werden ignoriert.
+- Neubeurteilungen aus dem Modul überschreiben Empfehlung, Fazit, Ursachen und Massnahmen (`portfolio_docs`, collection `neubeurteilung`).
 
 ## Aufbau
 
