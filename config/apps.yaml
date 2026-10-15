@@ -216,3 +216,21 @@ apps:
     roles: [App.Assistent, Orbit.Staff]
     requestableBy: [Orbit.Staff]
     embed: true
+
+  # Portfolio Monitoring Schweiz – Claude-Dashboard (claude.ai) für Elevate Schweiz: Ranking, Netto pro Wohnung
+  # und Monat, Kosten pro Wohnung, Exit-Simulator, Break-even, Prognose, PDF/Excel-Export.
+  # Öffnet im neuen Tab (embed: false): claude.ai lässt sich nicht in Orbit einbetten und prüft den Orbit-Pass nicht.
+  # Zugriff steuert claude.ai selbst: Das Dashboard muss für die Person über „Share“ freigegeben sein, und sie braucht
+  # einen Claude-Zugang mit verbundenem Elev8 Suite OX und MyDataValue, damit die Live-Daten laden.
+  - id: portfolio-ch
+    name: { de: Portfolio Monitoring Schweiz, en: Portfolio monitoring Switzerland }
+    description:
+      de: Wirtschaftlichkeit, Empfehlungen und Kosten aller Schweizer Wohnungen – mit Exit-Simulator, Break-even und Prognose.
+      en: Profitability, recommendations and costs of all Swiss apartments – with exit simulator, break-even and forecast.
+    url: https://claude.ai/artifact/Eo82BKrEydE31nRQ7m5Gyo
+    icon: Building2
+    category: reporting
+    roles: [App.PortfolioCH]
+    requestableBy: [Orbit.Staff]
+    openIn: newTab
+    embed: false
