@@ -14,7 +14,7 @@ import {
   fetchHostbuddy,
   fetchPricelabs,
   hostbuddyConfigured,
-  notesFromReservations,
+  notesFromFeedback,
   pricelabsConfigured,
   pricelabsMonths,
   type RawIssue
@@ -57,10 +57,18 @@ async function elev8(tool: string, args: Record<string, unknown>) {
 /** Reservierungen (ohne Gästenamen und Reservierungs-IDs). */
 async function fetchReservations() {
   const rows = rowsOf(await elev8("get_reservations_by_period_by_tag", { date_field: "check_in", from_date: RES_FROM(), to_date: RES_TO(), listing_tag: TAG() }));
-  // Kalendernotizen (Direkt-Blocker ohne Betrag) separat ablegen; Gastnamen echter Buchungen werden nicht gespeichert
-  const notes = notesFromReservations(rows);
-  await sql`INSERT INTO portfolio_cache (source, payload, fetched_at, error) VALUES ('elev8_notes', ${sql.json(notes as never)}, now(), NULL)
-    ON CONFLICT (source) DO UPDATE SET payload = EXCLUDED.payload, fetched_at = now(), error = NULL`;
+  // Kalendernotizen aus dem Gäste-Feedback (enthält auch Blocker) separat ablegen; Gastnamen echter Buchungen werden nicht gespeichert
+  try {
+    const today = new Date();
+    const from = new Date(today.getTime() - 365 * 864e5).toISOString().slice(0, 10);
+    const feedback = rowsOf(await elev8("get_guest_feedback", { from_date: from, to_date: today.toISOString().slice(0, 10) }));
+    const notes = notesFromFeedback(feedback, rows);
+    console.log(`[portfolio] elev8: ${feedback.length} Feedback-Zeilen, ${notes.length} Kalendernotizen`);
+    await sql`INSERT INTO portfolio_cache (source, payload, fetched_at, error) VALUES ('elev8_notes', ${sql.json(notes as never)}, now(), NULL)
+      ON CONFLICT (source) DO UPDATE SET payload = EXCLUDED.payload, fetched_at = now(), error = NULL`;
+  } catch (err) {
+    console.error("[portfolio] elev8_notes:", String((err as Error)?.message ?? err).slice(0, 300));
+  }
   return rows.map((r) => {
     const o: Record<string, unknown> = {};
     for (const k of KEEP) o[k] = ["status", "nights", "number_of_guests", "number_of_adults", "number_of_childrens", "total_amount", "rating"].includes(k) ? num(r[k]) : (r[k] ?? null);
@@ -205,10 +213,9 @@ export async function loadDatasets(force = false) {
     return o ? { ...p, recommendation: o.recommendation ?? p.recommendation, summary: o.summary ?? p.summary, causes: o.causes ?? p.causes, actions: o.actions ?? p.actions, reassessed_at: o.at ?? null } : p;
   });
   // Vorfälle: Bewertungen aus dem festen Stand behalten, HostBuddy und Kalendernotizen live ersetzen
+  // Eine Quelle wird nur ersetzt, wenn sie live tatsächlich Einträge liefert
   const live = Array.isArray(datasets.issues_live) ? (datasets.issues_live as { source: string }[]) : null;
-  const liveSources = new Set<string>();
-  if (live && elev8Configured()) liveSources.add("Elev8 Kalendernotiz");
-  if (live && hostbuddyConfigured()) liveSources.add("HostBuddy");
+  const liveSources = new Set<string>((live ?? []).map((i) => i.source));
   datasets.issues = [...(issues as { source: string }[]).filter((i) => !liveSources.has(i.source)), ...(live ?? [])];
   datasets.markets = mk;
   datasets.market_trend_sh = Array.isArray(datasets.airroi_trend_sh) && (datasets.airroi_trend_sh as unknown[]).length ? datasets.airroi_trend_sh : marketTrend;

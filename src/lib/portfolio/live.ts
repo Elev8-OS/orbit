@@ -44,7 +44,7 @@ export function matchProperty(name: string | null | undefined): string | null {
     }
   }
   const cands = PROPS.map((p) => ({ key: p.key, label: norm(p.name.split(" (")[0]) })).sort((a, b) => b.label.length - a.label.length);
-  if (n.includes(" suites hasenberg ")) return "suites_hasenberg";
+  if (n.includes(" suites hasenberg ") || n.includes(" hasenberg bb ")) return "suites_hasenberg";
   if (n.includes(" hasenberg suite ")) return "hasenberg_suite";
   for (const c of cands) if (c.label && n.includes(` ${c.label} `)) return c.key;
   return null;
@@ -183,46 +183,82 @@ export async function pricelabsMonths(staticRows: { month: string }[]) {
 
 export type RawIssue = { id: string; key: string; date: string; text: string; source: "HostBuddy" | "Elev8 Kalendernotiz"; hint?: string };
 
-export async function fetchHostbuddy(): Promise<RawIssue[]> {
+/** Ruft ein HostBuddy-Werkzeug auf; probiert bei unbekanntem Namen die snake_case-Variante. */
+async function hostbuddyTool(names: string[], args: Record<string, unknown>): Promise<Record<string, unknown>[]> {
   const url = process.env.HOSTBUDDY_MCP_URL || "https://api.hostbuddy.ai/mcp";
-  const tool = process.env.HOSTBUDDY_TOOL || "listActionItems";
-  // Werkzeugname je nach HostBuddy-Version: zuerst der eingestellte, dann die snake_case-Variante
-  let r: Record<string, unknown> | null = null;
   let lastErr: unknown = null;
-  for (const t of [...new Set([tool, "listActionItems", "list_action_items"])]) {
+  for (const t of [...new Set(names)]) {
     try {
-      r = (await mcpCallTool(url, process.env.HOSTBUDDY_API_KEY ?? "", t, { limit: 500 }, 120_000)) as Record<string, unknown>;
-      break;
+      const r = (await mcpCallTool(url, process.env.HOSTBUDDY_API_KEY ?? "", t, args, 120_000)) as unknown;
+      if (typeof r === "string") throw new Error(`HostBuddy ${t}: ${r.slice(0, 200)}`);
+      const o = r as Record<string, unknown>;
+      return (Array.isArray(r) ? r : (o?.data ?? o?.items ?? o?.action_items ?? o?.properties ?? [])) as Record<string, unknown>[];
     } catch (err) {
       lastErr = err;
       if (!/tool|not found|unknown/i.test(String((err as Error)?.message ?? err))) throw err;
     }
   }
-  if (!r) throw lastErr ?? new Error("HostBuddy: keine Antwort");
-  const list = (Array.isArray(r) ? r : (r?.data ?? r?.items ?? r?.action_items ?? [])) as Record<string, unknown>[];
+  throw lastErr ?? new Error("HostBuddy: keine Antwort");
+}
+
+/** Reine Statusmeldungen ohne Inhalt für die Ursachenanalyse */
+const HB_SKIP = new Set(["CHECK IN DETECTED", "CHECK OUT DETECTED"]);
+
+/** Action Items aller Schweizer Wohnungen: pro Wohnung abgefragt (je bis 200), damit die Historie vollständig ist. */
+export async function fetchHostbuddy(): Promise<RawIssue[]> {
+  const itemsTool = [process.env.HOSTBUDDY_TOOL || "listActionItems", "listActionItems", "list_action_items"];
+  let names: string[] = [];
+  try {
+    names = (await hostbuddyTool(["listProperties", "list_properties"], {}))
+      .map((p) => String(p.property_name ?? ""))
+      .filter((n) => n && matchProperty(n));
+  } catch (err) {
+    console.warn("[portfolio] hostbuddy: Wohnungsliste nicht lesbar, nehme die neuesten Einträge:", String((err as Error)?.message ?? err).slice(0, 200));
+  }
+  const all: Record<string, unknown>[] = [];
+  if (names.length) {
+    for (const name of names) all.push(...(await hostbuddyTool(itemsTool, { limit: 200, property_name: name })));
+  } else {
+    all.push(...(await hostbuddyTool(itemsTool, { limit: 200 })));
+  }
+  const seen = new Set<string>();
   const out: RawIssue[] = [];
-  for (const a of list) {
+  for (const a of all) {
     const key = matchProperty(String(a.property_name ?? a.listing_name ?? ""));
     const text = String(a.item ?? a.description ?? a.title ?? "").trim();
     const date = String(a.created_at_utc ?? a.created_at ?? "").slice(0, 10);
-    if (!key || !text || !date) continue;
-    out.push({ id: "hb_" + String(a.action_item_id ?? a.id ?? `${key}_${date}_${text.slice(0, 20)}`), key, date, text: text.slice(0, 400), source: "HostBuddy", hint: String(a.category ?? "") });
+    const cat = String(a.category ?? "");
+    if (!key || !text || !date || HB_SKIP.has(cat.toUpperCase())) continue;
+    const id = "hb_" + String(a.action_item_id ?? a.id ?? `${key}_${date}_${text.slice(0, 20)}`);
+    if (seen.has(id)) continue;
+    seen.add(id);
+    out.push({ id, key, date, text: text.slice(0, 400), source: "HostBuddy", hint: cat });
   }
+  console.log(`[portfolio] hostbuddy: ${names.length} Schweizer Wohnungen, ${all.length} Einträge gelesen, ${out.length} für die Analyse`);
   return out;
 }
 
-/** Kalendernotizen: Direkt-Einträge ohne Betrag, bei denen Elev8 den Notiztext im Gastnamen führt. */
-export function notesFromReservations(rows: Record<string, unknown>[]): RawIssue[] {
+const resKey = (listing: unknown, checkIn: unknown, name: unknown) => `${norm(String(listing ?? ""))}|${String(checkIn ?? "").slice(0, 10)}|${norm(String(name ?? ""))}`;
+
+/**
+ * Kalendernotizen aus dem Elev8-Gäste-Feedback: Direkt-Einträge (Blocker), bei denen Elev8 die Notiz im Gastnamen führt.
+ * Echte Direktbuchungen stehen auch in den Reservierungen und werden über Wohnung, Anreise und Namen ausgeschlossen.
+ */
+export function notesFromFeedback(feedback: Record<string, unknown>[], reservations: Record<string, unknown>[]): RawIssue[] {
+  const real = new Set(reservations.map((r) => resKey(r.listing_name, r.check_in_date, r.guest_name)));
   const out: RawIssue[] = [];
-  for (const r of rows) {
+  const seen = new Set<string>();
+  for (const r of feedback) {
     if (String(r.channel ?? "") !== "DIRECT") continue;
-    const amt = num(r.total_amount);
-    if (amt !== null && amt > 0) continue;
     const text = String(r.guest_name ?? "").trim();
     const key = matchProperty(String(r.listing_name ?? ""));
     const date = String(r.check_in_date ?? "").slice(0, 10);
     if (!text || !key || !date || text.length < 4) continue;
-    out.push({ id: `kn_${key}_${date}_${norm(text).slice(0, 40).replace(/ /g, "_")}`, key, date, text: text.slice(0, 300), source: "Elev8 Kalendernotiz" });
+    if (real.has(resKey(r.listing_name, r.check_in_date, r.guest_name))) continue;
+    const id = `kn_${key}_${date}_${norm(text).slice(0, 40).replace(/ /g, "_")}`;
+    if (seen.has(id)) continue;
+    seen.add(id);
+    out.push({ id, key, date, text: text.slice(0, 300), source: "Elev8 Kalendernotiz" });
   }
   return out;
 }
@@ -241,7 +277,7 @@ const CLASS_TOOL: ToolDef = {
           type: "object",
           properties: {
             id: { type: "string" },
-            relevant: { type: "boolean", description: "true nur bei einem echten Problem in der Wohnung oder im Ablauf (Zugang, Reinigung, Defekt …) oder einer Geschäftschance (z. B. Anfrage Langzeitmiete). false bei Routine: Check-in-Zeit, Wegbeschreibung, Gepäck, Rechnung, normale Reinigung, Stornierung, Eigentümernutzung." },
+            relevant: { type: "boolean", description: "true nur bei einem echten Problem in der Wohnung oder im Ablauf (Zugang, Reinigung, Defekt …) oder einer Geschäftschance (z. B. Anfrage Langzeitmiete). false bei Routine: Check-in-Zeit, Wegbeschreibung, Gepäck, Rechnung, normale Reinigung, Stornierung, Eigentümernutzung. Kalendernotizen, die nur aus einem Personennamen oder Wörtern wie „block“ bestehen, sind false." },
             category: { type: "string", enum: [...CATS] },
             text: { type: "string", description: "Kurz auf Deutsch (Schweiz, „ss“), höchstens 90 Zeichen, ohne Gastnamen." }
           },
@@ -282,6 +318,8 @@ export async function classifyIssues(raw: RawIssue[]) {
       }
     }
   }
+  const relevant = raw.filter((r) => known.get(r.id)?.relevant).length;
+  console.log(`[portfolio] Vorfälle: ${raw.length} gelesen (${raw.filter((r) => r.source === "HostBuddy").length} HostBuddy, ${raw.filter((r) => r.source === "Elev8 Kalendernotiz").length} Kalendernotizen), ${fresh.length} neu eingeordnet, ${relevant} relevant`);
   return raw
     .map((r) => ({ r, k: known.get(r.id) }))
     .filter(({ k }) => k && k.relevant)
