@@ -1,0 +1,32 @@
+/* Design-Variablen für das Portfolio-Modul (Elevate Schweiz: Tan #cca67d, Schwarz #0e0e0e, Beige).
+   Hell als Standard, Dunkel nach Orbit-Einstellung (data-theme) bzw. Systemeinstellung. */
+#dash-root {
+  --font-anthropic-sans: Lato, Inter, "Helvetica Neue", Arial, sans-serif;
+  --font-anthropic-serif: Lato, Inter, "Helvetica Neue", Arial, sans-serif;
+  --cds-font-size-caption: 12px; --cds-font-size-body: 14px; --cds-font-size-heading: 17px; --cds-font-size-title: 26px; --cds-font-weight-medium: 600;
+  --cds-gap-xs: 4px; --cds-gap-sm: 8px; --cds-gap-md: 14px; --cds-gap-lg: 24px;
+  --cds-pad-xs: 4px; --cds-pad-sm: 8px; --cds-pad-md: 12px; --cds-pad-lg: 16px;
+  --cds-radius: 10px; --cds-dur-slow: 320ms; --cds-ease-out: cubic-bezier(.2,.7,.2,1);
+  --color-bg: #ffffff; --color-panel: #faf7f2; --color-fg: #0e0e0e; --color-fg-muted: #6b6560; --color-border-line: #e6dfd4;
+  --color-ok: #2f7a4f; --color-bad: #b4372f; --color-warn: #b7791f;
+  --cds-chart-muted: #cfc6b8; --cds-chart-grid: #eee8df; --cds-chart-axis: #b9b0a3; --cds-chart-reference: #8a7a66; --cds-chart-status-critical: #c2453c;
+  --cds-surface-popover: #ffffff; --cds-shadow-popover: 0 8px 24px rgba(14,14,14,.14); --cds-border: #e6dfd4; --cds-text-secondary: #6b6560;
+  color: var(--color-fg); background: var(--color-bg); font-family: var(--font-anthropic-sans); font-size: var(--cds-font-size-body);
+  padding: 20px 24px 40px; min-height: 100vh; box-sizing: border-box;
+}
+#dash-root .ev { --ev-beige: #f7f3ee; }
+:root[data-theme="dark"] #dash-root {
+  --color-bg: #121110; --color-panel: #1c1a18; --color-fg: #f2ede6; --color-fg-muted: #a59d92; --color-border-line: #33302c;
+  --color-ok: #5fb383; --color-bad: #e5675d; --color-warn: #e0a64a;
+  --cds-chart-muted: #4a453f; --cds-chart-grid: #2a2724; --cds-chart-axis: #5a544d; --cds-chart-reference: #b5a58f; --cds-chart-status-critical: #e5675d;
+  --cds-surface-popover: #24211e; --cds-shadow-popover: 0 8px 24px rgba(0,0,0,.5); --cds-border: #3a3632; --cds-text-secondary: #a59d92;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) #dash-root {
+    --color-bg: #121110; --color-panel: #1c1a18; --color-fg: #f2ede6; --color-fg-muted: #a59d92; --color-border-line: #33302c;
+    --color-ok: #5fb383; --color-bad: #e5675d; --color-warn: #e0a64a;
+    --cds-chart-muted: #4a453f; --cds-chart-grid: #2a2724; --cds-chart-axis: #5a544d; --cds-chart-reference: #b5a58f; --cds-chart-status-critical: #e5675d;
+    --cds-surface-popover: #24211e; --cds-shadow-popover: 0 8px 24px rgba(0,0,0,.5); --cds-border: #3a3632; --cds-text-secondary: #a59d92;
+  }
+}
+#dash-root .p-loading { color: var(--color-fg-muted); padding: 40px 0; }

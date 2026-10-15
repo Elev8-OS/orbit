@@ -216,3 +216,18 @@ apps:
     roles: [App.Assistent, Orbit.Staff]
     requestableBy: [Orbit.Staff]
     embed: true
+
+  # Portfolio Monitoring Schweiz – direkt in Orbit gebaut (/portfolio). Wirtschaftlichkeit, Empfehlungen, Kosten pro Wohnung,
+  # Exit-Simulator, Break-even und Prognose für Elevate Schweiz. Daten serverseitig aus Elev8 (ELEV8_MCP_*) und
+  # MyDataValue (über mydatavalue-mcp, MDV_MCP_*). Rollen: App.PortfolioCH (ansehen), App.PortfolioCH.Edit (pflegen). Siehe docs/PORTFOLIO.md.
+  - id: portfolio-ch
+    name: { de: Portfolio Monitoring Schweiz, en: Portfolio monitoring Switzerland }
+    description:
+      de: Wirtschaftlichkeit, Empfehlungen und Kosten aller Schweizer Wohnungen – mit Exit-Simulator, Break-even und Prognose.
+      en: Profitability, recommendations and costs of all Swiss apartments – with exit simulator, break-even and forecast.
+    url: https://myorbit.elev8-suite.com/portfolio
+    icon: Building2
+    category: reporting
+    roles: [App.PortfolioCH, App.PortfolioCH.Edit]
+    requestableBy: [Orbit.Staff]
+    embed: true
