@@ -1,5 +1,6 @@
 import { sql } from "@/lib/db";
 import { mcpCallTool } from "@/lib/portfolio/mcp";
+import { mdvConnected, mdvRunSql } from "@/lib/portfolio/mdvOauth";
 import properties from "@/lib/portfolio/data/properties.json";
 import issues from "@/lib/portfolio/data/issues.json";
 import markets from "@/lib/portfolio/data/markets.json";
@@ -23,7 +24,8 @@ import {
  * Datenquellen des Portfolio-Moduls. Live-Daten werden serverseitig mit den Zugängen aus Railway geholt
  * und in portfolio_cache zwischengespeichert (Standard 60 Minuten, PORTFOLIO_CACHE_MINUTES):
  * - Elev8 Suite (MCP): ELEV8_MCP_URL, ELEV8_MCP_TOKEN – Reservierungen und Kanal-Kennzahlen
- * - MyDataValue über den Dienst mydatavalue-mcp: MDV_MCP_URL, MDV_MCP_TOKEN – Booking-Bewertungen
+ * - MyDataValue: bevorzugt Orbits eigene Anmeldung beim offiziellen Server (mdvOauth.ts, „myDataValue verbinden“),
+ *   sonst der Dienst mydatavalue-mcp (MDV_MCP_URL, MDV_MCP_TOKEN) – Booking-Bewertungen
  * - AirROI, PriceLabs, HostBuddy und Elev8-Kalendernotizen: siehe live.ts
  * Fehlt eine Quelle, gilt der feste Stand aus data/*.json (15.10.2026). Neubeurteilungen aus portfolio_docs überschreiben die Empfehlungen.
  */
@@ -34,7 +36,7 @@ const RES_TO = () => process.env.PORTFOLIO_RES_TO || "2027-12-31";
 const TAG = () => process.env.PORTFOLIO_LISTING_TAG || "Swiss";
 
 export const elev8Configured = () => Boolean(process.env.ELEV8_MCP_TOKEN);
-export const mdvConfigured = () => Boolean(process.env.MDV_MCP_URL && process.env.MDV_MCP_TOKEN);
+export const mdvProxyConfigured = () => Boolean(process.env.MDV_MCP_URL && process.env.MDV_MCP_TOKEN);
 
 const KEEP = ["listing_name", "channel", "status", "check_in_date", "check_out_date", "booked_at", "nights", "number_of_guests", "number_of_adults", "number_of_childrens", "currency", "total_amount", "rating"] as const;
 const num = (v: unknown) => (v === null || v === undefined || v === "" ? null : Number(v));
@@ -70,8 +72,36 @@ async function fetchChannels(year: number, month: number) {
   return rowsOf(await elev8("get_channel_performance", { year, month }));
 }
 
-/** Booking-Bewertungen über mydatavalue-mcp (/service/api/v1/booking/reviews/). Feldnamen werden tolerant gelesen. */
+/** Booking-IDs der Schweizer Wohnungen (aus properties.json). */
+const BOOKING_IDS = () =>
+  (properties as { booking_property_id?: unknown }[])
+    .map((p) => Number(p.booking_property_id))
+    .filter((n) => Number.isInteger(n) && n > 0);
+
+/** Booking-Bewertungen: zuerst über Orbits eigene myDataValue-Anmeldung (Verlauf wie im Claude-Dashboard), sonst über den Proxy. */
 async function fetchReviews() {
+  if (await mdvConnected()) {
+    const ids = BOOKING_IDS();
+    if (!ids.length) throw new Error("Keine Booking-IDs in properties.json");
+    const r = await mdvRunSql(
+      `SELECT public_property_id AS pid, (extract(year FROM observed_on)*10000 + extract(month FROM observed_on)*100 + extract(day FROM observed_on))::int AS day, review_score, recency_weighted_review_score AS recent_score, review_count, is_latest FROM booking_review_score WHERE public_property_id IN (${ids.join(",")}) ORDER BY 1,2`,
+      "Orbit Portfolio-Modul Schweiz: Verlauf der Booking.com-Bewertungen der Schweizer Wohnungen für Ranking und Bewertungsanalyse."
+    );
+    return r.rows.map((x) => ({
+      pid: num(x.pid),
+      day: num(x.day),
+      review_score: num(x.review_score),
+      recent_score: num(x.recent_score),
+      review_count: num(x.review_count),
+      is_latest: x.is_latest === true || x.is_latest === "true"
+    }));
+  }
+  if (!mdvProxyConfigured()) throw new Error("myDataValue nicht verbunden – im Modul „myDataValue verbinden“ klicken");
+  return fetchReviewsProxy();
+}
+
+/** Rückfall: Booking-Bewertungen über mydatavalue-mcp (/service/api/v1/booking/reviews/). Feldnamen werden tolerant gelesen. */
+async function fetchReviewsProxy() {
   const base = (process.env.MDV_MCP_URL ?? "").replace(/\/+$/, "").replace(/\/mcp$/, "");
   const res = await fetch(`${base}/service/api/v1/booking/reviews/?limit=500`, {
     headers: { Authorization: `Bearer ${process.env.MDV_MCP_TOKEN}` },
@@ -97,7 +127,7 @@ const SOURCES: Source[] = [
   { id: "reservations", enabled: elev8Configured, fetch: fetchReservations, missing: "ELEV8_MCP_TOKEN fehlt" },
   { id: "channels_2026_08", enabled: elev8Configured, fetch: () => fetchChannels(2026, 8), missing: "ELEV8_MCP_TOKEN fehlt" },
   { id: "channels_2026_09", enabled: elev8Configured, fetch: () => fetchChannels(2026, 9), missing: "ELEV8_MCP_TOKEN fehlt" },
-  { id: "booking_reviews", enabled: mdvConfigured, fetch: fetchReviews, missing: "MDV_MCP_URL / MDV_MCP_TOKEN fehlen" },
+  { id: "booking_reviews", enabled: () => true, fetch: fetchReviews, missing: "myDataValue nicht verbunden" },
   { id: "airroi_markets", enabled: airroiConfigured, fetch: fetchAirroiMarkets, missing: "AIRROI_API_KEY fehlt" },
   { id: "airroi_trend_sh", enabled: airroiConfigured, fetch: fetchAirroiTrendSh, missing: "AIRROI_API_KEY fehlt" },
   { id: "pricelabs", enabled: pricelabsConfigured, fetch: fetchPricelabs, missing: "PRICELABS_API_KEY fehlt" },
