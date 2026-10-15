@@ -4,14 +4,28 @@ import properties from "@/lib/portfolio/data/properties.json";
 import issues from "@/lib/portfolio/data/issues.json";
 import markets from "@/lib/portfolio/data/markets.json";
 import marketTrend from "@/lib/portfolio/data/market_trend_sh.json";
-import pricelabsMonths from "@/lib/portfolio/data/pricelabs_months.json";
+import pricelabsMonthsStatic from "@/lib/portfolio/data/pricelabs_months.json";
+import {
+  airroiConfigured,
+  classifyIssues,
+  fetchAirroiMarkets,
+  fetchAirroiTrendSh,
+  fetchHostbuddy,
+  fetchPricelabs,
+  hostbuddyConfigured,
+  notesFromReservations,
+  pricelabsConfigured,
+  pricelabsMonths,
+  type RawIssue
+} from "@/lib/portfolio/live";
 
 /**
  * Datenquellen des Portfolio-Moduls. Live-Daten werden serverseitig mit den Zugängen aus Railway geholt
  * und in portfolio_cache zwischengespeichert (Standard 60 Minuten, PORTFOLIO_CACHE_MINUTES):
  * - Elev8 Suite (MCP): ELEV8_MCP_URL, ELEV8_MCP_TOKEN – Reservierungen und Kanal-Kennzahlen
  * - MyDataValue über den Dienst mydatavalue-mcp: MDV_MCP_URL, MDV_MCP_TOKEN – Booking-Bewertungen
- * Stammdaten (Empfehlungen, Märkte, Vorfälle) liegen in data/*.json; Neubeurteilungen aus portfolio_docs überschreiben sie.
+ * - AirROI, PriceLabs, HostBuddy und Elev8-Kalendernotizen: siehe live.ts
+ * Fehlt eine Quelle, gilt der feste Stand aus data/*.json (15.10.2026). Neubeurteilungen aus portfolio_docs überschreiben die Empfehlungen.
  */
 
 const CACHE_MINUTES = () => Number(process.env.PORTFOLIO_CACHE_MINUTES || 60);
@@ -41,6 +55,10 @@ async function elev8(tool: string, args: Record<string, unknown>) {
 /** Reservierungen (ohne Gästenamen und Reservierungs-IDs). */
 async function fetchReservations() {
   const rows = rowsOf(await elev8("get_reservations_by_period_by_tag", { date_field: "check_in", from_date: RES_FROM(), to_date: RES_TO(), listing_tag: TAG() }));
+  // Kalendernotizen (Direkt-Blocker ohne Betrag) separat ablegen; Gastnamen echter Buchungen werden nicht gespeichert
+  const notes = notesFromReservations(rows);
+  await sql`INSERT INTO portfolio_cache (source, payload, fetched_at, error) VALUES ('elev8_notes', ${sql.json(notes as never)}, now(), NULL)
+    ON CONFLICT (source) DO UPDATE SET payload = EXCLUDED.payload, fetched_at = now(), error = NULL`;
   return rows.map((r) => {
     const o: Record<string, unknown> = {};
     for (const k of KEEP) o[k] = ["status", "nights", "number_of_guests", "number_of_adults", "number_of_childrens", "total_amount", "rating"].includes(k) ? num(r[k]) : (r[k] ?? null);
@@ -79,8 +97,23 @@ const SOURCES: Source[] = [
   { id: "reservations", enabled: elev8Configured, fetch: fetchReservations, missing: "ELEV8_MCP_TOKEN fehlt" },
   { id: "channels_2026_08", enabled: elev8Configured, fetch: () => fetchChannels(2026, 8), missing: "ELEV8_MCP_TOKEN fehlt" },
   { id: "channels_2026_09", enabled: elev8Configured, fetch: () => fetchChannels(2026, 9), missing: "ELEV8_MCP_TOKEN fehlt" },
-  { id: "booking_reviews", enabled: mdvConfigured, fetch: fetchReviews, missing: "MDV_MCP_URL / MDV_MCP_TOKEN fehlen" }
+  { id: "booking_reviews", enabled: mdvConfigured, fetch: fetchReviews, missing: "MDV_MCP_URL / MDV_MCP_TOKEN fehlen" },
+  { id: "airroi_markets", enabled: airroiConfigured, fetch: fetchAirroiMarkets, missing: "AIRROI_API_KEY fehlt" },
+  { id: "airroi_trend_sh", enabled: airroiConfigured, fetch: fetchAirroiTrendSh, missing: "AIRROI_API_KEY fehlt" },
+  { id: "pricelabs", enabled: pricelabsConfigured, fetch: fetchPricelabs, missing: "PRICELABS_API_KEY fehlt" },
+  { id: "hostbuddy", enabled: hostbuddyConfigured, fetch: fetchHostbuddy, missing: "HOSTBUDDY_API_KEY fehlt" },
+  // muss nach reservations und hostbuddy stehen: ordnet neue Vorfälle per Claude ein
+  { id: "issues_live", enabled: () => elev8Configured() || hostbuddyConfigured(), fetch: fetchIssuesLive, missing: "keine Vorfallquelle" }
 ];
+
+/** Vorfälle der letzten 12 Monate aus HostBuddy und Kalendernotizen, eingeordnet und auf Deutsch. */
+async function fetchIssuesLive() {
+  const rows = await sql<{ source: string; payload: unknown }[]>`SELECT source, payload FROM portfolio_cache WHERE source IN ('hostbuddy', 'elev8_notes')`;
+  const from = new Date(Date.now() - 365 * 864e5).toISOString().slice(0, 10);
+  const today = new Date().toISOString().slice(0, 10);
+  const raw = rows.flatMap((r) => (Array.isArray(r.payload) ? (r.payload as RawIssue[]) : [])).filter((r) => r.date >= from && r.date <= today);
+  return classifyIssues(raw);
+}
 
 let refreshing: Promise<void> | null = null;
 
@@ -126,14 +159,31 @@ export async function loadDatasets(force = false) {
   }
   const re = await sql<{ doc_id: string; data: Record<string, string> }[]>`SELECT doc_id, data FROM portfolio_docs WHERE collection = 'neubeurteilung'`;
   const over = new Map(re.map((r) => [r.doc_id, r.data]));
-  datasets.properties = (properties as Record<string, unknown>[]).map((p) => {
+  // Märkte (AirROI live, sonst fester Stand) und PriceLabs-Vergleich pro Wohnung
+  const liveMarkets = Array.isArray(datasets.airroi_markets) && (datasets.airroi_markets as unknown[]).length ? (datasets.airroi_markets as typeof markets) : null;
+  const mk = liveMarkets ?? markets;
+  const byMarket = new Map(mk.map((m) => [m.market, m]));
+  const pl = (datasets.pricelabs as { listings?: { key: string; pl_revpar: number; pl_market_revpar: number }[] } | undefined)?.listings ?? null;
+  const plByKey = new Map((pl ?? []).map((x) => [x.key, x]));
+  datasets.properties = (properties as Record<string, unknown>[]).map((p0) => {
+    let p = { ...p0 };
+    const m = byMarket.get(String(p.market));
+    if (liveMarkets && m) p = { ...p, market_occ: m.occupancy, market_adr: m.adr, market_revpar: m.revpar };
+    const x = plByKey.get(String(p.key));
+    if (pl) p = { ...p, pl_revpar: x?.pl_revpar ?? null, pl_market_revpar: x?.pl_market_revpar ?? null };
     const o = over.get(String(p.key));
     return o ? { ...p, recommendation: o.recommendation ?? p.recommendation, summary: o.summary ?? p.summary, causes: o.causes ?? p.causes, actions: o.actions ?? p.actions, reassessed_at: o.at ?? null } : p;
   });
-  datasets.issues = issues;
-  datasets.markets = markets;
-  datasets.market_trend_sh = marketTrend;
-  datasets.pricelabs_months = pricelabsMonths;
+  // Vorfälle: Bewertungen aus dem festen Stand behalten, HostBuddy und Kalendernotizen live ersetzen
+  const live = Array.isArray(datasets.issues_live) ? (datasets.issues_live as { source: string }[]) : null;
+  const liveSources = new Set<string>();
+  if (live && elev8Configured()) liveSources.add("Elev8 Kalendernotiz");
+  if (live && hostbuddyConfigured()) liveSources.add("HostBuddy");
+  datasets.issues = [...(issues as { source: string }[]).filter((i) => !liveSources.has(i.source)), ...(live ?? [])];
+  datasets.markets = mk;
+  datasets.market_trend_sh = Array.isArray(datasets.airroi_trend_sh) && (datasets.airroi_trend_sh as unknown[]).length ? datasets.airroi_trend_sh : marketTrend;
+  datasets.pricelabs_months = await pricelabsMonths(pricelabsMonthsStatic as { month: string }[]);
+  for (const k of ["airroi_markets", "airroi_trend_sh", "pricelabs", "issues_live"]) delete datasets[k];
   return { datasets, errors, fetchedAt: fetchedAt?.toISOString() ?? null };
 }
 
