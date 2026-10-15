@@ -102,6 +102,22 @@ apps:
     requestableBy: [Orbit.Staff]
     embed: true
 
+  # Partnerportal (orbit.elev8-suite.com, Repo Elev8-onboarding Zweig v4, Railway-Projekt "Orbit") – Verwaltung
+  # der Sales Partner: Personen, Bewerbungen, Budgetanträge, Akademie-Inhalte, Lead Harvester, Ansicht als Partner.
+  # Öffnet als Tab, Anmeldung über den Orbit-Pass (/api/auth/orbit prüft Pass und Rolle).
+  # Partner und Kunden melden sich dort weiterhin selbst an; sie brauchen kein myorbit-Konto.
+  - id: partnerportal
+    name: { de: Partnerportal, en: Partner portal }
+    description:
+      de: Sales Partner und ihre Kunden verwalten – Personen, Bewerbungen, Budgets, Akademie und Lead Harvester.
+      en: Manage sales partners and their customers – people, applications, budgets, academy and lead harvester.
+    url: https://orbit.elev8-suite.com/api/auth/orbit
+    icon: Handshake
+    category: sales
+    roles: [App.PartnerPortal.Admin]
+    requestableBy: [Orbit.Staff]
+    embed: true
+
   # Lead Bot – WhatsApp-Leads mit Claude qualifizieren und zur Demo führen (Repo whatsapp_lead_converter,
   # Railway-Dienst lead-bot). Öffnet als Tab, Anmeldung über den Orbit-Pass.
   - id: lead-bot
@@ -200,4 +216,3 @@ apps:
     roles: [App.Assistent, Orbit.Staff]
     requestableBy: [Orbit.Staff]
     embed: true
- 
