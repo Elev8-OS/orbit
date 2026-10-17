@@ -116,6 +116,30 @@ export function ConfirmForm({
   );
 }
 
+export function CopyCode({ code }: { code: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <div className="me-code">
+      <textarea readOnly value={code} rows={6} aria-label="Code zum Einbetten" onFocus={(e) => e.currentTarget.select()} spellCheck={false} />
+      <button
+        type="button"
+        className="me-btn me-btn-secondary me-full"
+        onClick={async () => {
+          try {
+            await navigator.clipboard.writeText(code);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1800);
+          } catch {
+            /* Feld ist markierbar */
+          }
+        }}
+      >
+        {copied ? "Kopiert" : "Code kopieren"}
+      </button>
+    </div>
+  );
+}
+
 export function CopyLink({ url }: { url: string }) {
   const [copied, setCopied] = useState(false);
   return (
