@@ -81,6 +81,7 @@ export default async function MessePage({ params }: { params: Promise<{ id: stri
         <div><b>{count((l) => l.tier === "hot")}</b><span>Hot (20+ Units)</span></div>
         <div><b>{count((l) => l.tier === "warm")}</b><span>Warm (5–19)</span></div>
         <div><b>{count((l) => Boolean(l.airbnbUrl))}</b><span>mit Airbnb-Link</span></div>
+        <div><b>{count((l) => !l.completed)}</b><span>nicht fertig ausgefüllt</span></div>
         <div><b>{count((l) => l.consentMarketing)}</b><span>Retargeting erlaubt</span></div>
       </div>
 
@@ -263,7 +264,11 @@ export default async function MessePage({ params }: { params: Promise<{ id: stri
                     <td className="me-nowrap">{formatInZone(l.createdAt, event.timeZone)}</td>
                     <td>
                       <span className="me-strong">{l.name}</span>
-                      <div className="me-muted">{l.ticket}{l.winnerAt ? " · Gewinner" : ""}</div>
+                      <div className="me-muted">
+                        {l.ticket}
+                        {l.winnerAt ? " · Gewinner" : ""}
+                        {l.completed ? "" : " · nicht fertig ausgefüllt"}
+                      </div>
                     </td>
                     <td>
                       {l.preferredChannel === "whatsapp" ? (
@@ -275,9 +280,9 @@ export default async function MessePage({ params }: { params: Promise<{ id: stri
                       )}
                       <div className="me-muted">{l.consentMarketing ? "Werbung erlaubt" : "keine Werbung"}</div>
                     </td>
-                    <td>{UNITS[l.units] ?? l.units}</td>
+                    <td>{l.units ? (UNITS[l.units] ?? l.units) : "–"}</td>
                     <td>
-                      <span className={`me-tier me-tier-${l.tier}`}>{l.tier}</span>
+                      <span className={`me-tier me-tier-${l.tier}`}>{l.tier === "open" ? "offen" : l.tier}</span>
                     </td>
                     <td>
                       {l.airbnbUrl ? (

@@ -1,13 +1,14 @@
 import { after } from "next/server";
 import { z } from "zod";
-import { getEventBySlug, insertLead } from "@/lib/messen/store";
+import { getEventBySlug, upsertLead } from "@/lib/messen/store";
 import { syncLeadToGhl } from "@/lib/messen/ghl";
 
 export const dynamic = "force-dynamic";
 
 /**
  * Öffentliches Lead-Formular der Messe-Landingpages (ohne Login, siehe middleware.ts).
- * Idempotent über die Losnummer: Die Seite sendet offline gesammelte Leads später erneut.
+ * Der Lead entsteht nach dem ersten Schritt (Kontakt) und wird mit derselben Losnummer und dem Token
+ * aus dem Browser ergänzt (Units, Airbnb-Link). Idempotent: Offline gesammelte Stände kommen später nach.
  * Zusätzliche erlaubte Herkünfte (z. B. wenn das Formular auf elev8-suite.com eingebettet wird):
  * MESSEN_ALLOWED_ORIGINS, kommagetrennt.
  */
@@ -15,12 +16,14 @@ export const dynamic = "force-dynamic";
 const lead = z.object({
   slug: z.string().regex(/^[a-z0-9-]{2,60}$/),
   ticket: z.string().regex(/^E8-\d{3} \d{3}$/),
+  edit_token: z.string().regex(/^([0-9a-f]{32})?$/).optional().default(""),
+  completed: z.boolean().optional().default(true),
   website: z.string().max(200).optional(), // Honeypot
   name: z.string().trim().min(1).max(120),
   preferred_channel: z.enum(["whatsapp", "email"]),
   whatsapp: z.string().max(20).optional().default(""),
   email: z.string().max(200).optional().default(""),
-  units: z.enum(["1-4", "5-19", "20-49", "50+", "none"]),
+  units: z.enum(["1-4", "5-19", "20-49", "50+", "none", ""]).optional().default(""),
   airbnb_url: z.string().max(300).optional().default(""),
   airbnb_listing_id: z.string().regex(/^\d{0,25}$/).optional().default(""),
   airbnb_host_id: z.string().regex(/^\d{0,25}$/).optional().default(""),
@@ -96,7 +99,7 @@ export async function POST(req: Request) {
 
   const units = UNIT_SCORE[d.units] ?? 0;
   const airbnbUrl = /^https:\/\/([a-z0-9-]+\.)*(airbnb\.[a-z.]+|abnb\.me)\//i.test(d.airbnb_url) ? d.airbnb_url : "";
-  const id = await insertLead({
+  const result = await upsertLead({
     eventId: event.id,
     ticket: d.ticket,
     name: d.name,
@@ -108,16 +111,18 @@ export async function POST(req: Request) {
     airbnbListingId: airbnbUrl ? d.airbnb_listing_id : "",
     airbnbHostId: airbnbUrl ? d.airbnb_host_id : "",
     score: units + (airbnbUrl ? 1 : 0),
-    tier: units >= 3 ? "hot" : units === 2 ? "warm" : "cold",
+    tier: !d.units ? "open" : units >= 3 ? "hot" : units === 2 ? "warm" : "cold",
     consentMarketing: d.consent_marketing,
     source: d.source,
     utm: Object.fromEntries(
       Object.entries({ source: d.utm_source, medium: d.utm_medium, campaign: d.utm_campaign }).filter(([, v]) => v)
     ),
     lang: d.lang,
-    submittedAt
+    completed: d.completed || d.units === "none",
+    submittedAt,
+    editToken: d.edit_token
   });
 
-  if (id) after(() => syncLeadToGhl(id));
-  return Response.json({ ok: true, duplicate: !id }, { headers });
+  if (result) after(() => syncLeadToGhl(result.id));
+  return Response.json({ ok: true, duplicate: !result }, { headers });
 }

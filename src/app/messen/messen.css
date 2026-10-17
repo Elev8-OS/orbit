@@ -82,6 +82,7 @@ a.me-strong:hover { text-decoration: underline; }
 .me-tier { display: inline-block; padding: 0.1rem 0.5rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
 .me-tier-hot { background: var(--yellow); color: #000; }
 .me-tier-warm { background: var(--yellow-soft); color: var(--yellow-ink); }
+.me-tier-open { background: transparent; color: var(--muted); border: 1px dashed var(--line-strong); }
 .me-tier-cold { background: var(--surface-2); color: var(--muted); border: 1px solid var(--line); }
 
 .me-table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 0.75rem; background: var(--surface); }
