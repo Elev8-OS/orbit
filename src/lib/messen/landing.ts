@@ -238,10 +238,17 @@ header.top { display: flex; align-items: center; justify-content: space-between;
 footer { margin-top: .9rem; font-size: .75rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: .25rem 1.25rem; }
 footer a { color: inherit; }
 .noah-foot { font-weight: 600; }
-.noah { margin-top: 1rem; padding-top: .9rem; border-top: 1px solid var(--line); }
-.noah p { margin: 0; font-size: .8125rem; line-height: 1.45; color: var(--muted); }
-.noah .btn { margin-top: .6rem; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: center; gap: 0 .5rem; padding: .75rem 1rem; font-size: 1rem; }
-.noah .btn small { font-weight: 400; opacity: .75; font-size: .875rem; white-space: nowrap; }
+/* Noah: AI Customer Success Manager, bucht den Termin per WhatsApp */
+.noah { margin-top: 1rem; padding: .9rem; border-radius: .9rem; background: var(--bg); border: 1.5px solid var(--text); }
+.noah-head { display: flex; gap: .7rem; align-items: center; }
+.noah-avatar { flex: none; width: 2.6rem; height: 2.6rem; border-radius: 50%; background: var(--yellow); color: #000; display: grid; place-items: center; font-family: var(--display); font-weight: 900; font-size: 1.25rem; position: relative; }
+.noah-avatar::after { content: ""; position: absolute; right: 0; bottom: 0; width: .7rem; height: .7rem; border-radius: 50%; background: #25D366; border: 2px solid var(--bg); }
+.noah-title { margin: 0; font-weight: 700; font-size: 1rem; line-height: 1.2; }
+.noah p.noah-sub { margin: .1rem 0 0; font-size: .8125rem; line-height: 1.35; color: var(--muted); }
+.noah .btn { margin-top: .7rem; display: flex; align-items: center; justify-content: center; gap: .5rem; }
+.noah .btn svg { width: 1.2rem; height: 1.2rem; flex: none; }
+.noah-meta { margin: .4rem 0 0; font-size: .75rem; color: var(--muted); text-align: center; }
+.alt-demo { display: block; text-align: center; margin-top: .6rem; font-size: .8125rem; color: var(--muted); }
 body.done .noah-foot { display: none; }
 
 /* Kiosk: bigger targets, no scrolling hero on tablets */
@@ -293,7 +300,8 @@ body.embed .event-tag { text-align: left; }
   .ticket .stub p { font-size: .875rem; }
   .ticket h3 { font-size: 1.3rem; }
   .ticket .note { font-size: .875rem; }
-  .noah { margin-top: .6rem; padding-top: .6rem; }
+  .noah { margin-top: .6rem; padding: .75rem; }
+  .noah .btn { margin-top: .55rem; }
   .ticket .btn { margin-top: .5rem; }
 }
 /* Sehr kleine Handys (z. B. iPhone SE im Browser) */
@@ -391,11 +399,14 @@ body.embed .event-tag { text-align: left; }
       eName: "Trag deinen Namen ein.", eEmail: "Diese E-Mail-Adresse stimmt nicht. Prüf sie bitte.",
       eWa: "Trag deine Nummer mit Ländervorwahl ein, z. B. +62 812 …", eTerms: "Bestätige die Teilnahmebedingungen, um teilzunehmen.",
       okH: "Danke, {n}. Du bist dabei.", okLbl: "Deine Losnummer", okDraw: "Ziehung {d} · {b}",
-      okNote: "Wir melden uns per {c} mit deiner Bestätigung und ein paar kurzen Fragen.",
+      okNote: "Die Bestätigung kommt per {c}.",
       demo: "Demo-Termin buchen", again: "Nächste Person", reset: "Neuer Start in {s} s",
       drawn: "Gezogen", days: "T", terms: "Teilnahmebedingungen", privacy: "Datenschutz",
-      noahText: "Willst du mehr wissen und wir sind gerade besetzt? Schick Noah, unserem AI Customer Success Manager, eine WhatsApp, gern auch als Sprachnachricht. Er beantwortet dir alles, was du wissen willst.",
-      noahBtn: "WhatsApp an Noah", noahShort: "Fragen? WhatsApp an Noah", noahHello: "Hallo Noah, ich komme von {m}. "
+      noahTitle: "Noah bucht dir deinen Termin",
+      noahText: "Unser AI Customer Success Manager beantwortet deine Fragen sofort, auch per Sprachnachricht.",
+      noahBtn: "WhatsApp an Noah", noahMeta: "WhatsApp +41 58 590 99 71",
+      noahShort: "Fragen? Noah antwortet sofort", altDemo: "oder Termin selbst im Kalender buchen",
+      noahHello: "Hallo Noah, ich war bei {m} am Elev8-Stand.", noahTicket: " Meine Losnummer: {t}.", noahUnits: " Ich verwalte {u} Units.", noahAsk: " Ich möchte einen Termin vereinbaren."
     },
     en: {
       win: "Win", leadSub: "Three quick steps, about 20 seconds.",
@@ -420,11 +431,14 @@ body.embed .event-tag { text-align: left; }
       eName: "Enter your name.", eEmail: "That email address doesn’t look right. Please check it.",
       eWa: "Enter your number with country code, e.g. +62 812 …", eTerms: "Accept the terms to enter.",
       okH: "Thanks, {n}. You’re in.", okLbl: "Your ticket number", okDraw: "Draw {d} · {b}",
-      okNote: "We’ll message you on {c} with your confirmation and a few quick questions.",
+      okNote: "Your confirmation is on its way by {c}.",
       demo: "Book a demo", again: "Next person", reset: "Restarting in {s}s",
       drawn: "Drawn", days: "d", terms: "Terms of participation", privacy: "Privacy",
-      noahText: "Want to know more and we’re busy right now? Send Noah, our AI Customer Success Manager, a WhatsApp, voice messages welcome. He’ll answer anything you want to know.",
-      noahBtn: "WhatsApp Noah", noahShort: "Questions? WhatsApp Noah", noahHello: "Hi Noah, I’m coming from {m}. "
+      noahTitle: "Noah books your meeting",
+      noahText: "Our AI Customer Success Manager answers your questions instantly, voice messages welcome.",
+      noahBtn: "WhatsApp Noah", noahMeta: "WhatsApp +41 58 590 99 71",
+      noahShort: "Questions? Noah answers instantly", altDemo: "or book a slot in the calendar yourself",
+      noahHello: "Hi Noah, I visited the Elev8 booth at {m}.", noahTicket: " My ticket number: {t}.", noahUnits: " I manage {u} units.", noahAsk: " I’d like to book a meeting."
     }
   };
   const L = T[EV.lang] || T.de;
@@ -441,11 +455,21 @@ body.embed .event-tag { text-align: left; }
   $("#prizeDetail").textContent = EV.prize.detail;
   $("#terms").href = EV.termsUrl; $("#privacy").href = EV.privacyUrl;
   /* Noah: WhatsApp an den AI Customer Success Manager, mit vorausgefüllter Begrüssung */
-  const NOAH = "41585909971", NOAH_LABEL = "+41 58 590 99 71";
-  const noahUrl = "https://wa.me/" + NOAH + "?text=" + encodeURIComponent(fmt(L.noahHello, { m: EV.name }));
-  $("#noahFoot").href = noahUrl; $("#noahFoot").textContent = L.noahShort;
-  const noahBlock = () => '<div class="noah"><p>' + esc(L.noahText) + '</p>' +
-    '<a class="btn ghost" href="' + esc(noahUrl) + '" target="_blank" rel="noopener">' + esc(L.noahBtn) + ' <small>' + NOAH_LABEL + '</small></a></div>';
+  // Die vorausgefüllte Nachricht gibt Noah Messe, Losnummer und Units mit, damit er direkt einen Termin vorschlägt
+  const NOAH = "41585909971";
+  const UNITS_TXT = { "1-4": "1–4", "5-19": "5–19", "20-49": "20–49", "50+": "50+" };
+  const noahUrl = (lead) => {
+    let msg = fmt(L.noahHello, { m: EV.name });
+    if (lead && lead.ticket) msg += fmt(L.noahTicket, { t: lead.ticket });
+    if (lead && UNITS_TXT[lead.units]) msg += fmt(L.noahUnits, { u: UNITS_TXT[lead.units] });
+    return "https://wa.me/" + NOAH + "?text=" + encodeURIComponent(msg + L.noahAsk);
+  };
+  const WA_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.8 11.9 11.9 0 0 0 4.6 4c1.7.7 2.4.8 3.2.7.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3Z"/></svg>';
+  $("#noahFoot").href = noahUrl(null); $("#noahFoot").textContent = L.noahShort;
+  const noahBlock = (lead) => '<div class="noah"><div class="noah-head"><span class="noah-avatar" aria-hidden="true">N</span><div>' +
+    '<p class="noah-title">' + esc(L.noahTitle) + '</p><p class="noah-sub">' + esc(L.noahText) + '</p></div></div>' +
+    '<a class="btn yellow" href="' + esc(noahUrl(lead)) + '" target="_blank" rel="noopener">' + WA_ICON + esc(L.noahBtn) + '</a>' +
+    '<p class="noah-meta">' + esc(L.noahMeta) + '</p></div>';
   if (!EV.termsUrl) $("#terms").parentNode.remove();
   if (!EV.privacyUrl) $("#privacy").parentNode.remove();
 
@@ -652,9 +676,9 @@ body.embed .event-tag { text-align: left; }
       '<div class="stub"><p class="lbl">' + L.okLbl + '</p><p class="no">' + esc(A.ticket) + '</p>' +
       '<p>' + esc(fmt(L.okDraw, { d: drawText, b: EV.booth })) + '</p></div>' +
       '<h3>' + fmt(L.okH, { n: first() }) + '</h3><p class="note">' + esc(fmt(L.okNote, { c: chanName })) + '</p>' +
-      (KIOSK ? '<button type="button" class="btn" id="againBtn">' + L.again + '</button><p class="kiosk-reset" id="kr"></p>'
-             : '<a class="btn" href="' + esc(EV.demoUrl) + '" target="_blank" rel="noopener">' + L.demo + '</a>') +
-      noahBlock() +
+      noahBlock(A) +
+      (KIOSK ? '<button type="button" class="btn ghost" id="againBtn">' + L.again + '</button><p class="kiosk-reset" id="kr"></p>'
+             : '<a class="alt-demo" href="' + esc(EV.demoUrl) + '" target="_blank" rel="noopener">' + L.altDemo + '</a>') +
       '</div>';
     if (EMBED) tell("scroll");
     else entry.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
@@ -709,7 +733,7 @@ body.embed .event-tag { text-align: left; }
   /* ---- Gewinnspiel beendet ---- */
   if (!EV.open || (drawDate && drawDate <= Date.now())) {
     entry.innerHTML = '<div class="closed"><h2>' + L.closedH + '</h2><p>' + L.closedP + '</p>' +
-      '<a class="btn" href="' + esc(EV.demoUrl) + '" target="_blank" rel="noopener">' + L.demo + '</a>' + noahBlock() + '</div>';
+      noahBlock(null) + '<a class="alt-demo" href="' + esc(EV.demoUrl) + '" target="_blank" rel="noopener">' + L.altDemo + '</a></div>';
     flush();
     return;
   }
