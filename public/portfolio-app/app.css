@@ -102,3 +102,53 @@
 #dash-root .ev .regsw button:focus-visible{outline:2px solid #cca67d;outline-offset:2px}
 @media (max-width:560px){#dash-root .ev .regsw{display:flex;width:100%;box-sizing:border-box}#dash-root .ev .regsw button{min-width:0}}
 #dash-root .ev[data-region="bali"] .only-ch{display:none}
+
+/* Leere Empfehlungsgruppen und reine Schweiz-Kennzahlen ausblenden */
+#dash-root .ev .lane:not(:has(.pcard)){display:none}
+#dash-root .ev[data-region="bali"] #overview .kpi:has([data-field="lfl_change"]),#dash-root .ev[data-region="bali"] #overview .kpi:has([data-field="exited_rev"]){display:none}
+
+/* Mobile */
+@media (max-width:640px){
+#dash-root{padding:12px 12px 32px}
+#dash-root .ev .brand{gap:10px 12px;align-items:flex-start;margin-bottom:12px}
+#dash-root .ev .brand .logo{padding:6px 8px}
+#dash-root .ev .brand .logo img{height:34px}
+#dash-root .ev .brand .ttl{flex:1 1 0;min-width:0}
+#dash-root .ev .brand .ttl .eyebrow{font-size:11px;letter-spacing:.18em}
+#dash-root .ev h1{font-size:20px;line-height:1.25}
+#dash-root .ev h1::after{margin-top:6px}
+#dash-root .ev .regsw{margin-top:10px}
+#dash-root .ev .regsw button{padding:7px 6px;font-size:13px}
+#dash-root .ev .exp{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;width:100%}
+#dash-root .ev .exp .btn{padding:8px 4px;font-size:12.5px;letter-spacing:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#dash-root .ev #exportmsg{grid-column:1/-1;text-align:left}
+#dash-root .ev .lede{font-size:14px;margin-bottom:10px}
+#dash-root .ev #orbit-sync{font-size:12px}
+#dash-root .ev .tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;margin:0 -12px 16px;padding:0 12px;gap:0}
+#dash-root .ev .tabs::-webkit-scrollbar{display:none}
+#dash-root .ev .tab{flex:0 0 auto;white-space:nowrap;padding:10px 12px}
+#dash-root .ev .kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:16px}
+#dash-root .ev .kpi{padding:10px 12px}
+#dash-root .ev .kpi .v{font-size:19px;overflow-wrap:anywhere}
+#dash-root .ev .kpi .d,#dash-root .ev .kpi .l{overflow-wrap:anywhere}
+#dash-root .ev .grid{grid-template-columns:minmax(0,1fr);gap:10px;margin-bottom:16px}
+#dash-root .ev .card{padding:12px;min-width:0}
+#dash-root .ev .lanes{grid-template-columns:minmax(0,1fr);gap:10px}
+#dash-root .ev .chart{min-height:220px}
+#dash-root .ev h3.sec{margin:16px 0 8px}
+#dash-root .ev .tblwrap{max-height:70vh;-webkit-overflow-scrolling:touch}
+#dash-root .ev table{font-size:11.5px}
+#dash-root .ev input.search,#dash-root .ev #propsel,#dash-root .ev #ra-prop{width:100%;box-sizing:border-box}
+#dash-root .ev #reassess textarea{min-width:0!important;width:100%;box-sizing:border-box}
+#dash-root .ev #reassess .btn,#dash-root .ev #ra-send{width:100%}
+#dash-root .ev .costs{flex-direction:column;align-items:stretch;padding:12px}
+#dash-root .ev .costs input{width:100%;box-sizing:border-box}
+#dash-root .ev .costs .sum{margin-left:0;max-width:none}
+#dash-root .ev .calc input{width:100%;box-sizing:border-box}
+#dash-root .ev .ctool{padding:8px 10px}
+#dash-root .ev .ctool .btn{flex:1 1 auto}
+#dash-root .ev #gtip{max-width:calc(100vw - 40px)}
+#dash-root .ev .tblwrap table th:first-child,#dash-root .ev .tblwrap table td:first-child{position:sticky;left:0;z-index:2;background:var(--color-panel);white-space:normal;min-width:7.5rem;max-width:9.5rem;box-shadow:1px 0 0 var(--color-border-line)}
+#dash-root .ev .tblwrap table thead th:first-child{z-index:3}
+#dash-root .ev .tblwrap table td.sel:first-child,#dash-root .ev .tblwrap table th.sel:first-child{min-width:0;max-width:none}
+}
