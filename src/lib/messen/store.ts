@@ -37,11 +37,12 @@ export type MesseLead = {
   airbnbListingId: string;
   airbnbHostId: string;
   score: number;
-  tier: "hot" | "warm" | "cold";
+  tier: "hot" | "warm" | "cold" | "open";
   consentMarketing: boolean;
   source: string;
   utm: Record<string, string>;
   lang: string;
+  completed: boolean;
   ghlStatus: "pending" | "ok" | "error" | "skipped";
   ghlContactId: string | null;
   ghlError: string | null;
@@ -91,11 +92,12 @@ function toLead(r: Row): MesseLead {
     airbnbListingId: String(r.airbnb_listing_id ?? ""),
     airbnbHostId: String(r.airbnb_host_id ?? ""),
     score: Number(r.score ?? 0),
-    tier: r.tier === "hot" || r.tier === "warm" ? r.tier : "cold",
+    tier: r.tier === "hot" || r.tier === "warm" || r.tier === "open" ? r.tier : "cold",
     consentMarketing: Boolean(r.consent_marketing),
     source: String(r.source ?? ""),
     utm: (r.utm as Record<string, string> | null) ?? {},
     lang: String(r.lang ?? "de"),
+    completed: r.completed !== false,
     ghlStatus: (r.ghl_status as MesseLead["ghlStatus"]) ?? "pending",
     ghlContactId: (r.ghl_contact_id as string | null) ?? null,
     ghlError: (r.ghl_error as string | null) ?? null,
@@ -177,22 +179,31 @@ export async function listLeads(eventId: string): Promise<MesseLead[]> {
 
 export type NewLead = Omit<MesseLead, "id" | "ghlStatus" | "ghlContactId" | "ghlError" | "winnerAt" | "createdAt"> & {
   submittedAt: Date | null;
+  editToken: string;
 };
 
-/** Legt den Lead an. Gibt null zurück, wenn dieselbe Losnummer schon da ist (erneut gesendet). */
-export async function insertLead(l: NewLead): Promise<string | null> {
+/**
+ * Legt den Lead an oder ergänzt ihn (gleiche Losnummer). Ergänzen darf nur, wer das Token vom Anlegen kennt;
+ * Kontaktangaben bleiben dabei unverändert. null: gleiche Losnummer ohne passendes Token (nichts geändert).
+ */
+export async function upsertLead(l: NewLead): Promise<{ id: string; created: boolean } | null> {
   const [row] = await sql`
     INSERT INTO messe_leads (
       event_id, ticket, name, preferred_channel, whatsapp, email, units, airbnb_url, airbnb_listing_id,
-      airbnb_host_id, score, tier, consent_marketing, source, utm, lang, submitted_at
+      airbnb_host_id, score, tier, consent_marketing, source, utm, lang, submitted_at, edit_token, completed
     ) VALUES (
       ${l.eventId}, ${l.ticket}, ${l.name}, ${l.preferredChannel}, ${l.whatsapp}, ${l.email}, ${l.units},
       ${l.airbnbUrl}, ${l.airbnbListingId}, ${l.airbnbHostId}, ${l.score}, ${l.tier}, ${l.consentMarketing},
-      ${l.source}, ${sql.json(l.utm)}, ${l.lang}, ${l.submittedAt}
+      ${l.source}, ${sql.json(l.utm)}, ${l.lang}, ${l.submittedAt}, ${l.editToken}, ${l.completed}
     )
-    ON CONFLICT (event_id, ticket) DO NOTHING
-    RETURNING id`;
-  return row ? String(row.id) : null;
+    ON CONFLICT (event_id, ticket) DO UPDATE SET
+      units = EXCLUDED.units, airbnb_url = EXCLUDED.airbnb_url, airbnb_listing_id = EXCLUDED.airbnb_listing_id,
+      airbnb_host_id = EXCLUDED.airbnb_host_id, score = EXCLUDED.score, tier = EXCLUDED.tier,
+      consent_marketing = EXCLUDED.consent_marketing, completed = messe_leads.completed OR EXCLUDED.completed,
+      updated_at = now()
+    WHERE messe_leads.edit_token <> '' AND messe_leads.edit_token = EXCLUDED.edit_token
+    RETURNING id, (xmax = 0) AS created`;
+  return row ? { id: String(row.id), created: Boolean(row.created) } : null;
 }
 
 export async function getLead(id: string): Promise<MesseLead | null> {
