@@ -91,68 +91,76 @@ img, svg { max-width: 100%; }
 button, input { font: inherit; color: inherit; }
 :focus-visible { outline: 3px solid var(--yellow); outline-offset: 3px; }
 
-.wrap { max-width: 72rem; margin: 0 auto; padding: 1.25rem 1.25rem 3rem; }
+/* Alles auf einen Bildschirm: kompakter Kopf, Formular sofort sichtbar */
+.wrap { max-width: 72rem; margin: 0 auto; padding: .9rem 1.25rem .75rem; min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; }
 
-header.top { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .25rem 0 1.5rem; }
-.logo { width: 6.5rem; color: var(--text); display: block; }
+header.top { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0 0 .9rem; }
+.logo { width: 5.25rem; color: var(--text); display: block; flex: none; }
 .logo svg { width: 100%; height: auto; display: block; }
-.event-tag { font-size: .875rem; color: var(--muted); text-align: right; line-height: 1.35; }
+.event-tag { font-size: .8125rem; color: var(--muted); text-align: right; line-height: 1.3; }
 .event-tag strong { color: var(--text); font-weight: 600; display: block; }
 
-.layout { display: grid; gap: 2rem; }
+.layout { display: grid; gap: 1rem; flex: 1; align-content: start; }
 @media (min-width: 900px) {
-  .layout { grid-template-columns: 1fr 26rem; gap: 4rem; align-items: start; }
-  .form-col { position: sticky; top: calc(1.5rem + env(safe-area-inset-top, 0px)); }
+  .layout { grid-template-columns: 1fr 26rem; gap: 4rem; align-items: center; align-content: center; }
 }
 
 /* Hero: the prize is the headline */
 .hero h1 {
   font-family: var(--display); font-weight: 850; font-stretch: 78%;
-  font-size: clamp(2.6rem, 9vw, 5.5rem); line-height: .92; letter-spacing: -.01em;
-  margin: 0 0 1.25rem; text-wrap: balance;
+  font-size: clamp(1.9rem, 8.5vw, 2.6rem); line-height: .95; letter-spacing: -.01em;
+  margin: 0 0 .6rem; text-wrap: balance;
 }
 .prize-bar {
   display: inline-block; background: var(--yellow); color: var(--on-yellow);
   padding: .05em .18em .02em; margin-left: -.18em;
   box-decoration-break: clone; -webkit-box-decoration-break: clone;
 }
-.hero .lead { font-size: 1.125rem; max-width: 34rem; margin: 0 0 1.75rem; color: var(--text); }
+.hero .lead { font-size: .9375rem; line-height: 1.45; max-width: 34rem; margin: 0 0 .7rem; color: var(--text); }
 .hero .lead span { color: var(--muted); }
 
 .draw {
-  display: flex; flex-wrap: wrap; gap: 1.5rem 2.5rem; padding: 1.25rem 0;
-  border-top: 2px solid var(--text); border-bottom: 1px solid var(--line); max-width: 36rem;
+  display: flex; flex-wrap: wrap; gap: .25rem 2rem; padding: .55rem 0 0; margin: 0;
+  border-top: 2px solid var(--text); max-width: 36rem;
 }
-.draw dt { font-size: .8125rem; color: var(--muted); margin-bottom: .2rem; }
-.draw dd { margin: 0; font-family: var(--display); font-weight: 700; font-stretch: 90%; font-size: 1.375rem; line-height: 1.15; }
+.draw dt { font-size: .75rem; color: var(--muted); }
+.draw dd { margin: 0; font-family: var(--display); font-weight: 700; font-stretch: 90%; font-size: 1.05rem; line-height: 1.2; }
 .countdown { font-variant-numeric: tabular-nums; }
-
-.why { margin-top: 2.5rem; max-width: 36rem; }
-.why h2 { font-family: var(--display); font-stretch: 85%; font-weight: 800; font-size: 1.5rem; margin: 0 0 .75rem; }
-.why ul { list-style: none; margin: 0; padding: 0; }
-.why li { padding: .7rem 0; border-bottom: 1px solid var(--line); display: grid; grid-template-columns: 1.75rem 1fr; }
-.why li::before { content: ""; width: .7rem; height: .7rem; background: var(--yellow); margin-top: .45rem; transform: rotate(45deg); }
-
+@media (min-width: 900px) {
+  .hero h1 { font-size: clamp(2.8rem, 5vw, 4.75rem); margin-bottom: 1rem; }
+  .hero .lead { font-size: 1.125rem; margin-bottom: 1.25rem; }
+  .draw { gap: 1rem 2.5rem; padding-top: 1rem; }
+  .draw dt { font-size: .8125rem; }
+  .draw dd { font-size: 1.375rem; }
+}
+/* Handy: Sobald jemand angefangen hat, schrumpft der Kopf auf eine Zeile */
+@media (max-width: 899px) {
+  body.started .hero .lead, body.started .hero .draw, body.started .hero h1 br { display: none; }
+  body.started .hero h1 { font-size: 1.15rem; margin: 0; }
+  body.started .hero h1 > span:first-child::after { content: " "; }
+  body.started .hero .prize-bar { display: inline; margin-left: 0; padding: .05em .25em; }
+}
 /* Entry card */
 .entry {
-  background: var(--surface); border-radius: 1.25rem; padding: 1.5rem;
+  background: var(--surface); border-radius: 1.1rem; padding: 1.1rem 1.1rem 1.2rem;
   border: 1px solid var(--line);
 }
-.progress { display: grid; gap: .35rem; margin-bottom: 1.25rem; }
+@media (min-width: 900px) { .entry { padding: 1.5rem; border-radius: 1.25rem; } }
+.progress { display: grid; gap: .35rem; margin-bottom: .8rem; }
 .progress i { height: .3rem; border-radius: 1rem; background: var(--line); transition: background .25s; }
 .progress i.on { background: var(--yellow); }
-.step-meta { display: flex; justify-content: space-between; font-size: .8125rem; color: var(--muted); margin-bottom: .5rem; }
+.step-meta { display: flex; justify-content: space-between; font-size: .8125rem; color: var(--muted); margin-bottom: .35rem; }
 .back { background: none; border: 0; padding: 0; color: var(--muted); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
 .back[hidden] { display: none; }
-.q { font-family: var(--display); font-weight: 800; font-stretch: 88%; font-size: 1.6rem; line-height: 1.1; margin: 0 0 .35rem; }
-.hint { color: var(--muted); font-size: .9375rem; margin: 0 0 1.1rem; }
+.q { font-family: var(--display); font-weight: 800; font-stretch: 88%; font-size: 1.4rem; line-height: 1.1; margin: 0 0 .25rem; }
+.hint { color: var(--muted); font-size: .875rem; margin: 0 0 .8rem; }
 
-.opts { display: grid; gap: .55rem; }
+.opts { display: grid; gap: .5rem; }
 .opts.two { grid-template-columns: 1fr 1fr; }
 .opt {
-  text-align: left; width: 100%; padding: .9rem 1rem; border-radius: .75rem;
+  text-align: left; width: 100%; padding: .7rem .9rem; border-radius: .75rem;
   border: 1.5px solid var(--line); background: var(--bg); cursor: pointer;
-  font-weight: 500; line-height: 1.25; min-height: 3.25rem;
+  font-weight: 500; line-height: 1.25; min-height: 3rem;
   transition: border-color .15s, background .15s;
 }
 .opt small { display: block; color: var(--muted); font-weight: 400; font-size: .8125rem; margin-top: .15rem; }
@@ -160,33 +168,34 @@ header.top { display: flex; align-items: center; justify-content: space-between;
 .opt[aria-pressed="true"] { border-color: var(--yellow); background: var(--yellow); color: var(--on-yellow); }
 .opt[aria-pressed="true"] small { color: var(--on-yellow); opacity: .75; }
 
-.field { margin-bottom: .85rem; }
-.field label { display: block; font-size: .875rem; font-weight: 600; margin-bottom: .3rem; }
+.field { margin-bottom: .65rem; }
+.field label { display: block; font-size: .8125rem; font-weight: 600; margin-bottom: .25rem; }
 .field label span { color: var(--muted); font-weight: 400; }
 .field input {
-  width: 100%; padding: .8rem .9rem; border-radius: .65rem; border: 1.5px solid var(--line);
+  width: 100%; padding: .7rem .85rem; border-radius: .65rem; border: 1.5px solid var(--line);
   background: var(--bg); font-size: 1rem;
 }
 .field input:focus { border-color: var(--text); outline: none; }
 .field[hidden] { display: none; }
 .field input[aria-invalid="true"] { border-color: var(--error); }
-.check { display: grid; grid-template-columns: 1.4rem 1fr; gap: .5rem; font-size: .875rem; margin: .7rem 0; color: var(--muted); align-items: start; }
+.check { display: grid; grid-template-columns: 1.4rem 1fr; gap: .45rem; font-size: .8125rem; line-height: 1.4; margin: .45rem 0; color: var(--muted); align-items: start; }
 .check input { width: 1.15rem; height: 1.15rem; margin: .15rem 0 0; accent-color: var(--yellow-deep); }
 .check a { color: inherit; }
 .paste { display: flex; gap: .5rem; }
 .paste input { flex: 1; min-width: 0; }
-.howto { list-style: none; counter-reset: h; margin: 0 0 1rem; padding: 0; font-size: .9375rem; }
-.howto li { counter-increment: h; display: grid; grid-template-columns: 1.6rem 1fr; padding: .3rem 0; }
+.howto { list-style: none; counter-reset: h; margin: 0 0 .75rem; padding: 0; font-size: .875rem; }
+.howto li { counter-increment: h; display: grid; grid-template-columns: 1.6rem 1fr; padding: .15rem 0; }
 .howto li::before { content: counter(h); width: 1.25rem; height: 1.25rem; border-radius: 50%; background: var(--text); color: var(--bg); font-size: .75rem; font-weight: 600; display: grid; place-items: center; margin-top: .15rem; }
 .ok-link { color: var(--text); font-size: .875rem; margin: .4rem 0 0; display: flex; gap: .4rem; align-items: center; }
 .ok-link::before { content: ""; width: .55rem; height: .55rem; background: var(--yellow); transform: rotate(45deg); flex: none; }
-.skip { display: block; width: 100%; background: none; border: 0; padding: .9rem 0 .2rem; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
-.err { color: var(--error); font-size: .875rem; min-height: 1.25rem; margin: .25rem 0 0; }
+.skip { display: block; width: 100%; background: none; border: 0; padding: .7rem 0 0; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.err { color: var(--error); font-size: .8125rem; min-height: 0; margin: .2rem 0 0; }
+.err:empty { margin: 0; }
 
 .btn {
-  display: block; width: 100%; padding: 1rem 1.25rem; border: 0; border-radius: .8rem;
+  display: block; width: 100%; padding: .9rem 1.25rem; border: 0; border-radius: .8rem;
   background: var(--text); color: var(--bg); font-weight: 600; font-size: 1.0625rem; cursor: pointer;
-  text-align: center; text-decoration: none; margin-top: 1rem;
+  text-align: center; text-decoration: none; margin-top: .75rem;
 }
 .btn:disabled { opacity: .45; cursor: not-allowed; }
 .btn.yellow { background: var(--yellow); color: var(--on-yellow); }
@@ -195,11 +204,11 @@ header.top { display: flex; align-items: center; justify-content: space-between;
 /* Success: the entry becomes a ticket */
 .ticket { text-align: left; }
 .ticket .stub {
-  background: var(--yellow); color: var(--on-yellow); border-radius: .9rem; padding: 1.25rem;
-  position: relative; margin-bottom: 1.25rem;
+  background: var(--yellow); color: var(--on-yellow); border-radius: .9rem; padding: 1.1rem 1.25rem;
+  position: relative; margin-bottom: 1rem;
 }
 .ticket .stub .no + p { border-top: 2px dashed rgba(0,0,0,.35); padding-top: .75rem; }
-.ticket .stub .no { font-family: var(--display); font-weight: 900; font-stretch: 75%; font-size: 2.6rem; line-height: 1; letter-spacing: .02em; margin: .2rem 0 1rem; font-variant-numeric: tabular-nums; }
+.ticket .stub .no { font-family: var(--display); font-weight: 900; font-stretch: 75%; font-size: 2.3rem; line-height: 1; letter-spacing: .02em; margin: .2rem 0 .8rem; font-variant-numeric: tabular-nums; }
 .ticket .stub p { margin: 0; font-size: .9375rem; }
 .ticket .stub .lbl { font-size: .8125rem; opacity: .7; }
 .ticket h3 { font-family: var(--display); font-stretch: 88%; font-weight: 800; font-size: 1.6rem; margin: 0 0 .4rem; line-height: 1.1; }
@@ -210,16 +219,16 @@ header.top { display: flex; align-items: center; justify-content: space-between;
 @keyframes in { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .step { animation: none; } .progress i { transition: none; } }
 
-footer { margin-top: 3rem; font-size: .8125rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: .5rem 1.25rem; }
+footer { margin-top: .9rem; font-size: .75rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: .25rem 1.25rem; }
 footer a { color: inherit; }
 
 /* Kiosk: bigger targets, no scrolling hero on tablets */
 body.kiosk .opt { min-height: 3.75rem; font-size: 1.0625rem; }
-body.kiosk .why, body.kiosk footer .links { display: none; }
+body.kiosk footer .links { display: none; }
 
 /* Eingebettet in die Website (WordPress): deren Kopf, Fuss, Cookie-Banner und Pixel gelten */
 body.embed { background: transparent; }
-body.embed .wrap { padding: .5rem 0 1rem; }
+body.embed .wrap { padding: .5rem 0 1rem; min-height: 0; }
 body.embed .logo, body.embed footer { display: none; }
 body.embed header.top { justify-content: flex-start; padding-bottom: 1rem; }
 body.embed .event-tag { text-align: left; }
@@ -239,6 +248,37 @@ body.embed .event-tag { text-align: left; }
 .consent button { border: 0; border-radius: .6rem; padding: .7rem 1rem; font-weight: 600; cursor: pointer; }
 .consent .yes { background: var(--yellow); color: #000; }
 .consent .no { background: transparent; color: var(--bg); border: 1.5px solid currentColor; }
+/* Kleine Bildschirme (Browserleisten eingerechnet): enger setzen */
+@media (max-width: 899px) and (max-height: 760px) {
+  .wrap { padding-top: .6rem; }
+  header.top { padding-bottom: .6rem; }
+  .logo { width: 4.5rem; }
+  .hero h1 { font-size: clamp(1.7rem, 7.5vw, 2.2rem); margin-bottom: .45rem; }
+  .hero .lead { font-size: .875rem; margin-bottom: .5rem; }
+  .layout { gap: .75rem; }
+  .entry { padding: .9rem .9rem 1rem; }
+  .q { font-size: 1.25rem; }
+  .hint { margin-bottom: .6rem; }
+  .opt { min-height: 2.65rem; padding: .55rem .8rem; }
+  .field { margin-bottom: .5rem; }
+  .field input { padding: .6rem .8rem; }
+  .btn { padding: .8rem 1rem; margin-top: .6rem; }
+  .check { margin: .35rem 0; }
+  footer { margin-top: .6rem; }
+}
+/* Sehr kleine Handys (z. B. iPhone SE im Browser) */
+@media (max-width: 899px) and (max-height: 600px) {
+  .hero .lead { display: none; }
+  .hero h1 { font-size: 1.6rem; }
+  .event-tag { font-size: .75rem; }
+  .howto { font-size: .8125rem; margin-bottom: .5rem; }
+  .howto li { padding: 0; }
+  .opt { min-height: 2.5rem; }
+  .q { font-size: 1.15rem; }
+  .hint { font-size: .8125rem; margin-bottom: .5rem; }
+  .check { font-size: .75rem; }
+  footer { font-size: .6875rem; margin-top: .4rem; }
+}
 </style>
 </head>
 <body>
@@ -255,12 +295,7 @@ body.embed .event-tag { text-align: left; }
       <dl class="draw">
         <div><dt data-t="drawLbl"></dt><dd id="drawWhen"></dd></div>
         <div><dt data-t="leftLbl"></dt><dd class="countdown" id="countdown" aria-live="off"></dd></div>
-        <div><dt data-t="whereLbl"></dt><dd id="booth"></dd></div>
       </dl>
-      <div class="why">
-        <h2 data-t="whyH"></h2>
-        <ul id="whyList"></ul>
-      </div>
     </section>
 
     <section class="form-col" aria-label="Teilnahme">
@@ -303,11 +338,7 @@ body.embed .event-tag { text-align: left; }
   const T = {
     de: {
       win: "Gewinne", leadSub: "Drei kurze Schritte, rund 20 Sekunden.",
-      drawLbl: "Ziehung", leftLbl: "Noch", whereLbl: "Wo",
-      whyH: "Warum wir fragen",
-      why: ["Damit wir dir am Stand zeigen, was für deinen Betrieb zählt, nicht eine Standard-Demo.",
-            "Reservierungen, Channel-Sync, Reinigung und Gästekommunikation in einem System.",
-            "Keine Newsletter-Flut. Wir melden uns nur, wenn du das willst."],
+      drawLbl: "Ziehung", leftLbl: "Noch",
       step: "Schritt {n} von {t}", back: "Zurück", next: "Weiter",
       q1: "Wie viele Units verwaltest du?", h1: "Units = buchbare Zimmer oder Villen.",
       units: [["1-4","1–4"],["5-19","5–19"],["20-49","20–49"],["50+","50+"],["none","Ich vermiete nicht","Investor, Agentur, Dienstleister"]],
@@ -315,11 +346,11 @@ body.embed .event-tag { text-align: left; }
       howto: ["Öffne dein Inserat in der Airbnb-App.", "Tippe auf Teilen und dann auf Link kopieren.", "Komm zurück und tippe auf Einfügen."],
       fLink: "Airbnb-Link", paste: "Einfügen", linkOk: "Inserat erkannt", eLink: "Das ist kein Airbnb-Link. Kopier ihn aus der App über Teilen.",
       ePaste: "Einfügen hat nicht geklappt. Halte das Feld gedrückt und wähle Einfügen.", skip: "Habe gerade keins zur Hand",
-      qC: "Wohin dürfen wir den Gewinn schicken?", hC: "Alles Weitere klären wir danach per Nachricht.",
+      qC: "Wohin schicken wir den Gewinn?",
       chans: [["whatsapp","WhatsApp"],["email","E-Mail"]],
       fName: "Name", fWa: "WhatsApp-Nummer", fEmail: "E-Mail",
       cTerms: "Ich akzeptiere die <a href=\"{t}\" target=\"_blank\" rel=\"noopener\">Teilnahmebedingungen</a>.",
-      cMarketing: "Elev8 darf mich zu Produkt-Updates kontaktieren und mir passende Werbung zeigen. Jederzeit widerrufbar. Keine Voraussetzung für die Teilnahme.",
+      cMarketing: "Elev8 darf mich kontaktieren und mir Werbung zeigen (freiwillig, jederzeit widerrufbar).",
       closedH: "Das Gewinnspiel ist beendet.", closedP: "Danke fürs Vorbeischauen. Elev8 zeigen wir dir trotzdem gern.",
       cookie: "Wir nutzen Cookies von Meta, Google und LinkedIn, um dir später passende Elev8-Werbung zu zeigen. Das Gewinnspiel funktioniert auch ohne.",
       cookieYes: "Einverstanden", cookieNo: "Nur notwendige",
@@ -333,11 +364,7 @@ body.embed .event-tag { text-align: left; }
     },
     en: {
       win: "Win", leadSub: "Three quick steps, about 20 seconds.",
-      drawLbl: "Draw", leftLbl: "Time left", whereLbl: "Where",
-      whyH: "Why we ask",
-      why: ["So we show you what matters for your operation at the booth, not a generic demo.",
-            "Reservations, channel sync, cleaning and guest messaging in one system.",
-            "No newsletter flood. We only reach out if you want us to."],
+      drawLbl: "Draw", leftLbl: "Time left",
       step: "Step {n} of {t}", back: "Back", next: "Next",
       q1: "How many units do you manage?", h1: "Units = bookable rooms or villas.",
       units: [["1-4","1–4"],["5-19","5–19"],["20-49","20–49"],["50+","50+"],["none","I don’t rent out","Investor, agency, service provider"]],
@@ -345,11 +372,11 @@ body.embed .event-tag { text-align: left; }
       howto: ["Open your listing in the Airbnb app.", "Tap Share, then Copy link.", "Come back and tap Paste."],
       fLink: "Airbnb link", paste: "Paste", linkOk: "Listing recognised", eLink: "That’s not an Airbnb link. Copy it from the app via Share.",
       ePaste: "Pasting didn’t work. Long-press the field and choose Paste.", skip: "I don’t have one at hand",
-      qC: "Where should we send the prize?", hC: "We’ll sort out the rest by message afterwards.",
+      qC: "Where do we send the prize?",
       chans: [["whatsapp","WhatsApp"],["email","Email"]],
       fName: "Name", fWa: "WhatsApp number", fEmail: "Email",
       cTerms: "I accept the <a href=\"{t}\" target=\"_blank\" rel=\"noopener\">terms of participation</a>.",
-      cMarketing: "Elev8 may contact me about product updates and show me relevant ads. Withdraw anytime. Not required to take part.",
+      cMarketing: "Elev8 may contact me and show me ads (optional, withdraw anytime).",
       closedH: "The draw is closed.", closedP: "Thanks for stopping by. We’re still happy to show you Elev8.",
       cookie: "We use cookies from Meta, Google and LinkedIn to show you relevant Elev8 ads later. The draw works without them.",
       cookieYes: "Accept", cookieNo: "Necessary only",
@@ -374,14 +401,12 @@ body.embed .event-tag { text-align: left; }
   $("#evMeta").textContent = EV.dates + " · " + EV.booth;
   $("#prizeTitle").textContent = EV.prize.title;
   $("#prizeDetail").textContent = EV.prize.detail;
-  $("#booth").textContent = EV.booth;
   $("#terms").href = EV.termsUrl; $("#privacy").href = EV.privacyUrl;
   if (!EV.termsUrl) $("#terms").parentNode.remove();
   if (!EV.privacyUrl) $("#privacy").parentNode.remove();
-  $("#whyList").innerHTML = L.why.map(w => "<li><span>" + esc(w) + "</span></li>").join("");
 
   const drawDate = EV.drawAt ? new Date(EV.drawAt) : null;
-  if (!drawDate) { const dd = $("#drawWhen").closest("div"); dd.nextElementSibling.remove(); dd.remove(); }
+  if (!drawDate) $(".draw").remove();
   const locale = EV.lang === "en" ? "en-GB" : "de-DE";
   const drawText = drawDate ? drawDate.toLocaleString(locale, { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: EV.timeZone || undefined }) : EV.dates;
   if (drawDate) $("#drawWhen").textContent = drawText;
@@ -468,7 +493,7 @@ body.embed .event-tag { text-align: left; }
       '<p class="ok-link" id="linkOk"' + (parseAirbnb(A.link) ? "" : " hidden") + '>' + L.linkOk + '</p><p class="err" id="lErr" role="alert"></p></div>' +
       '<button type="button" class="btn" id="linkNext"' + (parseAirbnb(A.link) ? "" : " disabled") + '>' + L.next + '</button>' +
       '<button type="button" class="skip" id="linkSkip">' + L.skip + '</button>',
-    () => '<h2 class="q">' + L.qC + '</h2><p class="hint">' + L.hC + '</p>' +
+    () => '<h2 class="q" style="margin-bottom:.7rem">' + L.qC + '</h2>' +
       '<div class="field"><label for="fName">' + L.fName + '</label><input id="fName" autocomplete="name"></div>' +
       optsHTML(L.chans, "chan", "two").replace('class="opts two"', 'class="opts two" style="margin-bottom:.85rem"') +
       '<div class="field" id="waField"' + (A.chan === "whatsapp" ? "" : " hidden") + '><label for="fWa">' + L.fWa + '</label><input id="fWa" type="tel" inputmode="tel" autocomplete="tel" placeholder="+62 812 …"></div>' +
@@ -483,6 +508,7 @@ body.embed .event-tag { text-align: left; }
   function render() {
     entry.innerHTML = '<div class="step">' + header() + steps[stepIdx]() + '</div>';
     persist();
+    document.body.classList.toggle("started", stepIdx > 0);
     tell("step", { step: stepIdx + 1 });
     $(".back", entry).onclick = () => go(-1);
     entry.querySelectorAll(".opt").forEach(b => b.onclick = () => choose(b));
@@ -563,6 +589,7 @@ body.embed .event-tag { text-align: left; }
   }
 
   function success(lead) {
+    document.body.classList.add("started");
     const chanName = (L.chans.find(c => c[0] === lead.preferred_channel) || [, ""])[1];
     entry.innerHTML = '<div class="step ticket">' +
       '<div class="stub"><p class="lbl">' + L.okLbl + '</p><p class="no">' + esc(lead.ticket) + '</p>' +
