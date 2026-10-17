@@ -1,6 +1,6 @@
 <div class="ev" style="position:relative">
 <div class="brand"><div class="logo"><img id="evlogo" alt="Elevate"></div>
-<div class="ttl"><div class="eyebrow">Elevate Schweiz</div><h1 id="top">Portfolio-Entscheidungsgrundlage</h1></div>
+<div class="ttl"><div class="eyebrow" id="region-eyebrow">Elevate · Schweiz</div><h1 id="top">Portfolio-Entscheidungsgrundlage</h1><div class="regsw" id="region-switch" role="group" aria-label="Region"><button type="button" data-region="all">Alle</button><button type="button" data-region="ch">Schweiz</button><button type="button" data-region="bali">Bali</button></div></div>
 <div class="exp"><button class="btn" id="btn-pdf" type="button">PDF-Bericht</button><button class="btn ghost" id="btn-xlsx" type="button">Excel-Export</button><button class="btn ghost" id="btn-refresh" type="button">Daten neu laden</button><div id="exportmsg"></div></div></div>
 <p class="lede" id="lede" data-source="kpi">—</p>
 <p class="note" id="orbit-sync" style="margin:-.5rem 0 1rem"></p>
@@ -38,7 +38,7 @@
 
 <div class="grid" style="margin-top:var(--cds-gap-lg)">
  <div class="card" id="matrix-card"><h2>Entscheidungsmatrix</h2><p class="note">Horizontal: Umsatzentwicklung vs. Vorjahr (neue Einheiten auf der Linie „neu“). Vertikal: Qualitätsindex aus Booking-Score und Gästebewertung. Kreisgrösse = Umsatz 12 Monate. Klick öffnet den Drilldown.</p><div class="chart" id="matrix" data-source="scores"></div></div>
- <div class="card" id="dev-card"><h2>Portfolioentwicklung (Elev8, alle Kanäle)</h2><p class="note">Umsatz pro Aufenthaltsmonat aller Schweizer Einheiten, anteilig pro Nacht. Grau = inzwischen ausgeschiedene Einheiten (Bleiche, Loft Olten, Holzfluh). Monate ab Okt. 2026 = bereits gebucht.</p><div class="chart" id="dev" data-source="elev8_monthly properties"></div></div>
+ <div class="card" id="dev-card"><h2>Portfolioentwicklung (Elev8, alle Kanäle)</h2><p class="note">Umsatz pro Aufenthaltsmonat aller Einheiten der gewählten Region, anteilig pro Nacht. Grau = inzwischen ausgeschiedene Einheiten (Bleiche, Loft Olten, Holzfluh). Monate ab Okt. 2026 = bereits gebucht.</p><div class="chart" id="dev" data-source="elev8_monthly properties"></div></div>
  <div class="card" id="furn-card"><h2>Möbelmiete: Fixkosten sinken ab 2027</h2><p class="note">Monatliche Möbelmiete (Myotaku) aller aktiven Objekte bis Vertragsende. Danach gehören die Möbel Elevate. Bei einem Exit werden die Möbel retourniert, ohne weitere Kosten.</p><div class="chart" id="furn" data-source="property_costs" style="min-height:280px"></div></div>
 </div>
 </section>
@@ -75,10 +75,10 @@
 <div class="card" style="margin-bottom:var(--cds-gap-lg)"><h2>Warum entwickelt sich das Portfolio so?</h2>
 <ol class="causes" id="causelist" data-source="sh_yoy issues pricelabs_months kpi"></ol></div>
 <div class="grid">
- <div class="card"><h2>Markt wächst – Schaffhausen nicht im Gleichschritt</h2><p class="note">Veränderung zum Vorjahresmonat: Markt-RevPAR Schaffhausen (AirROI, ganze Wohnungen) vs. Elev8-Umsatz (alle Kanäle) unserer Schaffhauser Einheiten mit vollem Vorjahr.</p><div class="chart" id="shyoy" data-source="sh_yoy"></div></div>
+ <div class="card only-ch"><h2>Markt wächst – Schaffhausen nicht im Gleichschritt</h2><p class="note">Veränderung zum Vorjahresmonat: Markt-RevPAR Schaffhausen (AirROI, ganze Wohnungen) vs. Elev8-Umsatz (alle Kanäle) unserer Schaffhauser Einheiten mit vollem Vorjahr.</p><div class="chart" id="shyoy" data-source="sh_yoy"></div></div>
  <div class="card"><h2>Betriebsprobleme nach Thema</h2><p class="note">Vorfälle aus Elev8-Kalendernotizen, HostBuddy-Gästekommunikation und Bewertungen 2026. Zugang und Reinigung dominieren. Klick auf einen Balken zeigt alle Vorfälle dieses Themas.</p><div class="chart" id="isscat" data-source="issues"></div>
 <div id="issdetail" data-source="issues properties" style="margin-top:var(--cds-gap-sm)"></div></div>
- <div class="card"><h2>Preis vs. Markt (PriceLabs, seit Mai 2026)</h2><p class="note">RevPAR des Schweizer Portfolios gegenüber dem PriceLabs-Marktvergleich. Saisonprofile (+15 % Apr–Mai, +9 % Sommer) liegen zusätzlich auf der PriceLabs-Saisonalität.</p><div class="chart" id="plm" data-source="pricelabs_months"></div></div>
+ <div class="card only-ch"><h2>Preis vs. Markt (PriceLabs, seit Mai 2026)</h2><p class="note">RevPAR des Schweizer Portfolios gegenüber dem PriceLabs-Marktvergleich. Saisonprofile (+15 % Apr–Mai, +9 % Sommer) liegen zusätzlich auf der PriceLabs-Saisonalität.</p><div class="chart" id="plm" data-source="pricelabs_months"></div></div>
  <div class="card"><h2>Bewertungskategorien Booking.com</h2><p class="note">Je dunkler rot, desto schwächer. Preis-Leistung ist im ganzen Portfolio die schwächste Kategorie.</p><div class="chart" id="heat" data-source="properties" style="min-height:200px"></div></div>
 
  <div class="card"><h2>Lokale Märkte (AirROI, ganze Wohnungen, 12 Monate)</h2><p class="note">Vergleichsbasis für „Auslastung vs. Markt“. Unsere Einheiten liegen fast überall deutlich über der Marktauslastung – bei tieferem Preis.</p>
@@ -102,7 +102,7 @@
   <p class="k">Ursachen</p><p id="d-cause" data-source="properties" data-field="causes">—</p>
   <p class="k">Massnahmen</p><p id="d-act" data-source="properties" data-field="actions">—</p></div>
  <div class="card"><h2>Monatsumsatz (Elev8, alle Kanäle) vs. Vorjahr</h2><p class="note">Balken = Aufenthaltsmonat Okt 25 – Dez 26 (anteilig pro Nacht), Punkt = gleicher Monat ein Jahr früher.</p><div class="chart" id="d-month" data-source="elev8_monthly"></div></div>
- <div class="card"><h2>Bewertung nach Kategorie</h2><p class="note">Booking.com-Kategorien dieser Property; Strich = Durchschnitt aller aktiven Schweizer Properties.</p><div class="chart" id="d-cat" data-source="properties" style="min-height:240px"></div></div>
+ <div class="card"><h2>Bewertung nach Kategorie</h2><p class="note">Booking.com-Kategorien dieser Property; Strich = Durchschnitt aller aktiven Properties der gewählten Region.</p><div class="chart" id="d-cat" data-source="properties" style="min-height:240px"></div></div>
  <div class="card"><h2>Vorfälle & Gästestimmen</h2><p class="note">Aus Elev8, HostBuddy und Bewertungen.</p><ul class="iss" id="d-iss" data-source="issues"></ul></div>
  <div class="card" id="d-levers" data-source="scores elev8"></div>
  <div class="card calc"><h2>Deckungsbeitrag-Rechner</h2><p class="note">Miete und Reinigungskosten pro Buchung kommen aus der Objekt-Kostentabelle (Zeile dieser Property). Wäsche zählt die Personen jeder Buchung aus Elev8, Kommission je Kanal (Elev8-Sätze, Direkt 0 %). Die Felder unten sind für Was-wäre-wenn-Rechnungen und werden nicht gespeichert.</p>
@@ -179,7 +179,7 @@
 <div style="display:flex;gap:var(--cds-gap-sm);align-items:center;flex-wrap:wrap;margin-bottom:var(--cds-gap-sm)"><button class="btn" type="button" id="oh-add">Position hinzufügen</button>
 <label class="note" style="display:inline-flex;gap:.4rem;align-items:center;margin:0">Verteilung <select id="oh-key" aria-label="Verteilschlüssel"><option value="units">gleichmässig pro Wohnung</option><option value="revenue">nach Umsatzanteil</option></select></label>
 <span class="note" id="oh-sum" style="margin:0"></span><span class="note" id="oh-state" style="margin:0"></span></div>
-<div class="tblwrap"><table class="ct" id="ohtable"><thead><tr><th class="l">Bezeichnung</th><th class="l">Kategorie</th><th>CHF/Monat</th><th></th></tr></thead><tbody></tbody></table></div></div>
+<div class="tblwrap"><table class="ct" id="ohtable"><thead><tr><th class="l">Bezeichnung</th><th class="l">Kategorie</th><th class="l">Region</th><th>CHF/Monat</th><th></th></tr></thead><tbody></tbody></table></div></div>
 </section>
 
 <section class="page" id="method" hidden>
@@ -191,7 +191,7 @@
 <p>Einteilung: Weiterführen & ausbauen · Weiterführen – optimieren (inkl. Langzeit- und Mandatsmodelle) · Auf Bewährung mit Ziel bis 31.03.2027 · Exit prüfen / beenden. Die Empfehlung ist eine fachliche Einschätzung über Score, Trend und Ursachen – nicht nur der Score.</p>
 <p><b>Wichtig:</b> Mietkosten, Reinigungs- und Nebenkosten sind in keinem angebundenen System erfasst. Die Empfehlung beruht auf Umsatz- und Qualitätsdaten; vor einer Kündigung bitte im Deckungsbeitrag-Rechner pro Einheit die Miete prüfen.</p></div>
 <div class="card text"><h2>Quellen</h2>
-<p><b>Elev8 Suite (live)</b>: alle Reservierungen mit Tag „Swiss“, Anreise Okt 2024 – Dez 2026. Umsatz und Nächte werden anteilig pro Aufenthaltsnacht dem Zeitraum zugeordnet; Buchungen und Personen zählen nach Anreisedatum; offene Buchungen = noch nicht abgeschlossen (laufend und künftig). USD-Buchungen mit 0.80 in CHF umgerechnet. Gästenamen werden nicht geladen. Gästebewertungen 2026 und Kalendernotizen sind ein Snapshot vom 15.10.2026.</p>
+<p><b>Elev8 Suite (live)</b>: alle Reservierungen mit Tag „Swiss“ (Schweiz) und „indonesia“ (Bali), Anreise Okt 2024 – Dez 2027. Umsatz und Nächte werden anteilig pro Aufenthaltsnacht dem Zeitraum zugeordnet; Buchungen und Personen zählen nach Anreisedatum; offene Buchungen = noch nicht abgeschlossen (laufend und künftig). USD-Buchungen mit 0.80, IDR-Buchungen (Bali) mit dem eingestellten Kurs (Standard 21'000 IDR pro CHF) in CHF umgerechnet. Gästenamen werden nicht geladen. Gästebewertungen 2026 und Kalendernotizen sind ein Snapshot vom 15.10.2026.</p>
 <p><b>MyDataValue</b>: Booking-Review-Score und Kategorien (Stand Okt. 2026).</p>
 <p><b>PriceLabs</b>: Account Review 10/2025–09/2026 (Daten effektiv ab Mai 2026), RevPAR vs. Markt, Hinweise zu Saisonprofilen und Basispreisen.</p>
 <p><b>AirROI</b>: Marktkennzahlen ganze Wohnungen (Schaffhausen, Neuhausen, Basel, Dietikon als Proxy Agglo Zürich, Olten als Proxy Mittelland, Thun als Proxy Steffisburg), RevPAR-Verlauf Schaffhausen 24 Monate.</p>
@@ -199,7 +199,7 @@
 <p><b>Management-Mandate</b>: Hasenberg Suite (ML) und Suites Hasenberg (BB) – Elevate erhält 20 % der Netto-Mieteinnahmen (Gastzahlung − OTA-Kommission); Reinigung und Wäsche werden dem Eigentümer 1:1 weiterverrechnet; keine Miete und keine Möbelmiete. „Ergebnis“ ist hier das Honorar für Elevate.</p>
 <p><b>Kosten pro Wohnung</b> werden im gleichnamigen Tab gepflegt und im Dashboard gespeichert (für alle sichtbar). Total Fixkosten = Miete netto + NK + Möbel + Internet/TV + Strom + Parkplatz + Software/Lock + Sonstiges + (Kautionsversicherung + Hausrat/Haftpflicht) ÷ 12. Ergebnis nach allen Kosten = Umsatz − Kommission − Reinigung − Wäsche − Fixkosten × 12. Ohne erfasste Miete wird kein Ergebnis nach allen Kosten ausgewiesen.</p>
 <p><b>Ursprungsdaten der Objekt-Kosten</b>: Miete pro Monat, Reinigungskosten pro Buchung (Cleaning Fee Charged) und Möbelmiete je Objekt aus der Kostentabelle. Möbelmiete gemäss Myotaku Contract Overview vom 22.07.2026 (14 aktive Verträge; Holzfluh retourniert). Bei Exit werden Möbel ohne Folgekosten retourniert, nach Vertragsende gehören sie Elevate; Objekte ohne Vertrag sind eigenmöbliert. Leere Werte: Reinigung = Standard oben, Miete = nicht abgezogen.</p>
-<p>Nicht berücksichtigt: Studio 111 Aarau (nicht Elevate), Bali-Portfolio. Bleiche (bis 30.09.2025), Loft Olten (bis 30.06.2026) und Holzfluh (bis 20.09.2026) sind als ausgeschieden ausgewiesen und nicht in den KPIs. Marlin Home (kurzes Management-Mandat) ist nicht enthalten.</p></div>
+<p><b>Bali</b>: 10 Villen, Villa Merapi (5 Zimmer) und die Apartments Pererenan als 3 Typen mit 3–4 Einheiten; Auslastung pro Einheit. Vergleichsmärkte AirROI Pererenan, Canggu und Sanur (Denpasar Selatan). Elev8-Daten erst ab Herbst 2025, daher kein Vorjahresvergleich. Nicht berücksichtigt: Studio 111 Aarau (nicht Elevate), Villa Talang, Kaba und Toba (nicht mehr in Elev8). Bleiche (bis 30.09.2025), Loft Olten (bis 30.06.2026) und Holzfluh (bis 20.09.2026) sind als ausgeschieden ausgewiesen und nicht in den KPIs. Marlin Home (kurzes Management-Mandat) ist nicht enthalten.</p></div>
 </div>
 </section>
 </div>
