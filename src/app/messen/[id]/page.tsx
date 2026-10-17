@@ -3,9 +3,9 @@ import { ghlConfigured } from "@/lib/offerten/ghl";
 import { currentMessenUser } from "@/lib/messen/access";
 import { getEvent, listLeads, type MesseLead } from "@/lib/messen/store";
 import { TIME_ZONES, dateToLocalInput, formatInZone } from "@/lib/messen/time";
-import { publicUrl, qrImageUrl } from "@/lib/messen/urls";
+import { embedSnippet, publicUrl, qrImageUrl, withParams } from "@/lib/messen/urls";
 import { deleteEventAction, deleteLeadAction, drawWinnerAction, retryGhlAction, saveEventAction } from "../actions";
-import { ActionButton, ConfirmForm, CopyLink, StatefulForm } from "@/components/messen/MessenForms";
+import { ActionButton, ConfirmForm, CopyCode, CopyLink, StatefulForm } from "@/components/messen/MessenForms";
 
 export const dynamic = "force-dynamic";
 
@@ -46,7 +46,9 @@ export default async function MessePage({ params }: { params: Promise<{ id: stri
   if (!event) notFound();
   const leads = await listLeads(event.id);
 
-  const qrLink = publicUrl(event.slug, { utm_source: event.slug, utm_medium: "qr" });
+  // Mit Website-Seite zeigt der QR-Code dorthin, damit Besuche bei den Pixeln der Website zählen
+  const utm = { utm_source: event.slug, utm_medium: "qr" };
+  const qrLink = event.websiteUrl ? withParams(event.websiteUrl, utm) : publicUrl(event.slug, utm);
   const kioskLink = publicUrl(event.slug, { kiosk: "1", utm_source: event.slug, utm_medium: "tablet" });
   const previewLink = publicUrl(event.slug, event.active ? {} : { vorschau: "1" });
   const count = (f: (l: MesseLead) => boolean) => leads.filter(f).length;
@@ -135,13 +137,21 @@ export default async function MessePage({ params }: { params: Promise<{ id: stri
               <Field label="Demo buchen" name="demoUrl" type="url" value={event.demoUrl} placeholder="https://…" />
               <Field label="Teilnahmebedingungen" name="termsUrl" type="url" value={event.termsUrl} placeholder="https://…" />
               <Field label="Datenschutz" name="privacyUrl" type="url" value={event.privacyUrl} placeholder="https://…" />
+              <Field
+                label="Seite auf der Website"
+                name="websiteUrl"
+                type="url"
+                value={event.websiteUrl}
+                placeholder="https://elev8-suite.com/messe-bali"
+                hint="WordPress-Seite, in die das Gewinnspiel eingebettet ist. Der QR-Code zeigt dann dorthin."
+              />
             </fieldset>
 
             <fieldset>
               <legend>Retargeting und GHL</legend>
               <p className="me-muted">
-                Pixel laden erst, wenn Besucher im Cookie-Hinweis zustimmen. Ohne IDs erscheint kein Hinweis. Auf dem Stand-Tablet
-                werden nie Pixel geladen.
+                Nur nötig, wenn die Seite direkt unter /m/… läuft. Eingebettet in WordPress gelten Cookie-Banner und Pixel der Website,
+                diese Felder bleiben dann leer. Pixel laden erst nach Zustimmung, auf dem Stand-Tablet nie.
               </p>
               <div className="me-row">
                 <Field label="Meta Pixel-ID" name="metaPixelId" value={event.metaPixelId} placeholder="123456789012345" />
@@ -173,6 +183,16 @@ export default async function MessePage({ params }: { params: Promise<{ id: stri
             <h3>Stand-Tablet</h3>
             <p className="me-muted">Grössere Buttons, setzt sich nach jeder Teilnahme selbst zurück.</p>
             <CopyLink url={kioskLink} />
+          </section>
+
+          <section className="me-card">
+            <h2>Auf der Website einbinden</h2>
+            <p className="me-muted">
+              In WordPress eine Seite anlegen, einen Block „Individuelles HTML“ einfügen und diesen Code hineinkopieren. Die Seite
+              passt ihre Höhe selbst an und meldet jede Teilnahme als „Lead“ an Meta, Google und den Google Tag Manager der Website.
+            </p>
+            <CopyCode code={embedSnippet(event.slug, event.name)} />
+            {!event.websiteUrl && <p className="me-muted">Danach die Adresse der WordPress-Seite oben unter „Seite auf der Website“ eintragen.</p>}
           </section>
 
           <section className="me-card">

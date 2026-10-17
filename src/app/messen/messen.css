@@ -69,6 +69,11 @@ a.me-strong:hover { text-decoration: underline; }
 
 .me-copy { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
 .me-copy input { min-width: 0; font-size: 0.8125rem; }
+.me-code textarea {
+  width: 100%; box-sizing: border-box; margin-top: 0.5rem; padding: 0.6rem 0.75rem; border-radius: 0.5rem;
+  border: 1px solid var(--line-strong); background: var(--bg); color: var(--ink);
+  font: 0.75rem/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; resize: vertical;
+}
 .me-qr { display: block; width: 100%; max-width: 15rem; height: auto; margin: 0 auto 0.5rem; border-radius: 0.5rem; background: #fff; }
 
 .me-badge { display: inline-block; padding: 0.15rem 0.55rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; background: var(--surface-2); color: var(--muted); border: 1px solid var(--line); }
