@@ -1,8 +1,22 @@
-# Portfolio Monitoring Schweiz (`/portfolio`)
+# Portfolio Monitoring Schweiz und Bali (`/portfolio`)
 
 Wirtschaftlichkeit, Empfehlungen und Kosten aller Schweizer Wohnungen von Elevate: Ranking, Netto pro Wohnung und Monat,
 Kosten pro Wohnung, Exit-Simulator, Break-even, Prognose, Bewährungs-Tracker, Neubeurteilung durch Claude, PDF- und Excel-Export.
 Entstanden als Claude-Dashboard und 1:1 nach Orbit übernommen.
+
+## Regionen
+
+Umschalter oben im Modul: **Alle / Schweiz / Bali** (Standard Schweiz, die Wahl wird pro Browser gespeichert).
+Alle Tabs, PDF und Excel rechnen für die gewählte Region. Bali: 10 Villen, Villa Merapi (5 Zimmer) und die 11 Apartments
+Pererenan als 3 Typen (Plunge Pool APT 1–3, Studio 4–7, Mezzanine 8–11) – Elev8 führt die Einheiten eines Typs unter
+einem Listing, die Auslastung wird deshalb über `units` pro Einheit gerechnet. Alle Bali-Objekte laufen auf eigenes Risiko
+(Pacht); solange Kosten fehlen, stehen sie in der Gruppe „Neu – Beurteilung ausstehend“.
+
+- Elev8-Tags: `PORTFOLIO_LISTING_TAGS` (Standard `Swiss,indonesia`)
+- Wechselkurs: Bali-Beträge in IDR (Elev8, AirROI, PriceLabs) werden mit `PORTFOLIO_FX_IDR` (IDR pro CHF, Standard 21000) umgerechnet; USD × `PORTFOLIO_FX_USD` (Standard 0.80)
+- Gemeinkosten haben eine Region (Schweiz, Bali, Beide) und werden nur auf die aktiven Wohnungen dieser Region verteilt, unabhängig vom Umschalter
+- Vergleichsmärkte AirROI: Pererenan, Canggu, Sanur (Denpasar Selatan)
+- Abschnitte zu Schaffhausen und zum PriceLabs-Monatsverlauf gelten nur für die Schweiz und sind in der Bali-Ansicht ausgeblendet
 
 ## Zugriff
 
