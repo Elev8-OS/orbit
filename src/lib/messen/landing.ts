@@ -238,7 +238,7 @@ header.top { display: flex; align-items: center; justify-content: space-between;
 footer { margin-top: .9rem; font-size: .75rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: .25rem 1.25rem; }
 footer a { color: inherit; }
 .noah-foot { font-weight: 600; }
-/* Noah: AI Customer Success Manager, bucht den Termin per WhatsApp */
+/* Noah: AI Customer Success Manager auf WhatsApp */
 .noah { margin-top: 1rem; padding: .9rem; border-radius: .9rem; background: var(--bg); border: 1.5px solid var(--text); }
 .noah-head { display: flex; gap: .7rem; align-items: center; }
 .noah-avatar { flex: none; width: 2.6rem; height: 2.6rem; border-radius: 50%; background: var(--yellow); color: #000; display: grid; place-items: center; font-family: var(--display); font-weight: 900; font-size: 1.25rem; position: relative; }
@@ -402,10 +402,10 @@ body.embed .event-tag { text-align: left; }
       okNote: "Die Bestätigung kommt per {c}.",
       demo: "Demo-Termin buchen", again: "Nächste Person", reset: "Neuer Start in {s} s",
       drawn: "Gezogen", days: "T", terms: "Teilnahmebedingungen", privacy: "Datenschutz",
-      noahTitle: "Noah bucht dir deinen Termin",
-      noahText: "Unser AI Customer Success Manager beantwortet deine Fragen sofort, auch per Sprachnachricht.",
+      noahTitle: "Noch Fragen? Noah hilft dir gern",
+      noahText: "Unser AI Customer Success Manager ist auf WhatsApp für dich da, auch per Sprachnachricht.",
       noahBtn: "WhatsApp an Noah", noahMeta: "WhatsApp +41 58 590 99 71",
-      noahShort: "Fragen? Noah antwortet sofort", altDemo: "oder Termin selbst im Kalender buchen"
+      noahShort: "Fragen? Noah hilft dir gern", altDemo: "oder Termin selbst im Kalender buchen"
     },
     en: {
       win: "Win", leadSub: "Three quick steps, about 20 seconds.",
@@ -433,10 +433,10 @@ body.embed .event-tag { text-align: left; }
       okNote: "Your confirmation is on its way by {c}.",
       demo: "Book a demo", again: "Next person", reset: "Restarting in {s}s",
       drawn: "Drawn", days: "d", terms: "Terms of participation", privacy: "Privacy",
-      noahTitle: "Noah books your meeting",
-      noahText: "Our AI Customer Success Manager answers your questions instantly, voice messages welcome.",
+      noahTitle: "Questions? Noah is happy to help",
+      noahText: "Our AI Customer Success Manager is there for you on WhatsApp, voice messages welcome.",
       noahBtn: "WhatsApp Noah", noahMeta: "WhatsApp +41 58 590 99 71",
-      noahShort: "Questions? Noah answers instantly", altDemo: "or book a slot in the calendar yourself"
+      noahShort: "Questions? Noah is happy to help", altDemo: "or book a slot in the calendar yourself"
     }
   };
   const L = T[EV.lang] || T.de;
