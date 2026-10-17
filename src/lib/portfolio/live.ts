@@ -8,13 +8,31 @@ import properties from "@/lib/portfolio/data/properties.json";
  * - AirROI (AIRROI_API_KEY): Marktkennzahlen ganze Wohnungen pro Ort und RevPAR-Verlauf Schaffhausen
  * - PriceLabs Customer API (PRICELABS_API_KEY): RevPAR pro Wohnung vs. Markt, Monatswerte des Portfolios
  * - HostBuddy MCP (HOSTBUDDY_API_KEY): Action Items aus der Gästekommunikation
- * - Elev8-Kalendernotizen: Direkt-Blocker ohne Betrag, deren „Gastname“ eine Notiz ist (aus den Reservierungen)
+ * - Elev8-Kalendernotizen: Direkt-Blocker, deren „Gastname“ eine Notiz ist (aus dem Gäste-Feedback)
+ * Regionen: Schweiz (Tag „Swiss“) und Bali (Tag „indonesia“); Bali-Beträge in IDR werden mit PORTFOLIO_FX_IDR in CHF umgerechnet.
  * Vorfälle aus HostBuddy und Kalendernotizen werden von Claude einer Kategorie zugeordnet und auf Deutsch
  * zusammengefasst; das Ergebnis wird pro Eintrag in portfolio_docs (vorfall_klass) gespeichert.
  */
 
-type Prop = { key: string; name: string; status: string; market: string; elev8_names: string };
+type Prop = { key: string; name: string; status: string; market: string; elev8_names: string; region?: string };
 const PROPS = properties as unknown as Prop[];
+const REGION = new Map(PROPS.map((p) => [p.key, p.region || "ch"]));
+export const regionOf = (key: string) => REGION.get(key) || "ch";
+
+/** IDR pro CHF für Bali-Beträge (Reservierungen, AirROI, PriceLabs). In Railway mit PORTFOLIO_FX_IDR anpassbar. */
+export const FX_IDR = () => Number(process.env.PORTFOLIO_FX_IDR || 21000);
+/** USD in CHF wie im übrigen Dashboard */
+export const FX_USD = () => Number(process.env.PORTFOLIO_FX_USD || 0.8);
+/** Betrag in CHF umrechnen; unbekannte Währung → null */
+export function toChf(amount: number | null, currency: string | null | undefined): number | null {
+  if (amount === null || amount === undefined || Number.isNaN(Number(amount))) return null;
+  const c = String(currency || "CHF").toUpperCase();
+  if (c === "CHF") return Number(amount);
+  if (c === "IDR") return Number(amount) / FX_IDR();
+  if (c === "USD") return Number(amount) * FX_USD();
+  if (c === "EUR") return Number(amount) * Number(process.env.PORTFOLIO_FX_EUR || 0.94);
+  return null;
+}
 
 export const airroiConfigured = () => Boolean(process.env.AIRROI_API_KEY);
 export const pricelabsConfigured = () => Boolean(process.env.PRICELABS_API_KEY);
@@ -53,13 +71,16 @@ export function matchProperty(name: string | null | undefined): string | null {
 /* ---------- AirROI ---------- */
 
 /** Märkte, gegen die die Wohnungen verglichen werden (Name wie in properties.json → AirROI-Markt). */
-export const AIRROI_MARKETS: { market: string; key: string; spec: { country: string; region: string; locality: string } }[] = [
+export const AIRROI_MARKETS: { market: string; key: string; currency?: string; spec: { country: string; region: string; locality: string; district?: string } }[] = [
   { market: "Schaffhausen", key: "schaffhausen", spec: { country: "Switzerland", region: "Schaffhausen", locality: "Schaffhausen" } },
   { market: "Neuhausen am Rheinfall", key: "neuhausen", spec: { country: "Switzerland", region: "Schaffhausen", locality: "Neuhausen am Rheinfall" } },
   { market: "Basel", key: "basel", spec: { country: "Switzerland", region: "Basel-City", locality: "Basel" } },
   { market: "Dietikon (Agglo Zürich)", key: "dietikon", spec: { country: "Switzerland", region: "Zurich", locality: "Dietikon" } },
   { market: "Olten (Mittelland)", key: "olten", spec: { country: "Switzerland", region: "Solothurn", locality: "Olten" } },
-  { market: "Thun (Berner Oberland)", key: "thun", spec: { country: "Switzerland", region: "Bern", locality: "Thun" } }
+  { market: "Thun (Berner Oberland)", key: "thun", spec: { country: "Switzerland", region: "Bern", locality: "Thun" } },
+  { market: "Pererenan (Bali)", key: "pererenan", currency: "IDR", spec: { country: "Indonesia", region: "Bali", locality: "Pererenan" } },
+  { market: "Canggu (Bali)", key: "canggu", currency: "IDR", spec: { country: "Indonesia", region: "Bali", locality: "Canggu" } },
+  { market: "Sanur (Bali, Denpasar Selatan)", key: "sanur", currency: "IDR", spec: { country: "Indonesia", region: "Bali", locality: "Denpasar", district: "Denpasar Selatan" } }
 ];
 const ENTIRE = { room_type: { eq: "entire_home" } };
 
@@ -80,13 +101,17 @@ export async function fetchAirroiMarkets() {
   const out = [];
   for (const m of AIRROI_MARKETS) {
     const r = await airroi("/markets/summary", { market: m.spec, filter: ENTIRE, currency: "native" });
+    // Bali: AirROI liefert IDR, das Dashboard rechnet in CHF
+    const chf = (v: unknown) => toChf(num(v), m.currency || "CHF");
+    const rev = chf(r.revenue);
     out.push({
       market: m.market,
       key: m.key,
+      region: m.spec.country === "Switzerland" ? "ch" : "bali",
       occupancy: num(r.occupancy),
-      adr: round1(num(r.average_daily_rate)),
-      revpar: round1(num(r.rev_par ?? r.revpar)),
-      annual_revenue: num(r.revenue) === null ? null : Math.round(Number(r.revenue)),
+      adr: round1(chf(r.average_daily_rate)),
+      revpar: round1(chf(r.rev_par ?? r.revpar)),
+      annual_revenue: rev === null ? null : Math.round(rev),
       active_listings: round1(num(r.active_listings_count))
     });
   }
@@ -140,13 +165,18 @@ export async function fetchPricelabs() {
     }
     const L = (m?.listing_level ?? {}) as Record<string, unknown>;
     const M = (m?.market_level ?? {}) as Record<string, unknown>;
-    const rp = pick(L.revpar, "-90", "-60", "-30");
+    // Beträge in CHF; Bali-Listings ohne bekannte Währung werden nicht verglichen
+    const cur = String(l.currency ?? m?.currency ?? (regionOf(key) === "ch" ? "CHF" : "")).toUpperCase();
+    if (!cur) continue;
+    const rp = toChf(pick(L.revpar, "-90", "-60", "-30"), cur);
     const mo = pick(M.occupancy, "-90", "-60", "-30");
-    const ma = pick(M.adr, "-90", "-60", "-30");
+    const ma = toChf(pick(M.adr, "-90", "-60", "-30"), cur);
     if (rp !== null && mo !== null && ma !== null) {
       (perProp[key] ||= { revpar: [], mrevpar: [] }).revpar.push(rp);
       perProp[key].mrevpar.push((mo / 100) * ma);
     }
+    // Monatsverlauf „Preis vs. Markt“ bleibt das Schweizer Portfolio
+    if (regionOf(key) !== "ch") continue;
     const po = pick(L.occupancy, "-998"), pa = pick(L.adr, "-998"), qo = pick(M.occupancy, "-998"), qa = pick(M.adr, "-998");
     if (po !== null && qo !== null && qa !== null) {
       month.occ.push(po / 100);
