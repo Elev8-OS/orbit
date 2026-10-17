@@ -221,6 +221,12 @@ header.top { display: flex; align-items: center; justify-content: space-between;
 
 footer { margin-top: .9rem; font-size: .75rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: .25rem 1.25rem; }
 footer a { color: inherit; }
+.noah-foot { font-weight: 600; }
+.noah { margin-top: 1rem; padding-top: .9rem; border-top: 1px solid var(--line); }
+.noah p { margin: 0; font-size: .8125rem; line-height: 1.45; color: var(--muted); }
+.noah .btn { margin-top: .6rem; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: center; gap: 0 .5rem; padding: .75rem 1rem; font-size: 1rem; }
+.noah .btn small { font-weight: 400; opacity: .75; font-size: .875rem; white-space: nowrap; }
+body.done .noah-foot { display: none; }
 
 /* Kiosk: bigger targets, no scrolling hero on tablets */
 body.kiosk .opt { min-height: 3.75rem; font-size: 1.0625rem; }
@@ -265,6 +271,14 @@ body.embed .event-tag { text-align: left; }
   .btn { padding: .8rem 1rem; margin-top: .6rem; }
   .check { margin: .35rem 0; }
   footer { margin-top: .6rem; }
+  .ticket .stub { padding: .8rem 1rem; margin-bottom: .75rem; }
+  .ticket .stub .no { font-size: 2rem; margin: .1rem 0 .55rem; }
+  .ticket .stub .no + p { padding-top: .5rem; }
+  .ticket .stub p { font-size: .875rem; }
+  .ticket h3 { font-size: 1.3rem; }
+  .ticket .note { font-size: .875rem; }
+  .noah { margin-top: .6rem; padding-top: .6rem; }
+  .ticket .btn { margin-top: .5rem; }
 }
 /* Sehr kleine Handys (z. B. iPhone SE im Browser) */
 @media (max-width: 899px) and (max-height: 600px) {
@@ -278,6 +292,7 @@ body.embed .event-tag { text-align: left; }
   .hint { font-size: .8125rem; margin-bottom: .5rem; }
   .check { font-size: .75rem; }
   footer { font-size: .6875rem; margin-top: .4rem; }
+  .noah-foot { display: none; }
 }
 </style>
 </head>
@@ -304,7 +319,8 @@ body.embed .event-tag { text-align: left; }
   </main>
 
   <footer>
-    <span>© Elev8</span>
+    <span>© Elev8 Software AG</span>
+    <a id="noahFoot" class="noah-foot" href="#" target="_blank" rel="noopener"></a>
     <span class="links"><a id="terms" href="#" target="_blank" rel="noopener" data-t="terms"></a></span>
     <span class="links"><a id="privacy" href="#" target="_blank" rel="noopener" data-t="privacy"></a></span>
   </footer>
@@ -340,7 +356,7 @@ body.embed .event-tag { text-align: left; }
       win: "Gewinne", leadSub: "Drei kurze Schritte, rund 20 Sekunden.",
       drawLbl: "Ziehung", leftLbl: "Noch",
       step: "Schritt {n} von {t}", back: "Zurück", next: "Weiter",
-      q1: "Wie viele Units verwaltest du?", h1: "Units = buchbare Zimmer oder Villen.",
+      q1: "Wie viele Units verwaltest du?", h1: "Units = Zimmer, Villen, Apartments usw.",
       units: [["1-4","1–4"],["5-19","5–19"],["20-49","20–49"],["50+","50+"],["none","Ich vermiete nicht","Investor, Agentur, Dienstleister"]],
       qL: "Zeig uns eines deiner Inserate", hL: "Dann sparst du dir weitere Fragen.",
       howto: ["Öffne dein Inserat in der Airbnb-App.", "Tippe auf Teilen und dann auf Link kopieren.", "Komm zurück und tippe auf Einfügen."],
@@ -358,15 +374,17 @@ body.embed .event-tag { text-align: left; }
       eName: "Trag deinen Namen ein.", eEmail: "Diese E-Mail-Adresse stimmt nicht. Prüf sie bitte.",
       eWa: "Trag deine Nummer mit Ländervorwahl ein, z. B. +62 812 …", eTerms: "Bestätige die Teilnahmebedingungen, um teilzunehmen.",
       okH: "Du bist dabei.", okLbl: "Deine Losnummer", okDraw: "Ziehung {d} · {b}",
-      okNote: "Wir melden uns per {c} mit deiner Bestätigung und zwei, drei kurzen Fragen. Komm gern am Stand vorbei.",
+      okNote: "Wir melden uns per {c} mit deiner Bestätigung und ein paar kurzen Fragen.",
       demo: "Demo-Termin buchen", again: "Nächste Person", reset: "Neuer Start in {s} s",
-      drawn: "Gezogen", days: "T", terms: "Teilnahmebedingungen", privacy: "Datenschutz"
+      drawn: "Gezogen", days: "T", terms: "Teilnahmebedingungen", privacy: "Datenschutz",
+      noahText: "Willst du mehr wissen und wir sind gerade besetzt? Schick Noah, unserem AI Customer Success Manager, eine WhatsApp, gern auch als Sprachnachricht. Er beantwortet dir alles, was du wissen willst.",
+      noahBtn: "WhatsApp an Noah", noahShort: "Fragen? WhatsApp an Noah", noahHello: "Hallo Noah, ich komme von {m}. "
     },
     en: {
       win: "Win", leadSub: "Three quick steps, about 20 seconds.",
       drawLbl: "Draw", leftLbl: "Time left",
       step: "Step {n} of {t}", back: "Back", next: "Next",
-      q1: "How many units do you manage?", h1: "Units = bookable rooms or villas.",
+      q1: "How many units do you manage?", h1: "Units = rooms, villas, apartments, etc.",
       units: [["1-4","1–4"],["5-19","5–19"],["20-49","20–49"],["50+","50+"],["none","I don’t rent out","Investor, agency, service provider"]],
       qL: "Show us one of your listings", hL: "That saves you further questions.",
       howto: ["Open your listing in the Airbnb app.", "Tap Share, then Copy link.", "Come back and tap Paste."],
@@ -384,9 +402,11 @@ body.embed .event-tag { text-align: left; }
       eName: "Enter your name.", eEmail: "That email address doesn’t look right. Please check it.",
       eWa: "Enter your number with country code, e.g. +62 812 …", eTerms: "Accept the terms to enter.",
       okH: "You’re in.", okLbl: "Your ticket number", okDraw: "Draw {d} · {b}",
-      okNote: "We’ll message you on {c} with your confirmation and two or three quick questions. Stop by the booth anytime.",
+      okNote: "We’ll message you on {c} with your confirmation and a few quick questions.",
       demo: "Book a demo", again: "Next person", reset: "Restarting in {s}s",
-      drawn: "Drawn", days: "d", terms: "Terms of participation", privacy: "Privacy"
+      drawn: "Drawn", days: "d", terms: "Terms of participation", privacy: "Privacy",
+      noahText: "Want to know more and we’re busy right now? Send Noah, our AI Customer Success Manager, a WhatsApp, voice messages welcome. He’ll answer anything you want to know.",
+      noahBtn: "WhatsApp Noah", noahShort: "Questions? WhatsApp Noah", noahHello: "Hi Noah, I’m coming from {m}. "
     }
   };
   const L = T[EV.lang] || T.de;
@@ -402,6 +422,12 @@ body.embed .event-tag { text-align: left; }
   $("#prizeTitle").textContent = EV.prize.title;
   $("#prizeDetail").textContent = EV.prize.detail;
   $("#terms").href = EV.termsUrl; $("#privacy").href = EV.privacyUrl;
+  /* Noah: WhatsApp an den AI Customer Success Manager, mit vorausgefüllter Begrüssung */
+  const NOAH = "41585909971", NOAH_LABEL = "+41 58 590 99 71";
+  const noahUrl = "https://wa.me/" + NOAH + "?text=" + encodeURIComponent(fmt(L.noahHello, { m: EV.name }));
+  $("#noahFoot").href = noahUrl; $("#noahFoot").textContent = L.noahShort;
+  const noahBlock = () => '<div class="noah"><p>' + esc(L.noahText) + '</p>' +
+    '<a class="btn ghost" href="' + esc(noahUrl) + '" target="_blank" rel="noopener">' + esc(L.noahBtn) + ' <small>' + NOAH_LABEL + '</small></a></div>';
   if (!EV.termsUrl) $("#terms").parentNode.remove();
   if (!EV.privacyUrl) $("#privacy").parentNode.remove();
 
@@ -455,7 +481,7 @@ body.embed .event-tag { text-align: left; }
   let A, stepIdx;
   const SS = "elev8_progress_" + slug;
   function persist() { try { sessionStorage.setItem(SS, JSON.stringify({ A, stepIdx })); } catch (e) {} }
-  function reset() { A = BLANK(); stepIdx = 0; try { sessionStorage.removeItem(SS); } catch (e) {} render(); }
+  function reset() { document.body.classList.remove("done"); A = BLANK(); stepIdx = 0; try { sessionStorage.removeItem(SS); } catch (e) {} render(); }
   function restore() {
     try { const o = JSON.parse(sessionStorage.getItem(SS)); if (o && o.A) { A = Object.assign(BLANK(), o.A); stepIdx = o.stepIdx || 0; render(); return true; } } catch (e) {}
     return false;
@@ -589,7 +615,7 @@ body.embed .event-tag { text-align: left; }
   }
 
   function success(lead) {
-    document.body.classList.add("started");
+    document.body.classList.add("started", "done");
     const chanName = (L.chans.find(c => c[0] === lead.preferred_channel) || [, ""])[1];
     entry.innerHTML = '<div class="step ticket">' +
       '<div class="stub"><p class="lbl">' + L.okLbl + '</p><p class="no">' + esc(lead.ticket) + '</p>' +
@@ -597,6 +623,7 @@ body.embed .event-tag { text-align: left; }
       '<h3>' + L.okH + '</h3><p class="note">' + esc(fmt(L.okNote, { c: chanName })) + '</p>' +
       (KIOSK ? '<button type="button" class="btn" id="againBtn">' + L.again + '</button><p class="kiosk-reset" id="kr"></p>'
              : '<a class="btn" href="' + esc(EV.demoUrl) + '" target="_blank" rel="noopener">' + L.demo + '</a>') +
+      noahBlock() +
       '</div>';
     if (EMBED) tell("scroll");
     else entry.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
@@ -651,7 +678,7 @@ body.embed .event-tag { text-align: left; }
   /* ---- Gewinnspiel beendet ---- */
   if (!EV.open || (drawDate && drawDate <= Date.now())) {
     entry.innerHTML = '<div class="closed"><h2>' + L.closedH + '</h2><p>' + L.closedP + '</p>' +
-      '<a class="btn" href="' + esc(EV.demoUrl) + '" target="_blank" rel="noopener">' + L.demo + '</a></div>';
+      '<a class="btn" href="' + esc(EV.demoUrl) + '" target="_blank" rel="noopener">' + L.demo + '</a>' + noahBlock() + '</div>';
     flush();
     return;
   }
