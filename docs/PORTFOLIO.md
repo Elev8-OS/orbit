@@ -59,7 +59,7 @@ Optional: `PORTFOLIO_CACHE_MINUTES` (Standard 60), `PORTFOLIO_LISTING_TAG` (Stan
 
 - `src/app/portfolio` – Seite, prüft Rolle; `src/components/portfolio/PortfolioApp.tsx` lädt das Modul aus `public/portfolio-app`
 - `public/portfolio-app/app.html`, `app.css`, `theme.css` – Markup und Design (Elevate: Tan `#cca67d`, Schwarz `#0e0e0e`)
-- `public/portfolio-app/app-a.min.js`, `app-b.min.js` – gebündeltes Dashboard inkl. Laufzeit (`dash`, `claude.use`) auf den Orbit-APIs
+- `public/portfolio-app/app-p0.min.js` … `app-p4.min.js` – Dashboard in sechs Teilen (p0 Konstanten, p1 Laufzeit `dash`/`claude.use` und Berechnungen, p2a/p2b Seiten mit gemeinsamem Script-Scope, p3 Zusatzfunktionen, p4 Export, Regionen-Umschalter und Start), in dieser Reihenfolge geladen
 - `src/app/api/portfolio/mdv/connect`, `callback`, `status` – Anmeldung bei myDataValue, Stand, Trennen (`src/lib/portfolio/mdvOauth.ts`)
 - `src/app/api/portfolio/data` – alle Datensätze; `docs/[collection]/[id]` – Kosten, Gemeinkosten, Ziele, Einstellungen; `reassess` – Neubeurteilung
 - `src/lib/portfolio` – Rollen, MCP-Client, Quellen und Cache, Dokumente
