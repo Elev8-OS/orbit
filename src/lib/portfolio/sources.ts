@@ -17,6 +17,8 @@ import {
   notesFromFeedback,
   pricelabsConfigured,
   pricelabsMonths,
+  matchProperty,
+  toChf,
   type RawIssue
 } from "@/lib/portfolio/live";
 
@@ -33,12 +35,13 @@ import {
 const CACHE_MINUTES = () => Number(process.env.PORTFOLIO_CACHE_MINUTES || 60);
 const RES_FROM = () => process.env.PORTFOLIO_RES_FROM || "2024-10-01";
 const RES_TO = () => process.env.PORTFOLIO_RES_TO || "2027-12-31";
-const TAG = () => process.env.PORTFOLIO_LISTING_TAG || "Swiss";
+/** Elev8-Tags der Regionen (kommagetrennt): Schweiz und Bali */
+const TAGS = () => (process.env.PORTFOLIO_LISTING_TAGS || `${process.env.PORTFOLIO_LISTING_TAG || "Swiss"},indonesia`).split(",").map((t) => t.trim()).filter(Boolean);
 
 export const elev8Configured = () => Boolean(process.env.ELEV8_MCP_TOKEN);
 export const mdvProxyConfigured = () => Boolean(process.env.MDV_MCP_URL && process.env.MDV_MCP_TOKEN);
 
-const KEEP = ["listing_name", "channel", "status", "check_in_date", "check_out_date", "booked_at", "nights", "number_of_guests", "number_of_adults", "number_of_childrens", "currency", "total_amount", "rating"] as const;
+const KEEP = ["listing_name", "pkey", "channel", "status", "check_in_date", "check_out_date", "booked_at", "nights", "number_of_guests", "number_of_adults", "number_of_childrens", "currency", "total_amount", "rating"] as const;
 const num = (v: unknown) => (v === null || v === undefined || v === "" ? null : Number(v));
 
 function rowsOf(payload: unknown): Record<string, unknown>[] {
@@ -54,9 +57,25 @@ async function elev8(tool: string, args: Record<string, unknown>) {
   return mcpCallTool(url, process.env.ELEV8_MCP_TOKEN ?? "", tool, args, 180_000);
 }
 
-/** Reservierungen (ohne Gästenamen und Reservierungs-IDs). */
+/** Reservierungen aller Regionen (ohne Gästenamen und Reservierungs-IDs). IDR-Beträge werden in CHF umgerechnet,
+ *  jede Reservierung erhält die Wohnung (pkey), auch bei umbenannten Listings. */
 async function fetchReservations() {
-  const rows = rowsOf(await elev8("get_reservations_by_period_by_tag", { date_field: "check_in", from_date: RES_FROM(), to_date: RES_TO(), listing_tag: TAG() }));
+  const rows: Record<string, unknown>[] = [];
+  for (const tag of TAGS()) {
+    rows.push(...rowsOf(await elev8("get_reservations_by_period_by_tag", { date_field: "check_in", from_date: RES_FROM(), to_date: RES_TO(), listing_tag: tag })));
+  }
+  let dropped = 0;
+  for (const r of rows) {
+    r.pkey = matchProperty(String(r.listing_name ?? ""));
+    const cur = String(r.currency ?? "CHF").toUpperCase();
+    if (cur === "IDR" || cur === "EUR") {
+      const chf = toChf(num(r.total_amount), cur);
+      if (chf === null) dropped++;
+      r.total_amount = chf === null ? null : Math.round(chf * 100) / 100;
+      r.currency = "CHF";
+    }
+  }
+  console.log(`[portfolio] elev8: ${rows.length} Reservierungen (${TAGS().join(", ")}), ${rows.filter((r) => !r.pkey).length} ohne Wohnung${dropped ? `, ${dropped} ohne Betrag` : ""}`);
   // Kalendernotizen aus dem Gäste-Feedback (enthält auch Blocker) separat ablegen; Gastnamen echter Buchungen werden nicht gespeichert
   try {
     const today = new Date();
