@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { CalendarCheck, Columns3, FileText, Settings, type LucideIcon } from "lucide-react";
+import { CalendarCheck, CalendarDays, Columns3, FileText, Settings, type LucideIcon } from "lucide-react";
 import "./side-nav.css";
 
 /** Icons der Seitenleiste; neue Module ergänzen hier ihre Einträge. */
@@ -9,7 +9,8 @@ const ICONS: Record<string, LucideIcon> = {
   today: CalendarCheck,
   pipeline: Columns3,
   offers: FileText,
-  settings: Settings
+  settings: Settings,
+  events: CalendarDays
 };
 
 export type SideNavItem = { href: string; label: string; icon: keyof typeof ICONS | string };

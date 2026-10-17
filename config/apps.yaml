@@ -102,6 +102,20 @@ apps:
     requestableBy: [Orbit.Staff]
     embed: true
 
+  # Messen – direkt in Orbit gebaut (/messen). Gewinnspiel-Seiten für Messen anlegen; Leads gehen nach GHL.
+  # Die Landingpages (/m/<kurzadresse>) sind öffentlich. Rolle: App.Messen. Siehe docs/MESSEN.md.
+  - id: messen
+    name: { de: Messen, en: Trade fairs }
+    description:
+      de: Gewinnspiel-Seiten für Messen mit QR-Code, Leads direkt in GHL und Listen fürs Retargeting.
+      en: Prize draw pages for trade fairs with QR code, leads straight into GHL and retargeting lists.
+    url: https://myorbit.elev8-suite.com/messen
+    icon: Ticket
+    category: sales
+    roles: [App.Messen]
+    requestableBy: [Orbit.Staff]
+    embed: true
+
   # Partnerportal (orbit.elev8-suite.com, Repo Elev8-onboarding Zweig v4, Railway-Projekt "Orbit") – Verwaltung
   # der Sales Partner: Personen, Bewerbungen, Budgetanträge, Akademie-Inhalte, Lead Harvester, Ansicht als Partner.
   # Öffnet als Tab, Anmeldung über den Orbit-Pass (/api/auth/orbit prüft Pass und Rolle).
