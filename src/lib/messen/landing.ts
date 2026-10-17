@@ -133,6 +133,19 @@ header.top { display: flex; align-items: center; justify-content: space-between;
   .draw dt { font-size: .8125rem; }
   .draw dd { font-size: 1.375rem; }
 }
+/* Handy: Gewinn als eine Zeile, Ziehung und Countdown in einer Zeile, damit das Formular sofort Platz hat */
+@media (max-width: 899px) {
+  .hero h1 br, .hero .lead [data-t="leadSub"] { display: none; }
+  .hero h1 { font-size: clamp(1.45rem, 6.4vw, 1.9rem); line-height: 1.12; margin-bottom: .35rem; }
+  .hero h1 > span:first-child::after { content: " "; }
+  .hero .prize-bar { display: inline; margin-left: 0; padding: .02em .2em; }
+  .hero .lead { font-size: .8125rem; margin-bottom: .4rem; }
+  .draw { gap: .25rem 1.25rem; padding-top: .35rem; border-top-width: 1.5px; }
+  .draw > div { display: flex; align-items: baseline; gap: .35rem; }
+  .draw dd { font-size: .9375rem; }
+  footer .terms-link { display: none; } /* steht schon beim Häkchen im Formular */
+  footer { gap: .2rem .9rem; font-size: .7rem; }
+}
 /* Handy: Sobald jemand angefangen hat, schrumpft der Kopf auf eine Zeile */
 @media (max-width: 899px) {
   body.started .hero .lead, body.started .hero .draw, body.started .hero h1 br { display: none; }
@@ -154,6 +167,8 @@ header.top { display: flex; align-items: center; justify-content: space-between;
 .back[hidden] { display: none; }
 .q { font-family: var(--display); font-weight: 800; font-stretch: 88%; font-size: 1.4rem; line-height: 1.1; margin: 0 0 .25rem; }
 .hint { color: var(--muted); font-size: .875rem; margin: 0 0 .8rem; }
+.q1 { margin-bottom: .7rem; }
+@media (max-width: 899px) { .q1 { display: none; } }
 
 .opts { display: grid; gap: .5rem; }
 .opts.two { grid-template-columns: 1fr 1fr; }
@@ -187,6 +202,7 @@ header.top { display: flex; align-items: center; justify-content: space-between;
 .howto li { counter-increment: h; display: grid; grid-template-columns: 1.6rem 1fr; padding: .15rem 0; }
 .howto li::before { content: counter(h); width: 1.25rem; height: 1.25rem; border-radius: 50%; background: var(--text); color: var(--bg); font-size: .75rem; font-weight: 600; display: grid; place-items: center; margin-top: .15rem; }
 .ok-link { color: var(--text); font-size: .875rem; margin: .4rem 0 0; display: flex; gap: .4rem; align-items: center; }
+.in-pot { margin: 0 0 .45rem; font-weight: 600; }
 .ok-link::before { content: ""; width: .55rem; height: .55rem; background: var(--yellow); transform: rotate(45deg); flex: none; }
 .skip { display: block; width: 100%; background: none; border: 0; padding: .7rem 0 0; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 .err { color: var(--error); font-size: .8125rem; min-height: 0; margin: .2rem 0 0; }
@@ -259,8 +275,8 @@ body.embed .event-tag { text-align: left; }
   .wrap { padding-top: .6rem; }
   header.top { padding-bottom: .6rem; }
   .logo { width: 4.5rem; }
-  .hero h1 { font-size: clamp(1.7rem, 7.5vw, 2.2rem); margin-bottom: .45rem; }
-  .hero .lead { font-size: .875rem; margin-bottom: .5rem; }
+  .hero h1 { font-size: clamp(1.35rem, 6vw, 1.7rem); margin-bottom: .3rem; }
+  .hero .lead { margin-bottom: .3rem; }
   .layout { gap: .75rem; }
   .entry { padding: .9rem .9rem 1rem; }
   .q { font-size: 1.25rem; }
@@ -283,7 +299,7 @@ body.embed .event-tag { text-align: left; }
 /* Sehr kleine Handys (z. B. iPhone SE im Browser) */
 @media (max-width: 899px) and (max-height: 600px) {
   .hero .lead { display: none; }
-  .hero h1 { font-size: 1.6rem; }
+  .hero h1 { font-size: 1.3rem; }
   .event-tag { font-size: .75rem; }
   .howto { font-size: .8125rem; margin-bottom: .5rem; }
   .howto li { padding: 0; }
@@ -321,7 +337,7 @@ body.embed .event-tag { text-align: left; }
   <footer>
     <span>© Elev8 Software AG</span>
     <a id="noahFoot" class="noah-foot" href="#" target="_blank" rel="noopener"></a>
-    <span class="links"><a id="terms" href="#" target="_blank" rel="noopener" data-t="terms"></a></span>
+    <span class="links terms-link"><a id="terms" href="#" target="_blank" rel="noopener" data-t="terms"></a></span>
     <span class="links"><a id="privacy" href="#" target="_blank" rel="noopener" data-t="privacy"></a></span>
   </footer>
 </div>
@@ -355,25 +371,26 @@ body.embed .event-tag { text-align: left; }
     de: {
       win: "Gewinne", leadSub: "Drei kurze Schritte, rund 20 Sekunden.",
       drawLbl: "Ziehung", leftLbl: "Noch",
-      step: "Schritt {n} von {t}", back: "Zurück", next: "Weiter",
-      q1: "Wie viele Units verwaltest du?", h1: "Units = Zimmer, Villen, Apartments usw.",
+      step: "Schritt {n} von {t}", back: "Zurück", next: "Weiter", finish: "Fertig",
+      q1: "Wer nimmt teil?",
+      inPot: "Du bist im Lostopf.",
+      q2: "{n}, wie viele Units verwaltest du?", h2: "Units = Zimmer, Villen, Apartments usw.",
       units: [["1-4","1–4"],["5-19","5–19"],["20-49","20–49"],["50+","50+"],["none","Ich vermiete nicht","Investor, Agentur, Dienstleister"]],
-      qL: "Zeig uns eines deiner Inserate", hL: "Dann sparst du dir weitere Fragen.",
+      qL: "Zeig uns ein Inserat, {n}", hL: "Dann sprechen wir am Stand direkt über deinen Betrieb.",
       howto: ["Öffne dein Inserat in der Airbnb-App.", "Tippe auf Teilen und dann auf Link kopieren.", "Komm zurück und tippe auf Einfügen."],
       fLink: "Airbnb-Link", paste: "Einfügen", linkOk: "Inserat erkannt", eLink: "Das ist kein Airbnb-Link. Kopier ihn aus der App über Teilen.",
       ePaste: "Einfügen hat nicht geklappt. Halte das Feld gedrückt und wähle Einfügen.", skip: "Habe gerade keins zur Hand",
-      qC: "Wohin schicken wir den Gewinn?",
       chans: [["whatsapp","WhatsApp"],["email","E-Mail"]],
       fName: "Name", fWa: "WhatsApp-Nummer", fEmail: "E-Mail",
       cTerms: "Ich akzeptiere die <a href=\"{t}\" target=\"_blank\" rel=\"noopener\">Teilnahmebedingungen</a>.",
-      cMarketing: "Elev8 darf mich kontaktieren und mir Werbung zeigen (freiwillig, jederzeit widerrufbar).",
+      cMarketing: "Elev8 darf mich kontaktieren und mir Werbung zeigen (freiwillig, widerrufbar).",
       closedH: "Das Gewinnspiel ist beendet.", closedP: "Danke fürs Vorbeischauen. Elev8 zeigen wir dir trotzdem gern.",
       cookie: "Wir nutzen Cookies von Meta, Google und LinkedIn, um dir später passende Elev8-Werbung zu zeigen. Das Gewinnspiel funktioniert auch ohne.",
       cookieYes: "Einverstanden", cookieNo: "Nur notwendige",
-      submit: "Teilnehmen", sending: "Wird gesendet …",
+      submit: "Teilnehmen", sending: "Einen Moment …",
       eName: "Trag deinen Namen ein.", eEmail: "Diese E-Mail-Adresse stimmt nicht. Prüf sie bitte.",
       eWa: "Trag deine Nummer mit Ländervorwahl ein, z. B. +62 812 …", eTerms: "Bestätige die Teilnahmebedingungen, um teilzunehmen.",
-      okH: "Du bist dabei.", okLbl: "Deine Losnummer", okDraw: "Ziehung {d} · {b}",
+      okH: "Danke, {n}. Du bist dabei.", okLbl: "Deine Losnummer", okDraw: "Ziehung {d} · {b}",
       okNote: "Wir melden uns per {c} mit deiner Bestätigung und ein paar kurzen Fragen.",
       demo: "Demo-Termin buchen", again: "Nächste Person", reset: "Neuer Start in {s} s",
       drawn: "Gezogen", days: "T", terms: "Teilnahmebedingungen", privacy: "Datenschutz",
@@ -383,14 +400,15 @@ body.embed .event-tag { text-align: left; }
     en: {
       win: "Win", leadSub: "Three quick steps, about 20 seconds.",
       drawLbl: "Draw", leftLbl: "Time left",
-      step: "Step {n} of {t}", back: "Back", next: "Next",
-      q1: "How many units do you manage?", h1: "Units = rooms, villas, apartments, etc.",
+      step: "Step {n} of {t}", back: "Back", next: "Next", finish: "Done",
+      q1: "Who’s taking part?",
+      inPot: "You’re in the draw.",
+      q2: "{n}, how many units do you manage?", h2: "Units = rooms, villas, apartments, etc.",
       units: [["1-4","1–4"],["5-19","5–19"],["20-49","20–49"],["50+","50+"],["none","I don’t rent out","Investor, agency, service provider"]],
-      qL: "Show us one of your listings", hL: "That saves you further questions.",
+      qL: "Show us a listing, {n}", hL: "Then we can talk about your business right at the booth.",
       howto: ["Open your listing in the Airbnb app.", "Tap Share, then Copy link.", "Come back and tap Paste."],
       fLink: "Airbnb link", paste: "Paste", linkOk: "Listing recognised", eLink: "That’s not an Airbnb link. Copy it from the app via Share.",
       ePaste: "Pasting didn’t work. Long-press the field and choose Paste.", skip: "I don’t have one at hand",
-      qC: "Where do we send the prize?",
       chans: [["whatsapp","WhatsApp"],["email","Email"]],
       fName: "Name", fWa: "WhatsApp number", fEmail: "Email",
       cTerms: "I accept the <a href=\"{t}\" target=\"_blank\" rel=\"noopener\">terms of participation</a>.",
@@ -398,10 +416,10 @@ body.embed .event-tag { text-align: left; }
       closedH: "The draw is closed.", closedP: "Thanks for stopping by. We’re still happy to show you Elev8.",
       cookie: "We use cookies from Meta, Google and LinkedIn to show you relevant Elev8 ads later. The draw works without them.",
       cookieYes: "Accept", cookieNo: "Necessary only",
-      submit: "Enter the draw", sending: "Sending …",
+      submit: "Enter the draw", sending: "One moment …",
       eName: "Enter your name.", eEmail: "That email address doesn’t look right. Please check it.",
       eWa: "Enter your number with country code, e.g. +62 812 …", eTerms: "Accept the terms to enter.",
-      okH: "You’re in.", okLbl: "Your ticket number", okDraw: "Draw {d} · {b}",
+      okH: "Thanks, {n}. You’re in.", okLbl: "Your ticket number", okDraw: "Draw {d} · {b}",
       okNote: "We’ll message you on {c} with your confirmation and a few quick questions.",
       demo: "Book a demo", again: "Next person", reset: "Restarting in {s}s",
       drawn: "Drawn", days: "d", terms: "Terms of participation", privacy: "Privacy",
@@ -466,18 +484,16 @@ body.embed .event-tag { text-align: left; }
   }
   window.addEventListener("online", flush);
 
-  /* ---- Lead score: who the booth team should talk to first ---- */
-  function tierOf(a) {
-    const s = { "1-4": 1, "5-19": 2, "20-49": 3, "50+": 4 }[a.units] || 0;
-    return { score: s + (a.link ? 1 : 0), tier: s >= 3 ? "hot" : s === 2 ? "warm" : "cold" };
-  }
   function ticketNo() {
     const n = (crypto.getRandomValues(new Uint32Array(1))[0] % 900000) + 100000;
     return "E8-" + String(n).replace(/(\d{3})(\d{3})/, "$1 $2");
   }
+  function newToken() {
+    return Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2, "0")).join("");
+  }
 
-  /* ---- Flow: 1 Units · 2 Airbnb-Link · 3 Kontakt ---- */
-  const BLANK = () => ({ units: "", link: "", chan: "whatsapp" });
+  /* ---- Flow: 1 Kontakt (danach im Lostopf und gespeichert) · 2 Units · 3 Airbnb-Link ---- */
+  const BLANK = () => ({ name: "", chan: "whatsapp", wa: "", email: "", mkt: false, units: "", link: "", ticket: "", token: "", at: "" });
   let A, stepIdx;
   const SS = "elev8_progress_" + slug;
   function persist() { try { sessionStorage.setItem(SS, JSON.stringify({ A, stepIdx })); } catch (e) {} }
@@ -493,15 +509,35 @@ body.embed .event-tag { text-align: left; }
     const room = u.pathname.match(/\/rooms\/(?:plus\/)?(\d+)/), user = u.pathname.match(/\/users\/(?:show|profile)\/(\d+)/);
     return { url: u.origin + u.pathname, listing_id: room ? room[1] : "", host_id: user ? user[1] : "" };
   }
+  const first = () => esc(A.name.trim().split(/\s+/)[0] || "");
   const noHost = () => A.units === "none";
-  const go = d => { stepIdx += d; if (stepIdx === 1 && noHost()) stepIdx += d; render(); };
   const entry = $("#entry");
 
+  /* Der Lead wird nach Schritt 1 angelegt und danach ergänzt. Der Server erkennt ihn an Losnummer und Token. */
+  function payload(completed) {
+    const p = parseAirbnb(A.link) || {};
+    return {
+      ticket: A.ticket, edit_token: A.token, completed: completed,
+      slug: slug, website: ($("#fWeb") || {}).value || "",
+      name: A.name, preferred_channel: A.chan,
+      whatsapp: A.chan === "whatsapp" ? A.wa : "", email: A.chan === "email" ? A.email : "",
+      units: A.units, airbnb_url: A.link, airbnb_listing_id: p.listing_id || "", airbnb_host_id: p.host_id || "",
+      consent_terms: true, consent_marketing: A.mkt,
+      source: KIOSK ? "booth_tablet" : "qr_mobile",
+      utm_source: params.get("utm_source") || "", utm_medium: params.get("utm_medium") || "", utm_campaign: params.get("utm_campaign") || "",
+      lang: EV.lang, submitted_at: A.at
+    };
+  }
+  async function push(completed) {
+    const body = payload(completed);
+    if (!(await send(body))) { const list = load().filter(l => l.ticket !== body.ticket); list.push(body); save(list); }
+  }
+
   function header() {
-    const t = noHost() ? 2 : 3, n = noHost() && stepIdx === 2 ? 2 : stepIdx + 1;
+    const t = noHost() ? 2 : 3, n = Math.min(stepIdx + 1, t);
     return '<div class="progress" style="grid-template-columns:repeat(' + t + ',1fr)" aria-hidden="true">' +
       Array.from({ length: t }, (_, i) => '<i class="' + (i < n ? "on" : "") + '"></i>').join("") + '</div>' +
-      '<div class="step-meta"><span>' + fmt(L.step, { n, t }) + '</span><button type="button" class="back" ' + (stepIdx === 0 ? "hidden" : "") + '>' + L.back + '</button></div>';
+      '<div class="step-meta"><span>' + fmt(L.step, { n, t }) + '</span><button type="button" class="back" ' + (stepIdx < 2 ? "hidden" : "") + '>' + L.back + '</button></div>';
   }
   function optsHTML(list, key, cls) {
     return '<div class="opts ' + (cls || "") + '" role="group">' + list.map(o =>
@@ -510,35 +546,43 @@ body.embed .event-tag { text-align: left; }
   }
 
   const steps = [
-    () => '<h2 class="q">' + L.q1 + '</h2><p class="hint">' + L.h1 + '</p>' + optsHTML(L.units, "units", "two"),
-    () => '<h2 class="q">' + L.qL + '</h2><p class="hint">' + L.hL + '</p>' +
+    () => '<h2 class="q q1">' + L.q1 + '</h2>' +
+      '<div class="field"><label for="fName">' + L.fName + '</label><input id="fName" autocomplete="name" value="' + esc(A.name) + '"></div>' +
+      optsHTML(L.chans, "chan", "two").replace('class="opts two"', 'class="opts two" style="margin-bottom:.85rem"') +
+      '<div class="field" id="waField"' + (A.chan === "whatsapp" ? "" : " hidden") + '><label for="fWa">' + L.fWa + '</label><input id="fWa" type="tel" inputmode="tel" autocomplete="tel" placeholder="+62 812 …" value="' + esc(A.wa) + '"></div>' +
+      '<div class="field" id="mailField"' + (A.chan === "email" ? "" : " hidden") + '><label for="fEmail">' + L.fEmail + '</label><input id="fEmail" type="email" inputmode="email" autocomplete="email" autocapitalize="off" value="' + esc(A.email) + '"></div>' +
+      '<label class="check"><input type="checkbox" id="cTerms"><span>' + fmt(L.cTerms, { t: esc(EV.termsUrl) }) + '</span></label>' +
+      '<label class="check"><input type="checkbox" id="cMkt"' + (A.mkt ? " checked" : "") + '><span>' + L.cMarketing + '</span></label>' +
+      '<input id="fWeb" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">' +
+      '<p class="err" id="err" role="alert"></p>' +
+      '<button type="button" class="btn yellow" id="submitBtn">' + L.submit + '</button>',
+    () => '<p class="ok-link in-pot">' + esc(L.inPot) + '</p>' +
+      '<h2 class="q">' + fmt(L.q2, { n: first() }) + '</h2><p class="hint">' + L.h2 + '</p>' + optsHTML(L.units, "units", "two"),
+    () => '<h2 class="q">' + fmt(L.qL, { n: first() }) + '</h2><p class="hint">' + L.hL + '</p>' +
       '<ol class="howto">' + L.howto.map(h => "<li><span>" + esc(h) + "</span></li>").join("") + '</ol>' +
       '<div class="field"><label for="fLink">' + L.fLink + '</label><div class="paste">' +
       '<input id="fLink" type="text" inputmode="url" autocapitalize="off" spellcheck="false" autocomplete="off" placeholder="airbnb.com/rooms/…" value="' + esc(A.link) + '">' +
       '<button type="button" class="btn ghost" id="pasteBtn" style="width:auto;margin:0;padding:.75rem 1rem">' + L.paste + '</button></div>' +
       '<p class="ok-link" id="linkOk"' + (parseAirbnb(A.link) ? "" : " hidden") + '>' + L.linkOk + '</p><p class="err" id="lErr" role="alert"></p></div>' +
-      '<button type="button" class="btn" id="linkNext"' + (parseAirbnb(A.link) ? "" : " disabled") + '>' + L.next + '</button>' +
-      '<button type="button" class="skip" id="linkSkip">' + L.skip + '</button>',
-    () => '<h2 class="q" style="margin-bottom:.7rem">' + L.qC + '</h2>' +
-      '<div class="field"><label for="fName">' + L.fName + '</label><input id="fName" autocomplete="name"></div>' +
-      optsHTML(L.chans, "chan", "two").replace('class="opts two"', 'class="opts two" style="margin-bottom:.85rem"') +
-      '<div class="field" id="waField"' + (A.chan === "whatsapp" ? "" : " hidden") + '><label for="fWa">' + L.fWa + '</label><input id="fWa" type="tel" inputmode="tel" autocomplete="tel" placeholder="+62 812 …"></div>' +
-      '<div class="field" id="mailField"' + (A.chan === "email" ? "" : " hidden") + '><label for="fEmail">' + L.fEmail + '</label><input id="fEmail" type="email" inputmode="email" autocomplete="email" autocapitalize="off"></div>' +
-      '<label class="check"><input type="checkbox" id="cTerms"><span>' + fmt(L.cTerms, { t: esc(EV.termsUrl) }) + '</span></label>' +
-      '<label class="check"><input type="checkbox" id="cMkt"><span>' + L.cMarketing + '</span></label>' +
-      '<input id="fWeb" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">' +
-      '<p class="err" id="err" role="alert"></p>' +
-      '<button type="button" class="btn yellow" id="submitBtn">' + L.submit + '</button>'
+      '<button type="button" class="btn" id="linkNext"' + (parseAirbnb(A.link) ? "" : " disabled") + '>' + L.finish + '</button>' +
+      '<button type="button" class="skip" id="linkSkip">' + L.skip + '</button>'
   ];
+
+  async function finish() {
+    await push(true);
+    try { sessionStorage.removeItem(SS); } catch (e) {}
+    tell("complete", { units: A.units, airbnb: Boolean(A.link) });
+    success();
+  }
 
   function render() {
     entry.innerHTML = '<div class="step">' + header() + steps[stepIdx]() + '</div>';
     persist();
     document.body.classList.toggle("started", stepIdx > 0);
     tell("step", { step: stepIdx + 1 });
-    $(".back", entry).onclick = () => go(-1);
+    $(".back", entry).onclick = () => { stepIdx = 1; render(); };
     entry.querySelectorAll(".opt").forEach(b => b.onclick = () => choose(b));
-    const sb = $("#submitBtn"); if (sb) sb.onclick = submit;
+    const sb = $("#submitBtn"); if (sb) sb.onclick = submitContact;
     const li = $("#fLink");
     if (li) {
       const check = showErr => {
@@ -551,16 +595,16 @@ body.embed .event-tag { text-align: left; }
       };
       li.oninput = () => check(false);
       li.onchange = () => check(true);
-      li.addEventListener("paste", () => setTimeout(() => { if (check(true)) setTimeout(() => go(1), 450); }, 0));
+      li.addEventListener("paste", () => setTimeout(() => { if (check(true)) setTimeout(finish, 450); }, 0));
       $("#pasteBtn").onclick = async () => {
         let txt = "";
         try { if (navigator.clipboard && navigator.clipboard.readText) txt = await navigator.clipboard.readText(); } catch (e) {}
-        if (txt) { li.value = txt; if (check(true)) { setTimeout(() => go(1), 450); return; } }
+        if (txt) { li.value = txt; if (check(true)) { setTimeout(finish, 450); return; } }
         else { $("#lErr").textContent = L.ePaste; }
         li.focus(); li.select();
       };
-      $("#linkNext").onclick = () => go(1);
-      $("#linkSkip").onclick = () => { A.link = ""; go(1); };
+      $("#linkNext").onclick = finish;
+      $("#linkSkip").onclick = () => { A.link = ""; finish(); };
     }
   }
 
@@ -574,11 +618,13 @@ body.embed .event-tag { text-align: left; }
       (v === "whatsapp" ? $("#fWa") : $("#fEmail")).focus();
       return;
     }
-    if (v === "none") A.link = "";
-    setTimeout(() => go(1), 180);
+    // Units gewählt: Lead sofort ergänzen, damit die Angabe auch ohne letzten Schritt ankommt
+    if (noHost()) { A.link = ""; setTimeout(finish, 180); return; }
+    push(false);
+    setTimeout(() => { stepIdx = 2; render(); }, 180);
   }
 
-  async function submit() {
+  async function submitContact() {
     const name = $("#fName"), wa = $("#fWa"), email = $("#fEmail"), err = $("#err");
     [name, wa, email].forEach(i => i.removeAttribute("aria-invalid"));
     const waNum = wa.value.replace(/[^\d+]/g, "");
@@ -591,36 +637,21 @@ body.embed .event-tag { text-align: left; }
     if (msg) return;
 
     const btn = $("#submitBtn"); btn.disabled = true; btn.textContent = L.sending;
-    const s = tierOf(A), p = parseAirbnb(A.link) || {};
-    const lead = {
-      ticket: ticketNo(),
-      slug: slug, website: ($("#fWeb") || {}).value || "",
-      name: name.value.trim(),
-      preferred_channel: A.chan,
-      whatsapp: A.chan === "whatsapp" ? waNum : "",
-      email: A.chan === "email" ? email.value.trim().toLowerCase() : "",
-      units: A.units,
-      airbnb_url: A.link, airbnb_listing_id: p.listing_id || "", airbnb_host_id: p.host_id || "",
-      score: s.score, tier: s.tier,
-      consent_terms: true, consent_marketing: $("#cMkt").checked,
-      source: KIOSK ? "booth_tablet" : "qr_mobile",
-      utm_source: params.get("utm_source") || "", utm_medium: params.get("utm_medium") || "", utm_campaign: params.get("utm_campaign") || "",
-      lang: EV.lang, submitted_at: new Date().toISOString()
-    };
-    if (!(await send(lead))) { const list = load(); list.push(lead); save(list); }
+    A.name = name.value.trim(); A.wa = waNum; A.email = email.value.trim().toLowerCase(); A.mkt = $("#cMkt").checked;
+    if (!A.ticket) { A.ticket = ticketNo(); A.token = newToken(); A.at = new Date().toISOString(); }
+    await push(false);
     trackLead();
-    tell("lead", { tier: s.tier, units: A.units, channel: A.chan, airbnb: Boolean(A.link), consent_marketing: lead.consent_marketing });
-    try { sessionStorage.removeItem(SS); } catch (e) {}
-    success(lead);
+    tell("lead", { channel: A.chan, consent_marketing: A.mkt });
+    stepIdx = 1; render();
   }
 
-  function success(lead) {
+  function success() {
     document.body.classList.add("started", "done");
-    const chanName = (L.chans.find(c => c[0] === lead.preferred_channel) || [, ""])[1];
+    const chanName = (L.chans.find(c => c[0] === A.chan) || [, ""])[1];
     entry.innerHTML = '<div class="step ticket">' +
-      '<div class="stub"><p class="lbl">' + L.okLbl + '</p><p class="no">' + esc(lead.ticket) + '</p>' +
+      '<div class="stub"><p class="lbl">' + L.okLbl + '</p><p class="no">' + esc(A.ticket) + '</p>' +
       '<p>' + esc(fmt(L.okDraw, { d: drawText, b: EV.booth })) + '</p></div>' +
-      '<h3>' + L.okH + '</h3><p class="note">' + esc(fmt(L.okNote, { c: chanName })) + '</p>' +
+      '<h3>' + fmt(L.okH, { n: first() }) + '</h3><p class="note">' + esc(fmt(L.okNote, { c: chanName })) + '</p>' +
       (KIOSK ? '<button type="button" class="btn" id="againBtn">' + L.again + '</button><p class="kiosk-reset" id="kr"></p>'
              : '<a class="btn" href="' + esc(EV.demoUrl) + '" target="_blank" rel="noopener">' + L.demo + '</a>') +
       noahBlock() +
