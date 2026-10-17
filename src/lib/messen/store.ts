@@ -14,6 +14,7 @@ export type MesseEvent = {
   demoUrl: string;
   termsUrl: string;
   privacyUrl: string;
+  websiteUrl: string;
   metaPixelId: string;
   googleTagId: string;
   linkedinPartnerId: string;
@@ -65,6 +66,7 @@ function toEvent(r: Row): MesseEvent {
     demoUrl: String(r.demo_url ?? ""),
     termsUrl: String(r.terms_url ?? ""),
     privacyUrl: String(r.privacy_url ?? ""),
+    websiteUrl: String(r.website_url ?? ""),
     metaPixelId: String(r.meta_pixel_id ?? ""),
     googleTagId: String(r.google_tag_id ?? ""),
     linkedinPartnerId: String(r.linkedin_partner_id ?? ""),
@@ -155,7 +157,7 @@ export async function updateEvent(id: string, e: EventInput): Promise<void> {
     UPDATE messe_events SET
       slug = ${e.slug}, name = ${e.name}, lang = ${e.lang}, dates_label = ${e.datesLabel}, booth = ${e.booth},
       time_zone = ${e.timeZone}, prize_title = ${e.prizeTitle}, prize_detail = ${e.prizeDetail}, draw_at = ${e.drawAt},
-      demo_url = ${e.demoUrl}, terms_url = ${e.termsUrl}, privacy_url = ${e.privacyUrl},
+      demo_url = ${e.demoUrl}, terms_url = ${e.termsUrl}, privacy_url = ${e.privacyUrl}, website_url = ${e.websiteUrl},
       meta_pixel_id = ${e.metaPixelId}, google_tag_id = ${e.googleTagId}, linkedin_partner_id = ${e.linkedinPartnerId},
       ghl_tags = ${sql.array(e.ghlTags)}, active = ${e.active}, updated_at = now()
     WHERE id = ${id}`;

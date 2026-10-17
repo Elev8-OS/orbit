@@ -65,6 +65,7 @@ export async function saveEventAction(_: FormState, form: FormData): Promise<For
   const demoUrl = str(form, "demoUrl");
   const termsUrl = str(form, "termsUrl");
   const privacyUrl = str(form, "privacyUrl");
+  const websiteUrl = str(form, "websiteUrl");
   const active = form.get("active") === "on";
 
   if (!name) return { error: "Gib der Messe einen Namen." };
@@ -72,7 +73,7 @@ export async function saveEventAction(_: FormState, form: FormData): Promise<For
   if (await slugTaken(slug, id)) return { error: `Die Kurzadresse „${slug}“ ist schon vergeben.` };
   if (!isTimeZone(timeZone)) return { error: "Wähle eine Zeitzone." };
   if (drawRaw && !drawAt) return { error: "Das Datum der Ziehung stimmt nicht." };
-  if (![demoUrl, termsUrl, privacyUrl].every(urlOk)) return { error: "Links müssen mit https:// beginnen." };
+  if (![demoUrl, termsUrl, privacyUrl, websiteUrl].every(urlOk)) return { error: "Links müssen mit https:// beginnen." };
   if (active) {
     const missing = [
       !str(form, "prizeTitle") && "Gewinn",
@@ -96,6 +97,7 @@ export async function saveEventAction(_: FormState, form: FormData): Promise<For
     demoUrl,
     termsUrl,
     privacyUrl,
+    websiteUrl,
     metaPixelId: str(form, "metaPixelId", 30).replace(/\D/g, ""),
     googleTagId: str(form, "googleTagId", 30).replace(/[^A-Za-z0-9-]/g, ""),
     linkedinPartnerId: str(form, "linkedinPartnerId", 20).replace(/\D/g, ""),
