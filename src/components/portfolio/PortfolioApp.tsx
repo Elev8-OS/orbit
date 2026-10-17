@@ -3,12 +3,14 @@
 import { useEffect, useRef, useState } from "react";
 
 /**
- * Lädt das Portfolio-Modul (public/portfolio-app): Markup, Styles und das gebündelte Dashboard-Skript (app-a: Laufzeit und Grundseiten, app-b: Zusatzfunktionen und Export).
+ * Lädt das Portfolio-Modul (public/portfolio-app): Markup, Styles und das Dashboard in sechs Teilen (APP_PARTS, Reihenfolge wichtig:
+ * p0 Konstanten, p1 Laufzeit und Berechnungen, p2a/p2b Seiten, p3 Zusatzfunktionen, p4 Export, Regionen-Umschalter und Start).
  * Die Daten kommen aus /api/portfolio/* – serverseitig mit den Zugängen aus Railway, nie im Browser.
  * d3 kommt fest versioniert mit Integritätsprüfung von jsDelivr.
  */
 const D3_URL = "https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js";
 const D3_SRI = "sha384-CjloA8y00+1SDAUkjs099PVfnY2KmDC2BZnws9kh8D/lX1s46w6EPhpXdqMfjK6i";
+const APP_PARTS = ["p0", "p1", "p2a", "p2b", "p3", "p4"];
 
 type Win = Window & { d3?: unknown; EV?: { booted?: boolean }; ORBIT_PORTFOLIO_CAN_EDIT?: boolean };
 
@@ -107,8 +109,7 @@ export function PortfolioApp({ canEdit, version }: { canEdit: boolean; version: 
         if (cancelled || !root.current) return;
         root.current.innerHTML = html;
         if (!w.d3) await loadScript(D3_URL, D3_SRI);
-        await loadScript(`/portfolio-app/app-a.min.js?v=${version}`);
-        await loadScript(`/portfolio-app/app-b.min.js?v=${version}`);
+        for (const part of APP_PARTS) await loadScript(`/portfolio-app/app-${part}.min.js?v=${version}`);
         if (!cancelled) setReady(true);
       } catch (err) {
         if (!cancelled) setError((err as Error).message);
