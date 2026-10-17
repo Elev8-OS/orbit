@@ -2,6 +2,7 @@ import { after } from "next/server";
 import { z } from "zod";
 import { getEventBySlug, upsertLead } from "@/lib/messen/store";
 import { syncLeadToGhl } from "@/lib/messen/ghl";
+import { notifyMake, type MesseWebhookEvent } from "@/lib/messen/webhook";
 
 export const dynamic = "force-dynamic";
 
@@ -123,6 +124,15 @@ export async function POST(req: Request) {
     editToken: d.edit_token
   });
 
-  if (result) after(() => syncLeadToGhl(result.id));
+  if (result) {
+    const events: MesseWebhookEvent[] = [];
+    if (result.created) events.push("lead.created");
+    if (result.becameComplete) events.push("lead.completed");
+    // Erst GHL (damit Make die Kontakt-ID bekommt), dann Make
+    after(async () => {
+      await syncLeadToGhl(result.id);
+      await notifyMake(result.id, events);
+    });
+  }
   return Response.json({ ok: true, duplicate: !result }, { headers });
 }
