@@ -2,6 +2,9 @@ import createNextIntlPlugin from "next-intl/plugin";
 
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
+// Domains, die die Messe-Landingpages (/m/…) einbetten dürfen, z. B. die WordPress-Website. Wird beim Build gelesen.
+const messenFrameAncestors = process.env.MESSEN_FRAME_ANCESTORS || "https://elev8-suite.com https://www.elev8-suite.com";
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -16,7 +19,7 @@ const nextConfig = {
     ];
     return [
       // Orbit selbst darf nirgends eingebettet werden
-      { source: "/((?!offerten|api/offerten|sales|api/sales|kunden|api/kunden|assistent|api/assistent|portfolio|api/portfolio|portfolio-app|messen|api/messen).*)", headers: [{ key: "X-Frame-Options", value: "DENY" }, ...common] },
+      { source: "/((?!offerten|api/offerten|sales|api/sales|kunden|api/kunden|assistent|api/assistent|portfolio|api/portfolio|portfolio-app|messen|api/messen|m/).*)", headers: [{ key: "X-Frame-Options", value: "DENY" }, ...common] },
       // Die Offerten-App läuft als Tab in Orbit (gleiche Domain) und öffnet PDFs in diesem Tab
       { source: "/offerten", headers: [{ key: "X-Frame-Options", value: "SAMEORIGIN" }, ...common] },
       { source: "/offerten/:path*", headers: [{ key: "X-Frame-Options", value: "SAMEORIGIN" }, ...common] },
@@ -30,6 +33,8 @@ const nextConfig = {
         source,
         headers: [{ key: "X-Frame-Options", value: "SAMEORIGIN" }, ...common]
       })),
+      // Messe-Landingpages: einbettbar nur in Orbit selbst und auf den Domains aus MESSEN_FRAME_ANCESTORS
+      { source: "/m/:path*", headers: [{ key: "Content-Security-Policy", value: `frame-ancestors 'self' ${messenFrameAncestors}` }, ...common] },
       // Service Worker immer frisch laden, damit Aktualisierungen sofort greifen
       { source: "/sw.js", headers: [{ key: "Cache-Control", value: "no-cache" }, { key: "Service-Worker-Allowed", value: "/" }] }
     ];
