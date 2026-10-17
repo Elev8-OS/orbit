@@ -90,10 +90,15 @@
 .ev .exitbox{border-left:4px solid var(--color-fg-muted)}
 @media (prefers-reduced-motion:no-preference){.ev .pop{animation:evpop var(--cds-dur-slow) var(--cds-ease-out)}@keyframes evpop{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}}
 
-/* Regionen-Umschalter */
-.ev .regsw{display:inline-flex;margin-top:.5rem;border:1px solid var(--color-border,rgba(204,166,125,.45));border-radius:999px;overflow:hidden}
-.ev .regsw button{font:inherit;font-size:.85rem;padding:.3rem .9rem;background:transparent;color:inherit;border:0;cursor:pointer}
-.ev .regsw button+button{border-left:1px solid var(--color-border,rgba(204,166,125,.45))}
-.ev .regsw button.on{background:#cca67d;color:#0e0e0e;font-weight:600}
-.ev .regsw button:focus-visible{outline:2px solid #cca67d;outline-offset:-2px}
-.ev[data-region="bali"] .only-ch{display:none}
+/* Titelblock: Orbit nutzt .ttl selbst (weisse Schrift) – Farben hier fest setzen */
+#dash-root .ev .brand .ttl{color:var(--color-fg)}
+#dash-root .ev .brand .ttl h1{color:var(--color-fg)}
+
+/* Regionen-Umschalter (Segment-Control) */
+#dash-root .ev .regsw{display:inline-flex;gap:4px;margin-top:14px;padding:4px;background:var(--color-panel);border:1px solid var(--color-border-line);border-radius:999px}
+#dash-root .ev .regsw button{flex:1 1 0;min-width:5.5rem;padding:7px 16px;border:0;border-radius:999px;background:transparent;color:var(--color-fg-muted);font:inherit;font-size:14px;font-weight:600;line-height:1.2;cursor:pointer;transition:background-color .15s,color .15s}
+#dash-root .ev .regsw button:hover{color:var(--color-fg)}
+#dash-root .ev .regsw button.on{background:#cca67d;color:#0e0e0e;box-shadow:0 1px 3px rgba(14,14,14,.18)}
+#dash-root .ev .regsw button:focus-visible{outline:2px solid #cca67d;outline-offset:2px}
+@media (max-width:560px){#dash-root .ev .regsw{display:flex;width:100%;box-sizing:border-box}#dash-root .ev .regsw button{min-width:0}}
+#dash-root .ev[data-region="bali"] .only-ch{display:none}
