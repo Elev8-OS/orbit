@@ -1,7 +1,7 @@
 # Messen (/messen)
 
 Gewinnspiel-Seiten für Messen. Pro Messe eine öffentliche Seite unter `/m/<kurzadresse>` mit einem
-Formular in drei Schritten (Units, Airbnb-Link, Kontakt). Jeder Lead landet in Orbit und als Kontakt in GHL.
+Formular in drei Schritten (Kontakt, Units, Airbnb-Link). Nach dem Kontakt ist der Lead im Lostopf. Jeder Lead landet in Orbit und als Kontakt in GHL.
 
 ## Ablauf
 
@@ -62,16 +62,34 @@ Die Variable wird beim Build gelesen; nach einer Änderung neu deployen.
 | Optional `MESSEN_FRAME_ANCESTORS` (Domains, die die Seite einbetten dürfen, leerzeichengetrennt) | Railway, danach neu deployen |
 | Optional `MESSEN_ALLOWED_ORIGINS` (kommagetrennt), falls das Formular auf einer anderen Domain eingebettet wird | Railway |
 | Optional `MESSEN_ROLE` (Standard `App.Messen`) | Railway |
+| Optional `MESSEN_WEBHOOK_URL`: Make-Webhook für Bestätigung, Nachfassen und AirROI (siehe unten) | Railway |
 
-Die Tabellen legen die Migrationen `014_messen.sql` und `015_messen_website.sql` beim Start an.
+Die Tabellen legen die Migrationen `014` bis `016` (`db/migrations/01x_messen*.sql`) beim Start an.
 
 Der QR-Code wird über api.qrserver.com erzeugt; übergeben wird nur der öffentliche Link.
 
 **Rechtliches:** Text der Einwilligung („… und mir passende Werbung zeigen“), Cookie-Hinweis und
 Teilnahmebedingungen vor dem ersten Einsatz prüfen lassen.
 
+## Make: Bestätigung, Nachfassen, AirROI
+
+Orbit meldet jeden Lead an Make, sobald `MESSEN_WEBHOOK_URL` gesetzt ist (Railway-Variable, Adresse des Make-Webhooks „Orbit Messe-Leads“). Gemeldet wird erst, nachdem der Lead in GHL angelegt ist.
+
+| Ereignis | Wann | Make macht |
+|---|---|---|
+| `lead.created` | direkt nach Schritt 1 (Kontakt) | GHL-Kontakt holen, Bestätigung per WhatsApp oder E-Mail mit Losnummer und Noah-Link, Merker fürs Nachfassen in 24 h |
+| `lead.completed` | einmal, wenn Units (und ggf. Airbnb-Link) da sind | Merker löschen, Airbnb-Inserat mit AirROI anreichern (Notiz in GHL) |
+
+Szenarien in Make:
+- **Messe-Leads: Bestätigung, Nachfassen, AirROI (Orbit)** – reagiert sofort auf den Webhook
+- **Messe-Leads: Nachfassen nach 24 h (stündlich)** – schreibt Abbrechern, deren Merker im Datenspeicher „Messe-Nachfassen“ fällig ist
+
+Die Texte stehen im Code-Modul der Szenarien (Deutsch und Englisch). WhatsApp geht über die WhatsApp-Nummer in GHL. Meta lässt Nachrichten an Kontakte, die noch nicht selbst geschrieben haben, nur als freigegebene Vorlage zu.
+
+Inhalt der Meldung (JSON): `event`, `sent_at`, `lead` (id, ticket, name, first_name, channel, whatsapp, email, units, units_label, tier, airbnb_url, airbnb_listing_id, airbnb_host_id, consent_marketing, completed, lang, source, ghl_contact_id, created_at) und `messe` (slug, name, booth, dates, prize_title, prize_detail, draw_at, draw_text, time_zone, demo_url, page_url).
+
 ## Code
 
-`src/lib/messen` (Daten, GHL, Landingpage, Zeitzonen), `src/app/messen` (Verwaltung),
+`src/lib/messen` (Daten, GHL, Make-Webhook, Landingpage, Zeitzonen), `src/app/messen` (Verwaltung),
 `src/app/m/[slug]/route.ts` (öffentliche Seite), `src/app/api/messen` (Formular und Export),
 `src/components/messen` (Formulare).

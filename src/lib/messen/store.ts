@@ -185,9 +185,11 @@ export type NewLead = Omit<MesseLead, "id" | "ghlStatus" | "ghlContactId" | "ghl
 /**
  * Legt den Lead an oder ergänzt ihn (gleiche Losnummer). Ergänzen darf nur, wer das Token vom Anlegen kennt;
  * Kontaktangaben bleiben dabei unverändert. null: gleiche Losnummer ohne passendes Token (nichts geändert).
+ * created: neu angelegt. becameComplete: mit diesem Aufruf erstmals fertig ausgefüllt (für die Meldung an Make).
  */
-export async function upsertLead(l: NewLead): Promise<{ id: string; created: boolean } | null> {
+export async function upsertLead(l: NewLead): Promise<{ id: string; created: boolean; becameComplete: boolean } | null> {
   const [row] = await sql`
+    WITH prev AS (SELECT completed FROM messe_leads WHERE event_id = ${l.eventId} AND ticket = ${l.ticket})
     INSERT INTO messe_leads (
       event_id, ticket, name, preferred_channel, whatsapp, email, units, airbnb_url, airbnb_listing_id,
       airbnb_host_id, score, tier, consent_marketing, source, utm, lang, submitted_at, edit_token, completed
@@ -202,8 +204,10 @@ export async function upsertLead(l: NewLead): Promise<{ id: string; created: boo
       consent_marketing = EXCLUDED.consent_marketing, completed = messe_leads.completed OR EXCLUDED.completed,
       updated_at = now()
     WHERE messe_leads.edit_token <> '' AND messe_leads.edit_token = EXCLUDED.edit_token
-    RETURNING id, (xmax = 0) AS created`;
-  return row ? { id: String(row.id), created: Boolean(row.created) } : null;
+    RETURNING id, (xmax = 0) AS created, completed, COALESCE((SELECT completed FROM prev), false) AS was_completed`;
+  return row
+    ? { id: String(row.id), created: Boolean(row.created), becameComplete: Boolean(row.completed) && !row.was_completed }
+    : null;
 }
 
 export async function getLead(id: string): Promise<MesseLead | null> {
