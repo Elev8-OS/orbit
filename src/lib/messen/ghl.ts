@@ -3,17 +3,18 @@ import type { MesseEvent, MesseLead } from "./store";
 import { getEvent, getLead, setGhlResult } from "./store";
 
 /**
- * Überträgt einen Messe-Lead nach GoHighLevel: Kontakt anlegen oder ergänzen (Upsert über E-Mail/Telefon),
- * Tags setzen und eine Notiz mit allen Angaben anlegen. Nutzt GHL_API_TOKEN und GHL_LOCATION_ID wie Offerten.
+ * Überträgt einen Messe-Lead nach GoHighLevel. Nach dem ersten Schritt: Kontakt anlegen oder ergänzen
+ * (Upsert über E-Mail/Telefon) mit Tags und Notiz. Bei jeder Ergänzung: neue Tags dazu, und sobald alle
+ * Schritte durch sind, eine Notiz mit allen Angaben. Nutzt GHL_API_TOKEN und GHL_LOCATION_ID wie Offerten.
  * Nötige Scopes zusätzlich zu den Offerten-Scopes: keine (contacts.write ist schon nötig).
  */
 
 const BASE = "https://services.leadconnectorhq.com";
 const VERSION = "2021-07-28";
 
-async function ghl<T>(path: string, body: unknown): Promise<T> {
+async function ghl<T>(path: string, body: unknown, method: "POST" | "DELETE" = "POST"): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
-    method: "POST",
+    method,
     headers: {
       Authorization: `Bearer ${process.env.GHL_API_TOKEN}`,
       Version: VERSION,
@@ -39,11 +40,12 @@ export function leadTags(event: MesseEvent, lead: MesseLead): string[] {
   const tags = [
     "messe-lead",
     `messe-${tagSafe(event.slug)}`,
-    `tier-${lead.tier}`,
+    lead.units ? `tier-${lead.tier}` : "",
     lead.units ? `units-${tagSafe(lead.units)}` : "",
     `kanal-${lead.preferredChannel}`,
     lead.airbnbUrl ? "airbnb-link" : "",
     lead.consentMarketing ? "retargeting-ok" : "",
+    lead.completed ? "" : "messe-unvollstaendig",
     ...event.ghlTags
   ];
   return [...new Set(tags.filter(Boolean))];
@@ -53,7 +55,7 @@ const UNITS_LABEL: Record<string, string> = { "1-4": "1–4", "5-19": "5–19", 
 
 function noteBody(event: MesseEvent, lead: MesseLead): string {
   return [
-    `Messe-Lead: ${event.name}`,
+    lead.completed ? `Messe-Lead: ${event.name}` : `Messe-Lead (Kontakt, Angaben folgen): ${event.name}`,
     `Losnummer: ${lead.ticket}`,
     `Units: ${UNITS_LABEL[lead.units] ?? (lead.units || "–")}`,
     `Einstufung: ${lead.tier}`,
@@ -74,6 +76,16 @@ export async function syncLeadToGhl(leadId: string): Promise<void> {
   const event = await getEvent(lead.eventId);
   if (!event) return;
   try {
+    // Schon in GHL: nur Tags ergänzen, am Ende eine Notiz mit allen Angaben
+    if (lead.ghlContactId) {
+      await ghl(`/contacts/${encodeURIComponent(lead.ghlContactId)}/tags`, { tags: leadTags(event, lead) });
+      if (lead.completed) {
+        await ghl(`/contacts/${encodeURIComponent(lead.ghlContactId)}/tags`, { tags: ["messe-unvollstaendig"] }, "DELETE");
+        await ghl(`/contacts/${encodeURIComponent(lead.ghlContactId)}/notes`, { body: noteBody(event, lead) });
+      }
+      await setGhlResult(leadId, { status: "ok", contactId: lead.ghlContactId });
+      return;
+    }
     const [firstName, ...rest] = lead.name.trim().split(/\s+/);
     const upsert = await ghl<{ contact?: { id: string } }>("/contacts/upsert", {
       locationId: process.env.GHL_LOCATION_ID,
