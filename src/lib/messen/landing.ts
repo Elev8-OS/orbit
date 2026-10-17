@@ -198,11 +198,8 @@ header.top { display: flex; align-items: center; justify-content: space-between;
   background: var(--yellow); color: var(--on-yellow); border-radius: .9rem; padding: 1.25rem;
   position: relative; margin-bottom: 1.25rem;
 }
-.ticket .stub::after {
-  content: ""; position: absolute; left: 1rem; right: 1rem; bottom: 3.6rem;
-  border-top: 2px dashed rgba(0,0,0,.35);
-}
-.ticket .no { font-family: var(--display); font-weight: 900; font-stretch: 75%; font-size: 2.6rem; line-height: 1; letter-spacing: .02em; margin: .2rem 0 2.2rem; font-variant-numeric: tabular-nums; }
+.ticket .stub .no + p { border-top: 2px dashed rgba(0,0,0,.35); padding-top: .75rem; }
+.ticket .stub .no { font-family: var(--display); font-weight: 900; font-stretch: 75%; font-size: 2.6rem; line-height: 1; letter-spacing: .02em; margin: .2rem 0 1rem; font-variant-numeric: tabular-nums; }
 .ticket .stub p { margin: 0; font-size: .9375rem; }
 .ticket .stub .lbl { font-size: .8125rem; opacity: .7; }
 .ticket h3 { font-family: var(--display); font-stretch: 88%; font-weight: 800; font-size: 1.6rem; margin: 0 0 .4rem; line-height: 1.1; }
@@ -219,6 +216,13 @@ footer a { color: inherit; }
 /* Kiosk: bigger targets, no scrolling hero on tablets */
 body.kiosk .opt { min-height: 3.75rem; font-size: 1.0625rem; }
 body.kiosk .why, body.kiosk footer .links { display: none; }
+
+/* Eingebettet in die Website (WordPress): deren Kopf, Fuss, Cookie-Banner und Pixel gelten */
+body.embed { background: transparent; }
+body.embed .wrap { padding: .5rem 0 1rem; }
+body.embed .logo, body.embed footer { display: none; }
+body.embed header.top { justify-content: flex-start; padding-bottom: 1rem; }
+body.embed .event-tag { text-align: left; }
 
 .hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
 .closed h2 { font-family: var(--display); font-stretch: 88%; font-weight: 800; font-size: 1.6rem; line-height: 1.1; margin: 0 0 .5rem; }
@@ -282,8 +286,19 @@ body.kiosk .why, body.kiosk footer .links { display: none; }
   const params = new URLSearchParams(location.search);
   const slug = EV.slug;
   const KIOSK = params.get("kiosk") === "1";
+  const EMBED = params.get("embed") === "1" && window.parent !== window;
   const STORE = "elev8_leads_" + slug;
   if (KIOSK) document.body.classList.add("kiosk");
+  /* Eingebettet: Höhe und Ereignisse an die Website melden (ohne Personendaten) */
+  const tell = (type, data) => { if (EMBED) try { window.parent.postMessage(Object.assign({ type: "elev8-messe:" + type, slug: EV.slug }, data || {}), "*"); } catch (e) {} };
+  if (EMBED) {
+    document.body.classList.add("embed");
+    document.documentElement.dataset.theme = params.get("theme") === "dark" ? "dark" : "light";
+    const wrap = document.querySelector(".wrap");
+    const sendHeight = () => tell("height", { height: Math.ceil(wrap.getBoundingClientRect().height) });
+    if (window.ResizeObserver) new ResizeObserver(sendHeight).observe(wrap);
+    window.addEventListener("load", sendHeight);
+  }
 
   const T = {
     de: {
@@ -468,6 +483,7 @@ body.kiosk .why, body.kiosk footer .links { display: none; }
   function render() {
     entry.innerHTML = '<div class="step">' + header() + steps[stepIdx]() + '</div>';
     persist();
+    tell("step", { step: stepIdx + 1 });
     $(".back", entry).onclick = () => go(-1);
     entry.querySelectorAll(".opt").forEach(b => b.onclick = () => choose(b));
     const sb = $("#submitBtn"); if (sb) sb.onclick = submit;
@@ -541,6 +557,7 @@ body.kiosk .why, body.kiosk footer .links { display: none; }
     };
     if (!(await send(lead))) { const list = load(); list.push(lead); save(list); }
     trackLead();
+    tell("lead", { tier: s.tier, units: A.units, channel: A.chan, airbnb: Boolean(A.link), consent_marketing: lead.consent_marketing });
     try { sessionStorage.removeItem(SS); } catch (e) {}
     success(lead);
   }
@@ -554,7 +571,8 @@ body.kiosk .why, body.kiosk footer .links { display: none; }
       (KIOSK ? '<button type="button" class="btn" id="againBtn">' + L.again + '</button><p class="kiosk-reset" id="kr"></p>'
              : '<a class="btn" href="' + esc(EV.demoUrl) + '" target="_blank" rel="noopener">' + L.demo + '</a>') +
       '</div>';
-    entry.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+    if (EMBED) tell("scroll");
+    else entry.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
     if (KIOSK) {
       let sLeft = 12; const kr = $("#kr");
       const t = setInterval(() => { kr.textContent = fmt(L.reset, { s: sLeft }); if (--sLeft < 0) { clearInterval(t); reset(); } }, 1000);
@@ -564,7 +582,8 @@ body.kiosk .why, body.kiosk footer .links { display: none; }
 
   /* ---- Retargeting: Pixel laden erst nach Zustimmung ---- */
   const TR = EV.tracking || {};
-  const hasTracking = Boolean(TR.meta || TR.google || TR.linkedin);
+  // Eingebettet laden die Pixel der Website, nicht die eigenen
+  const hasTracking = !EMBED && Boolean(TR.meta || TR.google || TR.linkedin);
   const CK = "elev8_consent";
   let tracking = false;
   function addScript(src) { const s = document.createElement("script"); s.async = true; s.src = src; document.head.appendChild(s); }
