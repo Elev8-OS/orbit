@@ -76,7 +76,7 @@ export async function saveEventAction(_: FormState, form: FormData): Promise<For
   if (![demoUrl, termsUrl, privacyUrl, websiteUrl].every(urlOk)) return { error: "Links müssen mit https:// beginnen." };
   if (active) {
     const missing = [
-      !str(form, "prizeTitle") && "Gewinn",
+      !str(form, "prizeTitle") && !str(form, "prizeTitleEn") && "Gewinn",
       !drawAt && "Ziehung",
       !termsUrl && "Teilnahmebedingungen",
       !privacyUrl && "Datenschutz"
@@ -93,6 +93,8 @@ export async function saveEventAction(_: FormState, form: FormData): Promise<For
     timeZone,
     prizeTitle: str(form, "prizeTitle", 80),
     prizeDetail: str(form, "prizeDetail", 200),
+    prizeTitleEn: str(form, "prizeTitleEn", 80),
+    prizeDetailEn: str(form, "prizeDetailEn", 200),
     drawAt,
     demoUrl,
     termsUrl,
