@@ -105,7 +105,7 @@ export default async function MessePage({ params }: { params: Promise<{ id: stri
               <div className="me-row">
                 <Field label="Kurzadresse" name="slug" value={event.slug} hint={`Öffentlich unter /m/${event.slug}`} maxLength={60} required />
                 <label className="me-field">
-                  <span>Sprache der Seite</span>
+                  <span>Standardsprache</span>
                   <select name="lang" defaultValue={event.lang}>
                     <option value="de">Deutsch</option>
                     <option value="en">Englisch</option>
@@ -116,8 +116,18 @@ export default async function MessePage({ params }: { params: Promise<{ id: stri
 
             <fieldset>
               <legend>Gewinn und Ziehung</legend>
-              <Field label="Gewinn" name="prizeTitle" value={event.prizeTitle} placeholder="Traumurlaub in einer Luxusvilla auf Bali für 4 Personen" maxLength={80} />
-              <Field label="Details zum Gewinn" name="prizeDetail" value={event.prizeDetail} placeholder="Zwei Wochen bei Elevate Villas Bali, inkl. täglicher Reinigung. Ohne Flüge und Verpflegung." maxLength={200} />
+              <p className="me-muted">
+                Die Seite gibt es auf Deutsch und Englisch. Sie richtet sich nach der Browsersprache, sonst nach der Standardsprache;
+                Besucher können unten auf der Seite wechseln. Fehlt der Gewinn in einer Sprache, steht dort der Text der anderen.
+              </p>
+              <div className="me-row">
+                <Field label="Gewinn (Deutsch)" name="prizeTitle" value={event.prizeTitle} placeholder="Traumurlaub auf Bali" maxLength={80} />
+                <Field label="Gewinn (Englisch)" name="prizeTitleEn" value={event.prizeTitleEn} placeholder="Dream holiday in Bali" maxLength={80} />
+              </div>
+              <div className="me-row">
+                <Field label="Details (Deutsch)" name="prizeDetail" value={event.prizeDetail} placeholder="14 Tage für bis zu 4 Personen in einer Luxusvilla von Elevate Villas Bali." maxLength={200} />
+                <Field label="Details (Englisch)" name="prizeDetailEn" value={event.prizeDetailEn} placeholder="14 days for up to 4 people in a luxury villa by Elevate Villas Bali." maxLength={200} />
+              </div>
               <div className="me-row">
                 <Field label="Ziehung" name="drawAt" type="datetime-local" value={dateToLocalInput(event.drawAt, event.timeZone)} hint="Danach schliesst das Formular." />
                 <label className="me-field">
@@ -189,10 +199,13 @@ export default async function MessePage({ params }: { params: Promise<{ id: stri
           <section className="me-card">
             <h2>Auf der Website einbinden</h2>
             <p className="me-muted">
-              In WordPress eine Seite anlegen, einen Block „Individuelles HTML“ einfügen und diesen Code hineinkopieren. Die Seite
+              In WordPress pro Sprache eine Seite anlegen, einen Block „Individuelles HTML“ einfügen und den passenden Code hineinkopieren. Die Seite
               passt ihre Höhe selbst an und meldet jede Teilnahme als „Lead“ an Meta, Google und den Google Tag Manager der Website.
             </p>
-            <CopyCode code={embedSnippet(event.slug, event.name)} />
+            <h3>Englische Seite</h3>
+            <CopyCode code={embedSnippet(event.slug, event.name, "en")} />
+            <h3>Deutsche Seite</h3>
+            <CopyCode code={embedSnippet(event.slug, event.name, "de")} />
             {!event.websiteUrl && <p className="me-muted">Danach die Adresse der WordPress-Seite oben unter „Seite auf der Website“ eintragen.</p>}
           </section>
 
