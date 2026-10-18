@@ -1,4 +1,4 @@
-import { getEvent, getLead } from "./store";
+import { getEvent, getLead, prizeFor } from "./store";
 import { publicUrl } from "./urls";
 
 /**
@@ -52,8 +52,9 @@ export async function notifyMake(leadId: string, events: MesseWebhookEvent[]): P
       name: event.name,
       booth: event.booth,
       dates: event.datesLabel,
-      prize_title: event.prizeTitle,
-      prize_detail: event.prizeDetail,
+      // Gewinn in der Sprache, in der der Lead teilgenommen hat
+      prize_title: prizeFor(event, lead.lang === "en" ? "en" : "de").title,
+      prize_detail: prizeFor(event, lead.lang === "en" ? "en" : "de").detail,
       draw_at: event.drawAt ? event.drawAt.toISOString() : "",
       draw_text: drawText,
       time_zone: event.timeZone,

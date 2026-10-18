@@ -29,7 +29,7 @@ export function embedSnippet(slug: string, title: string, lang: "de" | "en"): st
 <script>
 (function () {
   var f = document.getElementById("elev8-messe");
-  var q = location.search.replace(/^\\?/, "");
+  var q = location.search.replace(/^\\\\?/, "");
   if (q) f.src += "&" + q;
   window.addEventListener("message", function (e) {
     if (e.origin !== "${origin}" || !e.data || typeof e.data.type !== "string") return;
