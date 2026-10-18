@@ -28,6 +28,9 @@ const lead = z.object({
   airbnb_url: z.string().max(300).optional().default(""),
   airbnb_listing_id: z.string().regex(/^\d{0,25}$/).optional().default(""),
   airbnb_host_id: z.string().regex(/^\d{0,25}$/).optional().default(""),
+  company: z.string().trim().max(120).optional().default(""),
+  pms: z.string().trim().max(60).optional().default(""),
+  quiz_answer: z.enum(["cleaning", "guide", "communication", "channel", "all", ""]).optional().default(""),
   consent_terms: z.literal(true),
   consent_marketing: z.boolean().optional().default(false),
   source: z.enum(["qr_mobile", "booth_tablet"]).optional().default("qr_mobile"),
@@ -37,6 +40,9 @@ const lead = z.object({
   lang: z.enum(["de", "en"]).optional().default("de"),
   submitted_at: z.string().max(40).optional()
 });
+
+// „Was ist die Elev8-Suite?“ – richtig ist „Alles davon“
+const QUIZ_CORRECT = "all";
 
 const UNIT_SCORE: Record<string, number> = { "1-4": 1, "5-19": 2, "20-49": 3, "50+": 4 };
 
@@ -111,6 +117,11 @@ export async function POST(req: Request) {
     airbnbUrl,
     airbnbListingId: airbnbUrl ? d.airbnb_listing_id : "",
     airbnbHostId: airbnbUrl ? d.airbnb_host_id : "",
+    company: d.company,
+    pms: d.pms,
+    // Die Quizantwort zählt nur beim Anlegen (Schritt 2); spätere Ergänzungen ändern sie nicht
+    quizAnswer: d.quiz_answer,
+    quizCorrect: d.quiz_answer ? d.quiz_answer === QUIZ_CORRECT : null,
     score: units + (airbnbUrl ? 1 : 0),
     tier: !d.units ? "open" : units >= 3 ? "hot" : units === 2 ? "warm" : "cold",
     consentMarketing: d.consent_marketing,
