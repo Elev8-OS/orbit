@@ -38,7 +38,7 @@ export type MesseLead = {
   airbnbHostId: string;
   company: string;
   pms: string;
-  /** Antwort auf die Quizfrage; quizCorrect null = ohne Quiz teilgenommen */
+  /** Antwort auf die Quizfrage, nur gespeichert; quizCorrect null = ohne Quiz teilgenommen */
   quizAnswer: string;
   quizCorrect: boolean | null;
   score: number;
@@ -245,13 +245,13 @@ export async function leadsWithGhlErrors(eventId: string): Promise<string[]> {
   return rows.map((r) => String(r.id));
 }
 
-/** Zieht zufällig einen Gewinner unter allen Leads mit richtiger Quizantwort (oder ohne Quiz), die noch nicht gezogen wurden. */
+/** Zieht zufällig einen Gewinner unter allen Leads, die noch nicht gezogen wurden (die Quizantwort spielt keine Rolle). */
 export async function drawWinner(eventId: string): Promise<MesseLead | null> {
   if (!/^[0-9a-f-]{36}$/i.test(eventId)) return null;
   const [row] = await sql`
     UPDATE messe_leads SET winner_at = now()
     WHERE id = (
-      SELECT id FROM messe_leads WHERE event_id = ${eventId} AND winner_at IS NULL AND quiz_correct IS NOT false
+      SELECT id FROM messe_leads WHERE event_id = ${eventId} AND winner_at IS NULL
       ORDER BY random() LIMIT 1
     )
     RETURNING *`;
