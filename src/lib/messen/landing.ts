@@ -172,6 +172,15 @@ header.top { display: flex; align-items: center; justify-content: space-between;
 
 .opts { display: grid; gap: .5rem; }
 .opts.two { grid-template-columns: 1fr 1fr; }
+.opts.four { grid-template-columns: repeat(4, 1fr); }
+.opts.four .opt, .chips .opt { text-align: center; min-height: 2.6rem; padding: .5rem .4rem; }
+.chips { display: flex; flex-wrap: wrap; gap: .35rem; }
+.chips .opt { width: auto; flex: 1 0 auto; font-size: .8125rem; padding: .3rem .5rem; min-height: 2.2rem; }
+.sub-q { font-size: .8125rem; font-weight: 600; margin: .75rem 0 .35rem; }
+.opt.wide { display: flex; align-items: baseline; gap: .5rem; flex-wrap: wrap; min-height: 2.6rem; padding: .5rem .8rem; }
+.opt.wide small { margin: 0; display: inline; }
+.sub-q span { color: var(--muted); font-weight: 400; }
+.quiz .opt { min-height: 2.75rem; }
 .opt {
   text-align: left; width: 100%; padding: .7rem .9rem; border-radius: .75rem;
   border: 1.5px solid var(--line); background: var(--bg); cursor: pointer;
@@ -203,6 +212,10 @@ header.top { display: flex; align-items: center; justify-content: space-between;
 .howto li::before { content: counter(h); width: 1.25rem; height: 1.25rem; border-radius: 50%; background: var(--text); color: var(--bg); font-size: .75rem; font-weight: 600; display: grid; place-items: center; margin-top: .15rem; }
 .ok-link { color: var(--text); font-size: .875rem; margin: .4rem 0 0; display: flex; gap: .4rem; align-items: center; }
 .in-pot { margin: 0 0 .45rem; font-weight: 600; }
+.answer { background: var(--bg); border: 1.5px solid var(--line); border-radius: .9rem; padding: .9rem 1rem; margin-bottom: 1rem; }
+.answer .lbl { font-size: .8125rem; color: var(--muted); margin: 0; }
+.answer .val { font-family: var(--display); font-weight: 800; font-stretch: 88%; font-size: 1.35rem; margin: .1rem 0 .35rem; }
+.answer p { margin: 0; font-size: .875rem; }
 .ok-link::before { content: ""; width: .55rem; height: .55rem; background: var(--yellow); transform: rotate(45deg); flex: none; }
 .skip { display: block; width: 100%; background: none; border: 0; padding: .7rem 0 0; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 .err { color: var(--error); font-size: .8125rem; min-height: 0; margin: .2rem 0 0; }
@@ -377,7 +390,14 @@ body.embed .event-tag { text-align: left; }
 
   const T = {
     de: {
-      win: "Gewinne", leadSub: "Drei kurze Schritte, rund 20 Sekunden.",
+      win: "Gewinne", leadSub: "Eine Frage, ein paar Angaben, rund 30 Sekunden.",
+      qQ: "Was ist die Elev8-Suite?", hQ: "Tipp die richtige Antwort an.",
+      quiz: [["cleaning","Eine Reinigungs-App"],["guide","Ein Gästeguide"],["communication","Ein Kommunikations-Tool"],["channel","Ein Channel Manager"],["all","Alles davon"]],
+      fCompany: "Firma", optional: "optional", qPms: "Welches PMS nutzt du?", pmsOther: "Welches?",
+      pms: [["Guesty","Guesty"],["Hostaway","Hostaway"],["Lodgify","Lodgify"],["Smoobu","Smoobu"],["Cloudbeds","Cloudbeds"],["none","Keins"],["other","Anderes"]],
+      eUnits: "Wähl aus, wie viele Units du verwaltest.",
+      wrongH: "Danke, {n}.", wrongLbl: "Die richtige Antwort", wrongVal: "Alles davon",
+      wrongP: "Elev8 vereint Reinigung, Gästeguide, Kommunikation und Channel Manager in einer Suite. In die Ziehung kommen nur richtige Antworten.",
       drawLbl: "Ziehung", leftLbl: "Noch",
       step: "Schritt {n} von {t}", back: "Zurück", next: "Weiter", finish: "Fertig",
       q1: "Wer nimmt teil?",
@@ -408,7 +428,14 @@ body.embed .event-tag { text-align: left; }
       noahShort: "Fragen? Noah hilft dir gern", altDemo: "oder Termin selbst im Kalender buchen"
     },
     en: {
-      win: "Win", leadSub: "Three quick steps, about 20 seconds.",
+      win: "Win", leadSub: "One question, a few details, about 30 seconds.",
+      qQ: "What is the Elev8-Suite?", hQ: "Tap the right answer.",
+      quiz: [["cleaning","A cleaning app"],["guide","A guest guide"],["communication","A communication tool"],["channel","A channel manager"],["all","All of the above"]],
+      fCompany: "Company", optional: "optional", qPms: "Which PMS do you use?", pmsOther: "Which one?",
+      pms: [["Guesty","Guesty"],["Hostaway","Hostaway"],["Lodgify","Lodgify"],["Smoobu","Smoobu"],["Cloudbeds","Cloudbeds"],["none","None"],["other","Other"]],
+      eUnits: "Choose how many units you manage.",
+      wrongH: "Thanks, {n}.", wrongLbl: "The right answer", wrongVal: "All of the above",
+      wrongP: "Elev8 combines cleaning, guest guide, communication and channel manager in one suite. Only correct answers go into the draw.",
       drawLbl: "Draw", leftLbl: "Time left",
       step: "Step {n} of {t}", back: "Back", next: "Next", finish: "Done",
       q1: "Who’s taking part?",
@@ -506,10 +533,12 @@ body.embed .event-tag { text-align: left; }
     return Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2, "0")).join("");
   }
 
-  /* ---- Flow: 1 Kontakt (danach im Lostopf und gespeichert) · 2 Units · 3 Airbnb-Link ---- */
-  const BLANK = () => ({ name: "", chan: "whatsapp", wa: "", email: "", mkt: false, units: "", link: "", ticket: "", token: "", at: "" });
+  /* ---- Flow: 1 Quiz · 2 Kontakt (danach gespeichert) · 3 Betrieb (Units, Firma, PMS) · 4 Airbnb-Link ---- */
+  const BLANK = () => ({ quiz: "", name: "", chan: "whatsapp", wa: "", email: "", mkt: false, units: "", company: "", pms: "", pmsOther: "", link: "", ticket: "", token: "", at: "" });
+  const quizOk = () => A.quiz === "all";
+  const pmsValue = () => A.pms === "other" ? A.pmsOther.trim() : A.pms;
   let A, stepIdx;
-  const SS = "elev8_progress_" + slug;
+  const SS = "elev8_progress2_" + slug;
   function persist() { try { sessionStorage.setItem(SS, JSON.stringify({ A, stepIdx })); } catch (e) {} }
   function reset() { document.body.classList.remove("done"); A = BLANK(); stepIdx = 0; try { sessionStorage.removeItem(SS); } catch (e) {} render(); }
   function restore() {
@@ -535,6 +564,7 @@ body.embed .event-tag { text-align: left; }
       slug: slug, website: ($("#fWeb") || {}).value || "",
       name: A.name, preferred_channel: A.chan,
       whatsapp: A.chan === "whatsapp" ? A.wa : "", email: A.chan === "email" ? A.email : "",
+      quiz_answer: A.quiz, company: A.company, pms: pmsValue(),
       units: A.units, airbnb_url: A.link, airbnb_listing_id: p.listing_id || "", airbnb_host_id: p.host_id || "",
       consent_terms: true, consent_marketing: A.mkt,
       source: KIOSK ? "booth_tablet" : "qr_mobile",
@@ -548,10 +578,11 @@ body.embed .event-tag { text-align: left; }
   }
 
   function header() {
-    const t = noHost() ? 2 : 3, n = Math.min(stepIdx + 1, t);
+    const t = noHost() ? 3 : 4, n = Math.min(stepIdx + 1, t);
+    const canBack = (stepIdx === 1 && !A.ticket) || stepIdx === 3;
     return '<div class="progress" style="grid-template-columns:repeat(' + t + ',1fr)" aria-hidden="true">' +
       Array.from({ length: t }, (_, i) => '<i class="' + (i < n ? "on" : "") + '"></i>').join("") + '</div>' +
-      '<div class="step-meta"><span>' + fmt(L.step, { n, t }) + '</span><button type="button" class="back" ' + (stepIdx < 2 ? "hidden" : "") + '>' + L.back + '</button></div>';
+      '<div class="step-meta"><span>' + fmt(L.step, { n, t }) + '</span><button type="button" class="back" ' + (canBack ? "" : "hidden") + '>' + L.back + '</button></div>';
   }
   function optsHTML(list, key, cls) {
     return '<div class="opts ' + (cls || "") + '" role="group">' + list.map(o =>
@@ -560,8 +591,10 @@ body.embed .event-tag { text-align: left; }
   }
 
   const steps = [
+    () => '<div class="quiz"><h2 class="q">' + L.qQ + '</h2><p class="hint">' + L.hQ + '</p>' + optsHTML(L.quiz, "quiz", "") + '</div>',
     () => '<h2 class="q q1">' + L.q1 + '</h2>' +
       '<div class="field"><label for="fName">' + L.fName + '</label><input id="fName" autocomplete="name" value="' + esc(A.name) + '"></div>' +
+      '<div class="field"><label for="fCompany">' + L.fCompany + ' <span>(' + L.optional + ')</span></label><input id="fCompany" autocomplete="organization" value="' + esc(A.company) + '"></div>' +
       optsHTML(L.chans, "chan", "two").replace('class="opts two"', 'class="opts two" style="margin-bottom:.85rem"') +
       '<div class="field" id="waField"' + (A.chan === "whatsapp" ? "" : " hidden") + '><label for="fWa">' + L.fWa + '</label><input id="fWa" type="tel" inputmode="tel" autocomplete="tel" placeholder="+62 812 …" value="' + esc(A.wa) + '"></div>' +
       '<div class="field" id="mailField"' + (A.chan === "email" ? "" : " hidden") + '><label for="fEmail">' + L.fEmail + '</label><input id="fEmail" type="email" inputmode="email" autocomplete="email" autocapitalize="off" value="' + esc(A.email) + '"></div>' +
@@ -570,8 +603,14 @@ body.embed .event-tag { text-align: left; }
       '<input id="fWeb" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">' +
       '<p class="err" id="err" role="alert"></p>' +
       '<button type="button" class="btn yellow" id="submitBtn">' + L.submit + '</button>',
-    () => '<p class="ok-link in-pot">' + esc(L.inPot) + '</p>' +
-      '<h2 class="q">' + fmt(L.q2, { n: first() }) + '</h2><p class="hint">' + L.h2 + '</p>' + optsHTML(L.units, "units", "two"),
+    () => (quizOk() ? '<p class="ok-link in-pot">' + esc(L.inPot) + '</p>' : '') +
+      '<h2 class="q">' + fmt(L.q2, { n: first() }) + '</h2><p class="hint">' + L.h2 + '</p>' +
+      optsHTML(L.units.slice(0, 4), "units", "four") +
+      optsHTML(L.units.slice(4), "units", "").replace('class="opts "', 'class="opts" style="margin-top:.4rem"').replace('class="opt"', 'class="opt wide"') +
+      '<p class="sub-q">' + L.qPms + ' <span>(' + L.optional + ')</span></p>' + optsHTML(L.pms, "pms", "").replace('class="opts "', 'class="chips"') +
+      '<div class="field" id="pmsOtherField" style="margin:.45rem 0 0"' + (A.pms === "other" ? "" : " hidden") + '><input id="fPmsOther" aria-label="' + L.pmsOther + '" placeholder="' + L.pmsOther + '" value="' + esc(A.pmsOther) + '"></div>' +
+      '<p class="err" id="uErr" role="alert"></p>' +
+      '<button type="button" class="btn" id="bizNext">' + L.next + '</button>',
     () => '<h2 class="q">' + fmt(L.qL, { n: first() }) + '</h2><p class="hint">' + L.hL + '</p>' +
       '<ol class="howto">' + L.howto.map(h => "<li><span>" + esc(h) + "</span></li>").join("") + '</ol>' +
       '<div class="field"><label for="fLink">' + L.fLink + '</label><div class="paste">' +
@@ -594,7 +633,9 @@ body.embed .event-tag { text-align: left; }
     persist();
     document.body.classList.toggle("started", stepIdx > 0);
     tell("step", { step: stepIdx + 1 });
-    $(".back", entry).onclick = () => { stepIdx = 1; render(); };
+    $(".back", entry).onclick = () => { stepIdx = stepIdx === 1 ? 0 : 2; render(); };
+    const bn = $("#bizNext"); if (bn) bn.onclick = submitBusiness;
+    ["fCompany", "fPmsOther"].forEach(id => { const el = $("#" + id); if (el) el.oninput = () => { A[id === "fCompany" ? "company" : "pmsOther"] = el.value; persist(); }; });
     entry.querySelectorAll(".opt").forEach(b => b.onclick = () => choose(b));
     const sb = $("#submitBtn"); if (sb) sb.onclick = submitContact;
     const li = $("#fLink");
@@ -632,10 +673,18 @@ body.embed .event-tag { text-align: left; }
       (v === "whatsapp" ? $("#fWa") : $("#fEmail")).focus();
       return;
     }
-    // Units gewählt: Lead sofort ergänzen, damit die Angabe auch ohne letzten Schritt ankommt
-    if (noHost()) { A.link = ""; setTimeout(finish, 180); return; }
+    if (k === "quiz") { persist(); setTimeout(() => { stepIdx = 1; render(); }, 180); return; }
+    if (k === "pms") { $("#pmsOtherField").hidden = v !== "other"; if (v === "other") $("#fPmsOther").focus(); persist(); return; }
+    if (k === "units") { $("#uErr").textContent = ""; persist(); }
+  }
+
+  // Betrieb fertig: Lead ergänzen, damit die Angaben auch ohne letzten Schritt ankommen
+  function submitBusiness() {
+    if (!A.units) { $("#uErr").textContent = L.eUnits; return; }
+    if ($("#fPmsOther")) A.pmsOther = $("#fPmsOther").value;
+    if (noHost()) { A.link = ""; finish(); return; }
     push(false);
-    setTimeout(() => { stepIdx = 2; render(); }, 180);
+    stepIdx = 3; render();
   }
 
   async function submitContact() {
@@ -651,21 +700,24 @@ body.embed .event-tag { text-align: left; }
     if (msg) return;
 
     const btn = $("#submitBtn"); btn.disabled = true; btn.textContent = L.sending;
-    A.name = name.value.trim(); A.wa = waNum; A.email = email.value.trim().toLowerCase(); A.mkt = $("#cMkt").checked;
+    A.name = name.value.trim(); A.company = $("#fCompany").value.trim(); A.wa = waNum; A.email = email.value.trim().toLowerCase(); A.mkt = $("#cMkt").checked;
     if (!A.ticket) { A.ticket = ticketNo(); A.token = newToken(); A.at = new Date().toISOString(); }
     await push(false);
     trackLead();
     tell("lead", { channel: A.chan, consent_marketing: A.mkt });
-    stepIdx = 1; render();
+    stepIdx = 2; render();
   }
 
   function success() {
     document.body.classList.add("started", "done");
     const chanName = (L.chans.find(c => c[0] === A.chan) || [, ""])[1];
-    entry.innerHTML = '<div class="step ticket">' +
-      '<div class="stub"><p class="lbl">' + L.okLbl + '</p><p class="no">' + esc(A.ticket) + '</p>' +
-      '<p>' + esc(fmt(L.okDraw, { d: drawText, b: EV.booth })) + '</p></div>' +
-      '<h3>' + fmt(L.okH, { n: first() }) + '</h3><p class="note">' + esc(fmt(L.okNote, { c: chanName })) + '</p>' +
+    const head = quizOk()
+      ? '<div class="stub"><p class="lbl">' + L.okLbl + '</p><p class="no">' + esc(A.ticket) + '</p>' +
+        '<p>' + esc(fmt(L.okDraw, { d: drawText, b: EV.booth })) + '</p></div>' +
+        '<h3>' + fmt(L.okH, { n: first() }) + '</h3><p class="note">' + esc(fmt(L.okNote, { c: chanName })) + '</p>'
+      : '<h3>' + fmt(L.wrongH, { n: first() }) + '</h3>' +
+        '<div class="answer"><p class="lbl">' + L.wrongLbl + '</p><p class="val">' + L.wrongVal + '</p><p>' + esc(L.wrongP) + '</p></div>';
+    entry.innerHTML = '<div class="step ticket">' + head +
       noahBlock() +
       (KIOSK ? '<button type="button" class="btn ghost" id="againBtn">' + L.again + '</button><p class="kiosk-reset" id="kr"></p>'
              : '<a class="alt-demo" href="' + esc(EV.demoUrl) + '" target="_blank" rel="noopener">' + L.altDemo + '</a>') +
