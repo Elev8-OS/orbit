@@ -1,4 +1,4 @@
-import type { MesseEvent } from "./store";
+import { prizeFor, type Lang, type MesseEvent } from "./store";
 
 /**
  * Öffentliche Landingpage eines Messe-Gewinnspiels. Eine eigenständige HTML-Seite (kein React),
@@ -14,15 +14,16 @@ function scriptJson(value: unknown): string {
 const escapeHtml = (s: string) =>
   s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] ?? c);
 
-export function landingConfig(event: MesseEvent, opts: { preview?: boolean } = {}) {
+export function landingConfig(event: MesseEvent, opts: { preview?: boolean; lang?: Lang } = {}) {
+  const lang = opts.lang ?? event.lang;
   return {
     slug: event.slug,
-    lang: event.lang,
+    lang,
     name: event.name,
     dates: event.datesLabel,
     booth: event.booth,
     timeZone: event.timeZone,
-    prize: { title: event.prizeTitle, detail: event.prizeDetail },
+    prize: prizeFor(event, lang),
     drawAt: event.drawAt ? event.drawAt.toISOString() : null,
     demoUrl: event.demoUrl || "https://elev8-suite.com",
     termsUrl: event.termsUrl,
@@ -34,10 +35,11 @@ export function landingConfig(event: MesseEvent, opts: { preview?: boolean } = {
   };
 }
 
-export function renderLanding(event: MesseEvent, opts: { preview?: boolean } = {}): string {
-  return TEMPLATE.replace("__CONFIG__", () => scriptJson(landingConfig(event, opts)))
+export function renderLanding(event: MesseEvent, opts: { preview?: boolean; lang?: Lang } = {}): string {
+  const config = landingConfig(event, opts);
+  return TEMPLATE.replace("__CONFIG__", () => scriptJson(config))
     .replace("__TITLE__", () => escapeHtml(`Elev8 – ${event.name}`))
-    .replace("__LANG__", () => event.lang);
+    .replace("__LANG__", () => config.lang);
 }
 
 const TEMPLATE = String.raw`<!DOCTYPE html>
@@ -247,6 +249,8 @@ header.top { display: flex; align-items: center; justify-content: space-between;
 footer { margin-top: .9rem; font-size: .75rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: .25rem 1.25rem; }
 footer a { color: inherit; }
 .noah-foot { font-weight: 600; }
+.lang-switch { margin-left: auto; font-weight: 600; }
+body.started .lang-switch { display: none; }
 /* Noah: AI Customer Success Manager auf WhatsApp */
 .noah { margin-top: 1rem; padding: .9rem; border-radius: .9rem; background: var(--bg); border: 1.5px solid var(--text); }
 .noah-head { display: flex; gap: .7rem; align-items: center; }
@@ -356,6 +360,7 @@ body.embed .event-tag { text-align: left; }
     <a id="noahFoot" class="noah-foot" href="#" target="_blank" rel="noopener"></a>
     <span class="links terms-link"><a id="terms" href="#" target="_blank" rel="noopener" data-t="terms"></a></span>
     <span class="links"><a id="privacy" href="#" target="_blank" rel="noopener" data-t="privacy"></a></span>
+    <a id="langSwitch" class="lang-switch" href="#"></a>
   </footer>
 </div>
 <div class="consent" id="consent" hidden role="region" aria-label="Cookies">
@@ -471,6 +476,9 @@ body.embed .event-tag { text-align: left; }
   $("#prizeTitle").textContent = EV.prize.title;
   $("#prizeDetail").textContent = EV.prize.detail;
   $("#terms").href = EV.termsUrl; $("#privacy").href = EV.privacyUrl;
+  /* Sprachwechsel (nur vor dem Start; eingebettet entscheidet die Website-Seite) */
+  { const other = EV.lang === "en" ? "de" : "en", u = new URL(location.href); u.searchParams.set("lang", other);
+    $("#langSwitch").href = u.toString(); $("#langSwitch").textContent = other === "de" ? "Deutsch" : "English"; $("#langSwitch").lang = other; }
   /* Noah: WhatsApp an den AI Customer Success Manager. Bewusst ohne vorausgefüllten Text, der Kunde schreibt frei. */
   const noahUrl = () => "https://wa.me/41585909971";
   const WA_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.8 11.9 11.9 0 0 0 4.6 4c1.7.7 2.4.8 3.2.7.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3Z"/></svg>';
