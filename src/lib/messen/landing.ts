@@ -212,10 +212,6 @@ header.top { display: flex; align-items: center; justify-content: space-between;
 .howto li::before { content: counter(h); width: 1.25rem; height: 1.25rem; border-radius: 50%; background: var(--text); color: var(--bg); font-size: .75rem; font-weight: 600; display: grid; place-items: center; margin-top: .15rem; }
 .ok-link { color: var(--text); font-size: .875rem; margin: .4rem 0 0; display: flex; gap: .4rem; align-items: center; }
 .in-pot { margin: 0 0 .45rem; font-weight: 600; }
-.answer { background: var(--bg); border: 1.5px solid var(--line); border-radius: .9rem; padding: .9rem 1rem; margin-bottom: 1rem; }
-.answer .lbl { font-size: .8125rem; color: var(--muted); margin: 0; }
-.answer .val { font-family: var(--display); font-weight: 800; font-stretch: 88%; font-size: 1.35rem; margin: .1rem 0 .35rem; }
-.answer p { margin: 0; font-size: .875rem; }
 .ok-link::before { content: ""; width: .55rem; height: .55rem; background: var(--yellow); transform: rotate(45deg); flex: none; }
 .skip { display: block; width: 100%; background: none; border: 0; padding: .7rem 0 0; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 .err { color: var(--error); font-size: .8125rem; min-height: 0; margin: .2rem 0 0; }
@@ -391,13 +387,11 @@ body.embed .event-tag { text-align: left; }
   const T = {
     de: {
       win: "Gewinne", leadSub: "Eine Frage, ein paar Angaben, rund 30 Sekunden.",
-      qQ: "Was ist die Elev8-Suite?", hQ: "Tipp die richtige Antwort an.",
+      qQ: "Was ist die Elev8-Suite?", hQ: "Tipp eine Antwort an.",
       quiz: [["cleaning","Eine Reinigungs-App"],["guide","Ein Gästeguide"],["communication","Ein Kommunikations-Tool"],["channel","Ein Channel Manager"],["all","Alles davon"]],
       fCompany: "Firma", optional: "optional", qPms: "Welches PMS nutzt du?", pmsOther: "Welches?",
       pms: [["Guesty","Guesty"],["Hostaway","Hostaway"],["Lodgify","Lodgify"],["Smoobu","Smoobu"],["Cloudbeds","Cloudbeds"],["none","Keins"],["other","Anderes"]],
       eUnits: "Wähl aus, wie viele Units du verwaltest.",
-      wrongH: "Danke, {n}.", wrongLbl: "Die richtige Antwort", wrongVal: "Alles davon",
-      wrongP: "Elev8 vereint Reinigung, Gästeguide, Kommunikation und Channel Manager in einer Suite. In die Ziehung kommen nur richtige Antworten.",
       drawLbl: "Ziehung", leftLbl: "Noch",
       step: "Schritt {n} von {t}", back: "Zurück", next: "Weiter", finish: "Fertig",
       q1: "Wer nimmt teil?",
@@ -429,13 +423,11 @@ body.embed .event-tag { text-align: left; }
     },
     en: {
       win: "Win", leadSub: "One question, a few details, about 30 seconds.",
-      qQ: "What is the Elev8-Suite?", hQ: "Tap the right answer.",
+      qQ: "What is the Elev8-Suite?", hQ: "Tap an answer.",
       quiz: [["cleaning","A cleaning app"],["guide","A guest guide"],["communication","A communication tool"],["channel","A channel manager"],["all","All of the above"]],
       fCompany: "Company", optional: "optional", qPms: "Which PMS do you use?", pmsOther: "Which one?",
       pms: [["Guesty","Guesty"],["Hostaway","Hostaway"],["Lodgify","Lodgify"],["Smoobu","Smoobu"],["Cloudbeds","Cloudbeds"],["none","None"],["other","Other"]],
       eUnits: "Choose how many units you manage.",
-      wrongH: "Thanks, {n}.", wrongLbl: "The right answer", wrongVal: "All of the above",
-      wrongP: "Elev8 combines cleaning, guest guide, communication and channel manager in one suite. Only correct answers go into the draw.",
       drawLbl: "Draw", leftLbl: "Time left",
       step: "Step {n} of {t}", back: "Back", next: "Next", finish: "Done",
       q1: "Who’s taking part?",
@@ -535,7 +527,6 @@ body.embed .event-tag { text-align: left; }
 
   /* ---- Flow: 1 Quiz · 2 Kontakt (danach gespeichert) · 3 Betrieb (Units, Firma, PMS) · 4 Airbnb-Link ---- */
   const BLANK = () => ({ quiz: "", name: "", chan: "whatsapp", wa: "", email: "", mkt: false, units: "", company: "", pms: "", pmsOther: "", link: "", ticket: "", token: "", at: "" });
-  const quizOk = () => A.quiz === "all";
   const pmsValue = () => A.pms === "other" ? A.pmsOther.trim() : A.pms;
   let A, stepIdx;
   const SS = "elev8_progress2_" + slug;
@@ -603,7 +594,7 @@ body.embed .event-tag { text-align: left; }
       '<input id="fWeb" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">' +
       '<p class="err" id="err" role="alert"></p>' +
       '<button type="button" class="btn yellow" id="submitBtn">' + L.submit + '</button>',
-    () => (quizOk() ? '<p class="ok-link in-pot">' + esc(L.inPot) + '</p>' : '') +
+    () => '<p class="ok-link in-pot">' + esc(L.inPot) + '</p>' +
       '<h2 class="q">' + fmt(L.q2, { n: first() }) + '</h2><p class="hint">' + L.h2 + '</p>' +
       optsHTML(L.units.slice(0, 4), "units", "four") +
       optsHTML(L.units.slice(4), "units", "").replace('class="opts "', 'class="opts" style="margin-top:.4rem"').replace('class="opt"', 'class="opt wide"') +
@@ -711,12 +702,10 @@ body.embed .event-tag { text-align: left; }
   function success() {
     document.body.classList.add("started", "done");
     const chanName = (L.chans.find(c => c[0] === A.chan) || [, ""])[1];
-    const head = quizOk()
-      ? '<div class="stub"><p class="lbl">' + L.okLbl + '</p><p class="no">' + esc(A.ticket) + '</p>' +
-        '<p>' + esc(fmt(L.okDraw, { d: drawText, b: EV.booth })) + '</p></div>' +
-        '<h3>' + fmt(L.okH, { n: first() }) + '</h3><p class="note">' + esc(fmt(L.okNote, { c: chanName })) + '</p>'
-      : '<h3>' + fmt(L.wrongH, { n: first() }) + '</h3>' +
-        '<div class="answer"><p class="lbl">' + L.wrongLbl + '</p><p class="val">' + L.wrongVal + '</p><p>' + esc(L.wrongP) + '</p></div>';
+    // Alle sind im Lostopf; ob die Quizantwort stimmt, zeigt die Seite bewusst nicht
+    const head = '<div class="stub"><p class="lbl">' + L.okLbl + '</p><p class="no">' + esc(A.ticket) + '</p>' +
+      '<p>' + esc(fmt(L.okDraw, { d: drawText, b: EV.booth })) + '</p></div>' +
+      '<h3>' + fmt(L.okH, { n: first() }) + '</h3><p class="note">' + esc(fmt(L.okNote, { c: chanName })) + '</p>';
     entry.innerHTML = '<div class="step ticket">' + head +
       noahBlock() +
       (KIOSK ? '<button type="button" class="btn ghost" id="againBtn">' + L.again + '</button><p class="kiosk-reset" id="kr"></p>'
