@@ -19,10 +19,11 @@ export function withParams(url: string, params: Record<string, string>): string 
   }
 }
 
-/** Code für einen HTML-Block in WordPress: bettet die Seite ein und meldet Leads an die Pixel der Website. */
-export function embedSnippet(slug: string, title: string): string {
+/** Code für einen HTML-Block in WordPress: bettet die Seite ein und meldet Leads an die Pixel der Website.
+ *  lang legt die Sprache fest (je eine WordPress-Seite pro Sprache). */
+export function embedSnippet(slug: string, title: string, lang: "de" | "en"): string {
   const origin = publicBase();
-  const src = publicUrl(slug, { embed: "1" });
+  const src = publicUrl(slug, { embed: "1", lang });
   const safeTitle = title.replace(/[&<>"]/g, "");
   return `<iframe id="elev8-messe" title="${safeTitle}" src="${src}" allow="clipboard-read; clipboard-write" style="display:block;width:100%;border:0;min-height:900px"></iframe>
 <script>

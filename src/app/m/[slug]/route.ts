@@ -1,5 +1,6 @@
 import { getEventBySlug } from "@/lib/messen/store";
 import { renderLanding } from "@/lib/messen/landing";
+import type { Lang } from "@/lib/messen/store";
 
 export const dynamic = "force-dynamic";
 
@@ -11,17 +12,28 @@ export const dynamic = "force-dynamic";
 export async function GET(req: Request, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const event = /^[a-z0-9-]{2,60}$/.test(slug) ? await getEventBySlug(slug) : null;
-  const preview = new URL(req.url).searchParams.get("vorschau") === "1";
+  const url = new URL(req.url);
+  const preview = url.searchParams.get("vorschau") === "1";
   if (!event || (!event.active && !preview)) {
     return new Response(notFound(), { status: 404, headers: { "Content-Type": "text/html; charset=utf-8" } });
   }
-  return new Response(renderLanding(event, { preview: !event.active }), {
+  return new Response(renderLanding(event, { preview: !event.active, lang: pickLang(url.searchParams.get("lang"), req.headers.get("accept-language"), event.lang) }), {
     headers: {
       "Content-Type": "text/html; charset=utf-8",
       "Cache-Control": "no-store",
       "X-Robots-Tag": "noindex"
     }
   });
+}
+
+/** Sprache: ?lang= gewinnt, sonst die erste passende Browsersprache, sonst die Standardsprache der Messe */
+function pickLang(param: string | null, accept: string | null, fallback: Lang): Lang {
+  if (param === "de" || param === "en") return param;
+  for (const part of (accept ?? "").split(",")) {
+    const code = part.trim().slice(0, 2).toLowerCase();
+    if (code === "de" || code === "en") return code;
+  }
+  return fallback;
 }
 
 function notFound(): string {
