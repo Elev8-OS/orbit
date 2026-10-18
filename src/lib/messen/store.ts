@@ -8,8 +8,11 @@ export type MesseEvent = {
   datesLabel: string;
   booth: string;
   timeZone: string;
+  /** Gewinn auf Deutsch; die _en-Felder auf Englisch. Leere Sprache übernimmt die andere. */
   prizeTitle: string;
   prizeDetail: string;
+  prizeTitleEn: string;
+  prizeDetailEn: string;
   drawAt: Date | null;
   demoUrl: string;
   termsUrl: string;
@@ -68,6 +71,8 @@ function toEvent(r: Row): MesseEvent {
     timeZone: String(r.time_zone ?? "Asia/Makassar"),
     prizeTitle: String(r.prize_title ?? ""),
     prizeDetail: String(r.prize_detail ?? ""),
+    prizeTitleEn: String(r.prize_title_en ?? ""),
+    prizeDetailEn: String(r.prize_detail_en ?? ""),
     drawAt: (r.draw_at as Date | null) ?? null,
     demoUrl: String(r.demo_url ?? ""),
     termsUrl: String(r.terms_url ?? ""),
@@ -113,6 +118,16 @@ function toLead(r: Row): MesseLead {
     winnerAt: (r.winner_at as Date | null) ?? null,
     createdAt: r.created_at as Date
   };
+}
+
+export type Lang = "de" | "en";
+
+/** Gewinn in der gewünschten Sprache; fehlt er dort, gilt die andere */
+export function prizeFor(e: MesseEvent, lang: Lang): { title: string; detail: string } {
+  const de = { title: e.prizeTitle, detail: e.prizeDetail };
+  const en = { title: e.prizeTitleEn, detail: e.prizeDetailEn };
+  const [first, other] = lang === "en" ? [en, de] : [de, en];
+  return first.title ? first : other;
 }
 
 // ── Messen ──────────────────────────────────────────────────
@@ -167,7 +182,8 @@ export async function updateEvent(id: string, e: EventInput): Promise<void> {
   await sql`
     UPDATE messe_events SET
       slug = ${e.slug}, name = ${e.name}, lang = ${e.lang}, dates_label = ${e.datesLabel}, booth = ${e.booth},
-      time_zone = ${e.timeZone}, prize_title = ${e.prizeTitle}, prize_detail = ${e.prizeDetail}, draw_at = ${e.drawAt},
+      time_zone = ${e.timeZone}, prize_title = ${e.prizeTitle}, prize_detail = ${e.prizeDetail},
+      prize_title_en = ${e.prizeTitleEn}, prize_detail_en = ${e.prizeDetailEn}, draw_at = ${e.drawAt},
       demo_url = ${e.demoUrl}, terms_url = ${e.termsUrl}, privacy_url = ${e.privacyUrl}, website_url = ${e.websiteUrl},
       meta_pixel_id = ${e.metaPixelId}, google_tag_id = ${e.googleTagId}, linkedin_partner_id = ${e.linkedinPartnerId},
       ghl_tags = ${sql.array(e.ghlTags)}, active = ${e.active}, updated_at = now()
