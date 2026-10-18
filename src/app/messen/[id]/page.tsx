@@ -82,7 +82,6 @@ export default async function MessePage({ params }: { params: Promise<{ id: stri
         <div><b>{count((l) => l.tier === "warm")}</b><span>Warm (5–19)</span></div>
         <div><b>{count((l) => Boolean(l.airbnbUrl))}</b><span>mit Airbnb-Link</span></div>
         <div><b>{count((l) => !l.completed)}</b><span>nicht fertig ausgefüllt</span></div>
-        <div><b>{count((l) => l.quizCorrect === false)}</b><span>Quiz falsch (nicht in der Ziehung)</span></div>
         <div><b>{count((l) => l.consentMarketing)}</b><span>Retargeting erlaubt</span></div>
       </div>
 
@@ -215,7 +214,7 @@ export default async function MessePage({ params }: { params: Promise<{ id: stri
               label={winners.length ? "Weiteren Gewinner ziehen" : "Gewinner ziehen"}
               pending="Wird gezogen …"
               variant="primary"
-              confirm={`Jetzt zufällig unter ${count((l) => !l.winnerAt && l.quizCorrect !== false)} Teilnehmenden mit richtiger Quizantwort ziehen?`}
+              confirm={`Jetzt zufällig unter ${leads.length - winners.length} Teilnehmenden ziehen?`}
             />
           </section>
 
@@ -270,7 +269,6 @@ export default async function MessePage({ params }: { params: Promise<{ id: stri
                         {l.ticket}
                         {l.winnerAt ? " · Gewinner" : ""}
                         {l.completed ? "" : " · nicht fertig ausgefüllt"}
-                        {l.quizCorrect === false ? " · Quiz falsch" : ""}
                       </div>
                     </td>
                     <td>

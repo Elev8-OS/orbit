@@ -118,7 +118,7 @@ export async function drawWinnerAction(_: FormState, form: FormData): Promise<Fo
   const id = str(form, "id", 40);
   const winner = await drawWinner(id);
   revalidatePath(`/messen/${id}`);
-  if (!winner) return { error: "Es gibt keine Teilnehmenden mit richtiger Quizantwort mehr, die noch nicht gezogen wurden." };
+  if (!winner) return { error: "Es gibt keine Teilnehmenden mehr, die noch nicht gezogen wurden." };
   return { ok: `Gezogen: ${winner.name} (${winner.ticket})` };
 }
 
