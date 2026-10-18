@@ -82,6 +82,7 @@ export default async function MessePage({ params }: { params: Promise<{ id: stri
         <div><b>{count((l) => l.tier === "warm")}</b><span>Warm (5–19)</span></div>
         <div><b>{count((l) => Boolean(l.airbnbUrl))}</b><span>mit Airbnb-Link</span></div>
         <div><b>{count((l) => !l.completed)}</b><span>nicht fertig ausgefüllt</span></div>
+        <div><b>{count((l) => l.quizCorrect === false)}</b><span>Quiz falsch (nicht in der Ziehung)</span></div>
         <div><b>{count((l) => l.consentMarketing)}</b><span>Retargeting erlaubt</span></div>
       </div>
 
@@ -116,8 +117,8 @@ export default async function MessePage({ params }: { params: Promise<{ id: stri
 
             <fieldset>
               <legend>Gewinn und Ziehung</legend>
-              <Field label="Gewinn" name="prizeTitle" value={event.prizeTitle} placeholder="12 Monate Elev8 kostenlos" maxLength={80} />
-              <Field label="Details zum Gewinn" name="prizeDetail" value={event.prizeDetail} placeholder="Für bis zu 20 Properties. Inklusive Onboarding." maxLength={200} />
+              <Field label="Gewinn" name="prizeTitle" value={event.prizeTitle} placeholder="Traumurlaub in einer Luxusvilla auf Bali für 4 Personen" maxLength={80} />
+              <Field label="Details zum Gewinn" name="prizeDetail" value={event.prizeDetail} placeholder="Zwei Wochen bei Elevate Villas Bali, inkl. täglicher Reinigung. Ohne Flüge und Verpflegung." maxLength={200} />
               <div className="me-row">
                 <Field label="Ziehung" name="drawAt" type="datetime-local" value={dateToLocalInput(event.drawAt, event.timeZone)} hint="Danach schliesst das Formular." />
                 <label className="me-field">
@@ -214,7 +215,7 @@ export default async function MessePage({ params }: { params: Promise<{ id: stri
               label={winners.length ? "Weiteren Gewinner ziehen" : "Gewinner ziehen"}
               pending="Wird gezogen …"
               variant="primary"
-              confirm={`Jetzt zufällig unter ${leads.length - winners.length} Teilnehmenden ziehen?`}
+              confirm={`Jetzt zufällig unter ${count((l) => !l.winnerAt && l.quizCorrect !== false)} Teilnehmenden mit richtiger Quizantwort ziehen?`}
             />
           </section>
 
@@ -251,7 +252,7 @@ export default async function MessePage({ params }: { params: Promise<{ id: stri
                   <th>Zeit</th>
                   <th>Name</th>
                   <th>Kontakt</th>
-                  <th>Units</th>
+                  <th>Units / PMS</th>
                   <th>Einstufung</th>
                   <th>Airbnb</th>
                   <th>GHL</th>
@@ -264,10 +265,12 @@ export default async function MessePage({ params }: { params: Promise<{ id: stri
                     <td className="me-nowrap">{formatInZone(l.createdAt, event.timeZone)}</td>
                     <td>
                       <span className="me-strong">{l.name}</span>
+                      {l.company && <div className="me-muted">{l.company}</div>}
                       <div className="me-muted">
                         {l.ticket}
                         {l.winnerAt ? " · Gewinner" : ""}
                         {l.completed ? "" : " · nicht fertig ausgefüllt"}
+                        {l.quizCorrect === false ? " · Quiz falsch" : ""}
                       </div>
                     </td>
                     <td>
@@ -280,7 +283,10 @@ export default async function MessePage({ params }: { params: Promise<{ id: stri
                       )}
                       <div className="me-muted">{l.consentMarketing ? "Werbung erlaubt" : "keine Werbung"}</div>
                     </td>
-                    <td>{l.units ? (UNITS[l.units] ?? l.units) : "–"}</td>
+                    <td>
+                      {l.units ? (UNITS[l.units] ?? l.units) : "–"}
+                      {l.pms && <div className="me-muted">{l.pms}</div>}
+                    </td>
                     <td>
                       <span className={`me-tier me-tier-${l.tier}`}>{l.tier === "open" ? "offen" : l.tier}</span>
                     </td>
