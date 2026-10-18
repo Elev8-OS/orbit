@@ -36,6 +36,11 @@ export type MesseLead = {
   airbnbUrl: string;
   airbnbListingId: string;
   airbnbHostId: string;
+  company: string;
+  pms: string;
+  /** Antwort auf die Quizfrage, nur gespeichert; quizCorrect null = ohne Quiz teilgenommen */
+  quizAnswer: string;
+  quizCorrect: boolean | null;
   score: number;
   tier: "hot" | "warm" | "cold" | "open";
   consentMarketing: boolean;
@@ -91,6 +96,10 @@ function toLead(r: Row): MesseLead {
     airbnbUrl: String(r.airbnb_url ?? ""),
     airbnbListingId: String(r.airbnb_listing_id ?? ""),
     airbnbHostId: String(r.airbnb_host_id ?? ""),
+    company: String(r.company ?? ""),
+    pms: String(r.pms ?? ""),
+    quizAnswer: String(r.quiz_answer ?? ""),
+    quizCorrect: r.quiz_correct === null || r.quiz_correct === undefined ? null : Boolean(r.quiz_correct),
     score: Number(r.score ?? 0),
     tier: r.tier === "hot" || r.tier === "warm" || r.tier === "open" ? r.tier : "cold",
     consentMarketing: Boolean(r.consent_marketing),
@@ -192,15 +201,18 @@ export async function upsertLead(l: NewLead): Promise<{ id: string; created: boo
     WITH prev AS (SELECT completed FROM messe_leads WHERE event_id = ${l.eventId} AND ticket = ${l.ticket})
     INSERT INTO messe_leads (
       event_id, ticket, name, preferred_channel, whatsapp, email, units, airbnb_url, airbnb_listing_id,
-      airbnb_host_id, score, tier, consent_marketing, source, utm, lang, submitted_at, edit_token, completed
+      airbnb_host_id, score, tier, consent_marketing, source, utm, lang, submitted_at, edit_token, completed,
+      company, pms, quiz_answer, quiz_correct
     ) VALUES (
       ${l.eventId}, ${l.ticket}, ${l.name}, ${l.preferredChannel}, ${l.whatsapp}, ${l.email}, ${l.units},
       ${l.airbnbUrl}, ${l.airbnbListingId}, ${l.airbnbHostId}, ${l.score}, ${l.tier}, ${l.consentMarketing},
-      ${l.source}, ${sql.json(l.utm)}, ${l.lang}, ${l.submittedAt}, ${l.editToken}, ${l.completed}
+      ${l.source}, ${sql.json(l.utm)}, ${l.lang}, ${l.submittedAt}, ${l.editToken}, ${l.completed},
+      ${l.company}, ${l.pms}, ${l.quizAnswer}, ${l.quizCorrect}
     )
     ON CONFLICT (event_id, ticket) DO UPDATE SET
       units = EXCLUDED.units, airbnb_url = EXCLUDED.airbnb_url, airbnb_listing_id = EXCLUDED.airbnb_listing_id,
       airbnb_host_id = EXCLUDED.airbnb_host_id, score = EXCLUDED.score, tier = EXCLUDED.tier,
+      company = EXCLUDED.company, pms = EXCLUDED.pms,
       consent_marketing = EXCLUDED.consent_marketing, completed = messe_leads.completed OR EXCLUDED.completed,
       updated_at = now()
     WHERE messe_leads.edit_token <> '' AND messe_leads.edit_token = EXCLUDED.edit_token
@@ -233,7 +245,7 @@ export async function leadsWithGhlErrors(eventId: string): Promise<string[]> {
   return rows.map((r) => String(r.id));
 }
 
-/** Zieht zufällig einen Gewinner unter allen Leads, die noch nicht gezogen wurden. */
+/** Zieht zufällig einen Gewinner unter allen Leads, die noch nicht gezogen wurden (die Quizantwort spielt keine Rolle). */
 export async function drawWinner(eventId: string): Promise<MesseLead | null> {
   if (!/^[0-9a-f-]{36}$/i.test(eventId)) return null;
   const [row] = await sql`

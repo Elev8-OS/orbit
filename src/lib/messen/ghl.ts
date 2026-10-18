@@ -12,7 +12,7 @@ import { getEvent, getLead, setGhlResult } from "./store";
 const BASE = "https://services.leadconnectorhq.com";
 const VERSION = "2021-07-28";
 
-async function ghl<T>(path: string, body: unknown, method: "POST" | "DELETE" = "POST"): Promise<T> {
+async function ghl<T>(path: string, body: unknown, method: "POST" | "PUT" | "DELETE" = "POST"): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     method,
     headers: {
@@ -46,6 +46,7 @@ export function leadTags(event: MesseEvent, lead: MesseLead): string[] {
     lead.airbnbUrl ? "airbnb-link" : "",
     lead.consentMarketing ? "retargeting-ok" : "",
     lead.completed ? "" : "messe-unvollstaendig",
+    lead.pms ? `pms-${tagSafe(lead.pms)}` : "",
     ...event.ghlTags
   ];
   return [...new Set(tags.filter(Boolean))];
@@ -57,13 +58,16 @@ function noteBody(event: MesseEvent, lead: MesseLead): string {
   return [
     lead.completed ? `Messe-Lead: ${event.name}` : `Messe-Lead (Kontakt, Angaben folgen): ${event.name}`,
     `Losnummer: ${lead.ticket}`,
+    lead.company ? `Firma: ${lead.company}` : "",
     `Units: ${UNITS_LABEL[lead.units] ?? (lead.units || "–")}`,
+    lead.pms ? `PMS: ${lead.pms}` : "",
+    lead.quizCorrect === null ? "" : `Quiz: ${lead.quizCorrect ? "richtig" : `falsch (${lead.quizAnswer})`}`,
     `Einstufung: ${lead.tier}`,
     `Kontakt bevorzugt: ${lead.preferredChannel === "whatsapp" ? "WhatsApp" : "E-Mail"}`,
     lead.airbnbUrl ? `Airbnb: ${lead.airbnbUrl}` : "Airbnb: kein Link",
     `Werbung/Updates erlaubt: ${lead.consentMarketing ? "ja" : "nein"}`,
     `Quelle: ${lead.source === "booth_tablet" ? "Tablet am Stand" : "QR-Code"}`
-  ].join("\n");
+  ].filter(Boolean).join("\n");
 }
 
 export async function syncLeadToGhl(leadId: string): Promise<void> {
@@ -81,6 +85,7 @@ export async function syncLeadToGhl(leadId: string): Promise<void> {
       await ghl(`/contacts/${encodeURIComponent(lead.ghlContactId)}/tags`, { tags: leadTags(event, lead) });
       if (lead.completed) {
         await ghl(`/contacts/${encodeURIComponent(lead.ghlContactId)}/tags`, { tags: ["messe-unvollstaendig"] }, "DELETE");
+        if (lead.company) await ghl(`/contacts/${encodeURIComponent(lead.ghlContactId)}`, { companyName: lead.company }, "PUT");
         await ghl(`/contacts/${encodeURIComponent(lead.ghlContactId)}/notes`, { body: noteBody(event, lead) });
       }
       await setGhlResult(leadId, { status: "ok", contactId: lead.ghlContactId });
@@ -92,6 +97,7 @@ export async function syncLeadToGhl(leadId: string): Promise<void> {
       firstName,
       lastName: rest.join(" ") || undefined,
       name: lead.name,
+      companyName: lead.company || undefined,
       email: lead.email || undefined,
       phone: lead.whatsapp || undefined,
       source: `Messe: ${event.name}`,

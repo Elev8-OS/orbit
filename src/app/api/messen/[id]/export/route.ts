@@ -27,12 +27,13 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     }
   } else {
     rows = [
-      ["Losnummer", "Zeit", "Name", "Kanal", "WhatsApp", "E-Mail", "Units", "Einstufung", "Score", "Airbnb", "Inserat-ID",
+      ["Losnummer", "Zeit", "Name", "Firma", "Kanal", "WhatsApp", "E-Mail", "Units", "PMS", "Quiz richtig", "Einstufung", "Score", "Airbnb", "Inserat-ID",
         "Werbung erlaubt", "Fertig ausgefüllt", "Quelle", "UTM Source", "UTM Medium", "UTM Campaign", "GHL", "Gewinner"]
     ];
     for (const l of leads) {
       rows.push([
-        l.ticket, l.createdAt.toISOString(), l.name, l.preferredChannel, l.whatsapp, l.email, l.units, l.tier, l.score,
+        l.ticket, l.createdAt.toISOString(), l.name, l.company, l.preferredChannel, l.whatsapp, l.email, l.units, l.pms,
+        l.quizCorrect === null ? "" : l.quizCorrect ? "ja" : "nein", l.tier, l.score,
         l.airbnbUrl, l.airbnbListingId, l.consentMarketing ? "ja" : "nein", l.completed ? "ja" : "nein", l.source, l.utm.source ?? "", l.utm.medium ?? "",
         l.utm.campaign ?? "", l.ghlStatus, l.winnerAt ? l.winnerAt.toISOString() : ""
       ]);
