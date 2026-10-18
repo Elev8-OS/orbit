@@ -40,7 +40,6 @@ export async function notifyMake(leadId: string, events: MesseWebhookEvent[]): P
       airbnb_host_id: lead.airbnbHostId,
       company: lead.company,
       pms: lead.pms,
-      quiz_correct: lead.quizCorrect !== false,
       consent_marketing: lead.consentMarketing,
       completed: lead.completed,
       lang: lead.lang === "en" ? "en" : "de",
