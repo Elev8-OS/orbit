@@ -3,6 +3,13 @@
 Gewinnspiel-Seiten für Messen. Pro Messe eine öffentliche Seite unter `/m/<kurzadresse>` mit einem
 Formular wie die Papierkarte am Stand: 1) Quizfrage „Was ist die Elev8-Suite?“ (richtig: „Alles davon“), 2) Kontakt mit Firma, 3) Units und PMS, 4) Airbnb-Link (optional). Nach dem Kontakt ist der Lead gespeichert und im Lostopf. Die Quizantwort wird nur gespeichert (Orbit, CSV, GHL-Notiz): Alle können gewinnen, und die Seite zeigt nicht, ob die Antwort stimmte. Jeder Lead landet in Orbit und als Kontakt in GHL.
 
+## Sprachen
+
+Jede Messe läuft auf Deutsch und Englisch. Gewinn und Details gibt es pro Sprache (fehlt eine, gilt die andere).
+Die Seite unter `/m/…` nimmt `?lang=de|en`, sonst die Browsersprache, sonst die Standardsprache der Messe; unten auf der
+Seite lässt sich vor dem Start wechseln. In WordPress pro Sprache eine Seite anlegen und den passenden Code einfügen
+(*Englische Seite*, *Deutsche Seite*). Leads behalten ihre Sprache: Bestätigung und Nachfassen aus Make kommen darin.
+
 ## Ablauf
 
 1. *Messen → Neue Messe*: Name eingeben, Orbit legt einen Entwurf an.
@@ -30,7 +37,7 @@ So läuft das Gewinnspiel auf einer normalen Seite eurer Website. Cookie-Banner,
 Tag Manager der Website gelten wie auf jeder anderen Seite, die Seite taucht also im Retargeting auf.
 
 1. In der Messe unter *Auf der Website einbinden* den Code kopieren.
-2. In WordPress eine Seite anlegen, Block *Individuelles HTML* (Elementor: Widget *HTML*) einfügen und den Code
+2. In WordPress pro Sprache eine Seite anlegen, Block *Individuelles HTML* (Elementor: Widget *HTML*) einfügen und den Code
    hineinkopieren. Das Speichern von `<script>` braucht die Rolle Administrator (Recht `unfiltered_html`).
 3. Die Adresse der WordPress-Seite in der Messe unter *Seite auf der Website* eintragen. Der QR-Code zeigt dann
    auf die WordPress-Seite, UTM-Parameter werden an das Gewinnspiel durchgereicht.
@@ -64,7 +71,7 @@ Die Variable wird beim Build gelesen; nach einer Änderung neu deployen.
 | Optional `MESSEN_ROLE` (Standard `App.Messen`) | Railway |
 | Optional `MESSEN_WEBHOOK_URL`: Make-Webhook für Bestätigung, Nachfassen und AirROI (siehe unten) | Railway |
 
-Die Tabellen legen die Migrationen `014` bis `017` (`db/migrations/01x_messen*.sql`) beim Start an.
+Die Tabellen legen die Migrationen `014` bis `018` (`db/migrations/01x_messen*.sql`) beim Start an.
 
 Der QR-Code wird über api.qrserver.com erzeugt; übergeben wird nur der öffentliche Link.
 
