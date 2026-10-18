@@ -119,7 +119,7 @@ export async function POST(req: Request) {
     airbnbHostId: airbnbUrl ? d.airbnb_host_id : "",
     company: d.company,
     pms: d.pms,
-    // Die Quizantwort zählt nur beim Anlegen (Schritt 2); spätere Ergänzungen ändern sie nicht
+    // Die Quizantwort wird nur gespeichert (beim Anlegen); für die Teilnahme spielt sie keine Rolle
     quizAnswer: d.quiz_answer,
     quizCorrect: d.quiz_answer ? d.quiz_answer === QUIZ_CORRECT : null,
     score: units + (airbnbUrl ? 1 : 0),

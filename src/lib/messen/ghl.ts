@@ -46,7 +46,6 @@ export function leadTags(event: MesseEvent, lead: MesseLead): string[] {
     lead.airbnbUrl ? "airbnb-link" : "",
     lead.consentMarketing ? "retargeting-ok" : "",
     lead.completed ? "" : "messe-unvollstaendig",
-    lead.quizCorrect === false ? "quiz-falsch" : "",
     lead.pms ? `pms-${tagSafe(lead.pms)}` : "",
     ...event.ghlTags
   ];
@@ -62,7 +61,7 @@ function noteBody(event: MesseEvent, lead: MesseLead): string {
     lead.company ? `Firma: ${lead.company}` : "",
     `Units: ${UNITS_LABEL[lead.units] ?? (lead.units || "–")}`,
     lead.pms ? `PMS: ${lead.pms}` : "",
-    lead.quizCorrect === null ? "" : `Quiz: ${lead.quizCorrect ? "richtig (in der Ziehung)" : `falsch (${lead.quizAnswer}), nicht in der Ziehung`}`,
+    lead.quizCorrect === null ? "" : `Quiz: ${lead.quizCorrect ? "richtig" : `falsch (${lead.quizAnswer})`}`,
     `Einstufung: ${lead.tier}`,
     `Kontakt bevorzugt: ${lead.preferredChannel === "whatsapp" ? "WhatsApp" : "E-Mail"}`,
     lead.airbnbUrl ? `Airbnb: ${lead.airbnbUrl}` : "Airbnb: kein Link",
