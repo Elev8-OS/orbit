@@ -1,7 +1,7 @@
 # Messen (/messen)
 
 Gewinnspiel-Seiten für Messen. Pro Messe eine öffentliche Seite unter `/m/<kurzadresse>` mit einem
-Formular wie die Papierkarte am Stand: 1) Quizfrage „Was ist die Elev8-Suite?“ (richtig: „Alles davon“), 2) Kontakt mit Firma, 3) Units und PMS, 4) Airbnb-Link (optional). Nach dem Kontakt ist der Lead gespeichert; im Lostopf ist er nur mit richtiger Quizantwort. Jeder Lead landet in Orbit und als Kontakt in GHL.
+Formular wie die Papierkarte am Stand: 1) Quizfrage „Was ist die Elev8-Suite?“ (richtig: „Alles davon“), 2) Kontakt mit Firma, 3) Units und PMS, 4) Airbnb-Link (optional). Nach dem Kontakt ist der Lead gespeichert und im Lostopf. Die Quizantwort wird nur gespeichert (Orbit, CSV, GHL-Notiz): Alle können gewinnen, und die Seite zeigt nicht, ob die Antwort stimmte. Jeder Lead landet in Orbit und als Kontakt in GHL.
 
 ## Ablauf
 
@@ -12,7 +12,7 @@ Formular wie die Papierkarte am Stand: 1) Quizfrage „Was ist die Elev8-Suite?�
    Datenschutz lässt sich eine Messe nicht veröffentlichen.
 5. QR-Code als PNG herunterladen und drucken. Für das Tablet am Stand den Tablet-Link öffnen.
 6. Nach der Ziehung schliesst das Formular automatisch. *Gewinner ziehen* wählt zufällig unter allen
-   Teilnehmenden mit richtiger Quizantwort, die noch nicht gezogen wurden.
+   Teilnehmenden, die noch nicht gezogen wurden.
 
 ## Was mit einem Lead passiert
 
@@ -21,7 +21,7 @@ Formular wie die Papierkarte am Stand: 1) Quizfrage „Was ist die Elev8-Suite?�
 - Einstufung nach Units: ab 20 = hot, 5–19 = warm, sonst cold. Ein Airbnb-Link gibt einen Punkt mehr.
 - GHL: Kontakt per Upsert (E-Mail oder Telefon), Quelle `Messe: <Name>`, Notiz mit allen Angaben und Tags
   `messe-lead`, `messe-<kurzadresse>`, `tier-<hot|warm|cold>`, `units-<…>`, `kanal-<whatsapp|email>`,
-  `airbnb-link`, `pms-<…>`, `quiz-falsch`, `retargeting-ok` (nur mit Einwilligung) sowie die Tags aus der Messe. Die Firma landet im Kontakt als Firmenname.
+  `airbnb-link`, `pms-<…>`, `retargeting-ok` (nur mit Einwilligung) sowie die Tags aus der Messe. Die Firma landet im Kontakt als Firmenname.
   Nutzt `GHL_API_TOKEN` und `GHL_LOCATION_ID` wie Offerten. Fehler lassen sich in der Lead-Liste erneut senden.
 
 ## In WordPress einbinden (empfohlen)
@@ -77,7 +77,7 @@ Orbit meldet jeden Lead an Make, sobald `MESSEN_WEBHOOK_URL` gesetzt ist (Railwa
 
 | Ereignis | Wann | Make macht |
 |---|---|---|
-| `lead.created` | direkt nach dem Kontakt | GHL-Kontakt holen, Bestätigung per WhatsApp oder E-Mail mit Losnummer und Noah-Link (bei falscher Quizantwort ein Dank mit der richtigen Antwort), Merker fürs Nachfassen in 24 h (nur mit Werbe-Einwilligung und richtiger Antwort) |
+| `lead.created` | direkt nach dem Kontakt | GHL-Kontakt holen, Bestätigung per WhatsApp oder E-Mail mit Losnummer und Noah-Link, Merker fürs Nachfassen in 24 h (nur mit Werbe-Einwilligung) |
 | `lead.completed` | einmal, wenn Units (und ggf. Airbnb-Link) da sind | Merker löschen, Airbnb-Inserat mit AirROI anreichern (Notiz in GHL) |
 
 Szenarien in Make:
@@ -86,7 +86,7 @@ Szenarien in Make:
 
 Die Texte stehen im Code-Modul der Szenarien (Deutsch und Englisch). WhatsApp geht über die WhatsApp-Nummer in GHL. Meta lässt Nachrichten an Kontakte, die noch nicht selbst geschrieben haben, nur als freigegebene Vorlage zu.
 
-Inhalt der Meldung (JSON): `event`, `sent_at`, `lead` (id, ticket, name, first_name, channel, whatsapp, email, units, units_label, tier, airbnb_url, airbnb_listing_id, airbnb_host_id, company, pms, quiz_correct, consent_marketing, completed, lang, source, ghl_contact_id, created_at) und `messe` (slug, name, booth, dates, prize_title, prize_detail, draw_at, draw_text, time_zone, demo_url, page_url).
+Inhalt der Meldung (JSON): `event`, `sent_at`, `lead` (id, ticket, name, first_name, channel, whatsapp, email, units, units_label, tier, airbnb_url, airbnb_listing_id, airbnb_host_id, company, pms, consent_marketing, completed, lang, source, ghl_contact_id, created_at) und `messe` (slug, name, booth, dates, prize_title, prize_detail, draw_at, draw_text, time_zone, demo_url, page_url).
 
 ## Code
 
