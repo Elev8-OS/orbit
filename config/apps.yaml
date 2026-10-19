@@ -245,3 +245,18 @@ apps:
     roles: [App.PortfolioCH, App.PortfolioCH.Edit]
     requestableBy: [Orbit.Staff]
     embed: true
+
+  # Scan – direkt in Orbit gebaut (/scan). Visitenkarten fotografieren, Claude liest sie aus, Kontakt geht nach GHL
+  # (zugewiesen an den GHL-User mit derselben E-Mail), optional einer Messe aus /messen zugeordnet. Ersetzt den
+  # eigenständigen Dienst GHL_BC_Scanner. Rollen: App.Scan sowie Messen- und Sales-Rollen (SCAN_ROLES). Siehe docs/SCAN.md.
+  - id: scan
+    name: { de: Visitenkarten-Scanner, en: Business card scanner }
+    description:
+      de: Visitenkarte fotografieren, Daten prüfen, Kontakt mit Tags und Fotos direkt in GHL – auch offline auf der Messe.
+      en: Photograph a business card, check the data, contact with tags and photos straight into GHL – works offline at trade fairs.
+    url: https://myorbit.elev8-suite.com/scan
+    icon: ScanLine
+    category: sales
+    roles: [App.Scan, App.Messen, App.Sales, App.Sales.Admin]
+    requestableBy: [Orbit.Staff]
+    embed: true
