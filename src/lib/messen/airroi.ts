@@ -1,11 +1,23 @@
-import { addGhlNote } from "./ghl";
+import { addGhlNote, setGhlFields, type GhlFieldDef } from "./ghl";
 import { getLead } from "./store";
 
 /**
  * Reichert fertige Messe-Leads mit Airbnb-Link über AirROI an (AIRROI_API_KEY, wie im Portfolio-Modul) und
  * legt das Ergebnis als Notiz am GHL-Kontakt ab: Inserat, Bewertung, Umsatz und Auslastung sowie die Zahl der
- * Inserate desselben Hosts im Land. Ohne Schlüssel, Inserat-ID oder GHL-Kontakt passiert nichts.
+ * Inserate desselben Hosts im Land. Die wichtigsten Werte kommen zusätzlich in eigene Kontakt-Felder (FIELDS),
+ * damit sich in GHL danach filtern lässt. Ohne Schlüssel, Inserat-ID oder GHL-Kontakt passiert nichts.
  */
+
+const FIELDS = {
+  hostListings: { name: "AirROI Host Listings", dataType: "NUMERICAL" },
+  revenue: { name: "AirROI Revenue 12M USD", dataType: "NUMERICAL" },
+  occupancy: { name: "AirROI Occupancy 12M Percent", dataType: "NUMERICAL" },
+  adr: { name: "AirROI ADR USD", dataType: "NUMERICAL" },
+  rating: { name: "AirROI Rating", dataType: "NUMERICAL" },
+  location: { name: "AirROI Location", dataType: "TEXT" }
+} satisfies Record<string, GhlFieldDef>;
+
+const numOrNull = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
 
 const base = () => (process.env.AIRROI_BASE_URL || "https://api.airroi.com").replace(/\/+$/, "");
 
@@ -61,6 +73,21 @@ export async function enrichLeadWithAirroi(leadId: string): Promise<void> {
       lead.airbnbUrl
     ].filter(Boolean).join("\n");
     await addGhlNote(lead.ghlContactId, body);
+
+    try {
+      const occ = numOrNull(perf.ttm_occupancy);
+      const rev = numOrNull(perf.ttm_revenue), adr = numOrNull(perf.ttm_avg_rate);
+      await setGhlFields(lead.ghlContactId, [
+        { def: FIELDS.hostListings, value: hostListings },
+        { def: FIELDS.revenue, value: rev === null ? null : Math.round(rev) },
+        { def: FIELDS.occupancy, value: occ === null ? null : Math.round(occ * 100) },
+        { def: FIELDS.adr, value: adr === null ? null : Math.round(adr) },
+        { def: FIELDS.rating, value: numOrNull(rat.rating_overall) },
+        { def: FIELDS.location, value: [loc.locality, loc.country].filter(Boolean).join(", ") || null }
+      ]);
+    } catch (err) {
+      console.warn(`Messe-Lead ${leadId} → AirROI-Felder in GHL:`, err instanceof Error ? err.message : err);
+    }
   } catch (err) {
     console.error(`Messe-Lead ${leadId} → AirROI:`, err instanceof Error ? err.message : err);
   }
