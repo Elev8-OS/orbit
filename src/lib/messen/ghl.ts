@@ -70,6 +70,12 @@ function noteBody(event: MesseEvent, lead: MesseLead): string {
   ].filter(Boolean).join("\n");
 }
 
+/** Notiz an einen bestehenden GHL-Kontakt hängen (z. B. die AirROI-Anreicherung) */
+export async function addGhlNote(contactId: string, body: string): Promise<void> {
+  if (!ghlConfigured()) return;
+  await ghl(`/contacts/${encodeURIComponent(contactId)}/notes`, { body });
+}
+
 export async function syncLeadToGhl(leadId: string): Promise<void> {
   const lead = await getLead(leadId);
   if (!lead) return;

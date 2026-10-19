@@ -69,7 +69,7 @@ Die Variable wird beim Build gelesen; nach einer Änderung neu deployen.
 | Optional `MESSEN_FRAME_ANCESTORS` (Domains, die die Seite einbetten dürfen, leerzeichengetrennt) | Railway, danach neu deployen |
 | Optional `MESSEN_ALLOWED_ORIGINS` (kommagetrennt), falls das Formular auf einer anderen Domain eingebettet wird | Railway |
 | Optional `MESSEN_ROLE` (Standard `App.Messen`) | Railway |
-| Optional `MESSEN_WEBHOOK_URL`: Make-Webhook für Bestätigung, Nachfassen und AirROI (siehe unten) | Railway |
+| Optional `MESSEN_WEBHOOK_URL`: Make-Webhook für Bestätigung und Nachfassen (siehe unten). `AIRROI_API_KEY` (wie Portfolio) für die Airbnb-Anreicherung | Railway |
 
 Die Tabellen legen die Migrationen `014` bis `018` (`db/migrations/01x_messen*.sql`) beim Start an.
 
@@ -78,17 +78,19 @@ Der QR-Code wird über api.qrserver.com erzeugt; übergeben wird nur der öffent
 **Rechtliches:** Text der Einwilligung („… und mir passende Werbung zeigen“), Cookie-Hinweis und
 Teilnahmebedingungen vor dem ersten Einsatz prüfen lassen.
 
-## Make: Bestätigung, Nachfassen, AirROI
+## Make und AirROI: Bestätigung, Nachfassen, Anreicherung
 
 Orbit meldet jeden Lead an Make, sobald `MESSEN_WEBHOOK_URL` gesetzt ist (Railway-Variable, Adresse des Make-Webhooks „Orbit Messe-Leads“). Gemeldet wird erst, nachdem der Lead in GHL angelegt ist.
 
 | Ereignis | Wann | Make macht |
 |---|---|---|
 | `lead.created` | direkt nach dem Kontakt | GHL-Kontakt holen, Bestätigung per WhatsApp oder E-Mail mit Losnummer und Noah-Link, Merker fürs Nachfassen in 24 h (nur mit Werbe-Einwilligung) |
-| `lead.completed` | einmal, wenn Units (und ggf. Airbnb-Link) da sind | Merker löschen, Airbnb-Inserat mit AirROI anreichern (Notiz in GHL) |
+| `lead.completed` | einmal, wenn Units (und ggf. Airbnb-Link) da sind | Merker fürs Nachfassen löschen |
+
+Mit Airbnb-Link reichert Orbit selbst an (`src/lib/messen/airroi.ts`, `AIRROI_API_KEY`): Nach dem letzten Schritt kommt eine Notiz an den GHL-Kontakt mit Inserat, Ort, Bewertung, Umsatz und Auslastung (12 Monate, 90 Tage) und der Zahl der Inserate desselben Hosts im Land.
 
 Szenarien in Make:
-- **Messe-Leads: Bestätigung, Nachfassen, AirROI (Orbit)** – reagiert sofort auf den Webhook
+- **Messe-Leads: Bestätigung und Nachfassen (Orbit)** – reagiert sofort auf den Webhook
 - **Messe-Leads: Nachfassen nach 24 h (stündlich)** – schreibt Abbrechern, deren Merker im Datenspeicher „Messe-Nachfassen“ fällig ist
 
 Die Texte stehen im Code-Modul der Szenarien (Deutsch und Englisch). WhatsApp geht über die WhatsApp-Nummer in GHL. Meta lässt Nachrichten an Kontakte, die noch nicht selbst geschrieben haben, nur als freigegebene Vorlage zu.
