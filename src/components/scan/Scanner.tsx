@@ -27,7 +27,7 @@ type QueuedScan = {
 const EMPTY: ScanContact = {
   firstName: null, lastName: null, email: null, phone: null, mobile: null, company: null, title: null, website: null,
   street: null, city: null, state: null, postalCode: null, country: null, timezone: null, linkedin: null, industry: null,
-  language: null, roleTags: [], notes: null, sourceType: "business_card"
+  language: null, roleTags: [], notes: null, sourceType: "business_card", handwritten: false, uncertain: []
 };
 
 const FIELDS: { key: keyof ScanContact; label: string; type?: string; wide?: boolean }[] = [
@@ -427,7 +427,11 @@ export function Scanner() {
     }
   }
 
-  const set = (key: keyof ScanContact, value: string) => setContact((c) => ({ ...c, [key]: value.trim() ? value : null }));
+  // Wer ein unsicheres Feld anfasst, hat es geprüft: Markierung entfernen
+  const set = (key: keyof ScanContact, value: string) =>
+    setContact((c) => ({ ...c, [key]: value.trim() ? value : null, uncertain: (c.uncertain ?? []).filter((f) => f !== key) }));
+  const isUncertain = (key: keyof ScanContact) => (contact.uncertain ?? []).includes(key as string);
+  const uncertainLabels = FIELDS.filter((f) => isUncertain(f.key)).map((f) => f.label);
   const currentEvent = ctx?.events.find((e) => e.id === eventId) ?? null;
 
   if (ctxError) return <div className="sc-page"><p className="sc-msg sc-msg-error">{ctxError}</p></div>;
@@ -467,7 +471,7 @@ export function Scanner() {
                 <ImageIcon size={20} aria-hidden="true" /> Foto wählen
               </button>
               <input ref={fileRef} type="file" accept="image/*" hidden onChange={onFile} />
-              <p className="sc-hint">Funktioniert auch mit einem Foto oder Screenshot eines LinkedIn-Profils.</p>
+              <p className="sc-hint">Funktioniert auch mit handgeschriebenen Karten und mit Fotos oder Screenshots eines LinkedIn-Profils.</p>
             </div>
           )}
 
@@ -533,12 +537,33 @@ export function Scanner() {
             >
               <div className="sc-review-head">
                 <h2>Prüfen und senden</h2>
-                {contact.sourceType === "linkedin_profile" && <span className="sc-badge">LinkedIn-Profil erkannt</span>}
+                <div className="sc-head-right">
+                  {contact.handwritten && <span className="sc-badge">Handschrift</span>}
+                  {contact.sourceType === "linkedin_profile" && <span className="sc-badge">LinkedIn-Profil erkannt</span>}
+                </div>
               </div>
+              {uncertainLabels.length > 0 && (
+                <p className="sc-msg sc-msg-warn">
+                  Bitte mit dem Foto vergleichen, Claude war sich hier nicht sicher: {uncertainLabels.join(", ")}.
+                </p>
+              )}
+              {front && (
+                <div className="sc-ref">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={front} alt="Vorderseite zum Vergleich" />
+                  {back && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={back} alt="Rückseite zum Vergleich" />
+                  )}
+                </div>
+              )}
               <div className="sc-fields">
                 {FIELDS.map((f) => (
-                  <label key={f.key} className={`sc-field${f.wide ? " sc-wide" : ""}`}>
-                    <span>{f.label}</span>
+                  <label key={f.key} className={`sc-field${f.wide ? " sc-wide" : ""}${isUncertain(f.key) ? " sc-uncertain" : ""}`}>
+                    <span>
+                      {f.label}
+                      {isUncertain(f.key) && <em> · prüfen</em>}
+                    </span>
                     <input type={f.type ?? "text"} value={(contact[f.key] as string | null) ?? ""} onChange={(e) => set(f.key, e.target.value)} />
                   </label>
                 ))}
