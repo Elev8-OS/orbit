@@ -8,6 +8,7 @@ import type { DuplicateHit, ScanContact, ScanContext, ScanHistoryEntry, SendResu
  * Visitenkarten-Scanner: Foto (Kamera oder Datei) → Claude liest die Karte → prüfen → nach GHL.
  * Läuft offline weiter: Scans ohne Netz landen in einer Warteschlange im Browser (IndexedDB)
  * und werden gesendet, sobald die Verbindung zurück ist.
+ * /scan?kamera=1 öffnet die Kamera sofort (Home-Bildschirm-Icon und App-Verknüpfung für Messen).
  */
 
 type Mode = "idle" | "camera" | "preview" | "review" | "success";
@@ -170,6 +171,8 @@ export function Scanner() {
         const savedEvent = localStorage.getItem("orbit-scan-event") ?? "";
         if (c.events.some((e) => e.id === savedEvent)) setEventId(savedEvent);
         setContinuous(localStorage.getItem("orbit-scan-continuous") === "1");
+        // /scan?kamera=1 (Home-Bildschirm-Icon, App-Verknüpfung): Kamera sofort öffnen
+        if (new URLSearchParams(window.location.search).get("kamera") === "1") void startCamera(false);
       })
       .catch((err) => setCtxError(err instanceof Error ? err.message : String(err)));
     setOnline(navigator.onLine);
@@ -182,6 +185,7 @@ export function Scanner() {
       window.removeEventListener("online", on);
       window.removeEventListener("offline", off);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshQueue]);
 
   useEffect(() => {
