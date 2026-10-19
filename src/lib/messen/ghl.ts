@@ -12,7 +12,7 @@ import { getEvent, getLead, setGhlResult } from "./store";
 const BASE = "https://services.leadconnectorhq.com";
 const VERSION = "2021-07-28";
 
-async function ghl<T>(path: string, body: unknown, method: "POST" | "PUT" | "DELETE" = "POST"): Promise<T> {
+async function ghl<T>(path: string, body: unknown, method: "GET" | "POST" | "PUT" | "DELETE" = "POST"): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     method,
     headers: {
@@ -21,7 +21,7 @@ async function ghl<T>(path: string, body: unknown, method: "POST" | "PUT" | "DEL
       Accept: "application/json",
       "Content-Type": "application/json"
     },
-    body: JSON.stringify(body),
+    body: method === "GET" ? undefined : JSON.stringify(body),
     cache: "no-store",
     signal: AbortSignal.timeout(20_000)
   });
@@ -74,6 +74,41 @@ function noteBody(event: MesseEvent, lead: MesseLead): string {
 export async function addGhlNote(contactId: string, body: string): Promise<void> {
   if (!ghlConfigured()) return;
   await ghl(`/contacts/${encodeURIComponent(contactId)}/notes`, { body });
+}
+
+export type GhlFieldDef = { name: string; dataType: "TEXT" | "NUMERICAL" };
+const fieldIds = new Map<string, string>();
+
+/**
+ * Kontakt-Felder nach Namen auflösen und fehlende anlegen. Braucht für das Anlegen den Scope
+ * locations/customFields.write; fehlt er, bleiben die Felder weg (die Notiz gibt es trotzdem).
+ */
+async function resolveFields(defs: GhlFieldDef[]): Promise<Map<string, string>> {
+  const loc = encodeURIComponent(process.env.GHL_LOCATION_ID ?? "");
+  if (defs.some((d) => !fieldIds.has(d.name))) {
+    const list = await ghl<{ customFields?: { id: string; name: string }[] }>(`/locations/${loc}/customFields?model=contact`, null, "GET");
+    for (const f of list.customFields ?? []) fieldIds.set(f.name, f.id);
+  }
+  for (const d of defs) {
+    if (fieldIds.has(d.name)) continue;
+    try {
+      const r = await ghl<{ customField?: { id: string } }>(`/locations/${loc}/customFields`, { name: d.name, dataType: d.dataType, model: "contact" });
+      if (r.customField?.id) fieldIds.set(d.name, r.customField.id);
+    } catch (err) {
+      console.warn(`GHL-Feld „${d.name}“ nicht angelegt:`, err instanceof Error ? err.message : err);
+    }
+  }
+  return fieldIds;
+}
+
+/** Werte in Kontakt-Felder schreiben (Feld nach Namen; fehlende Felder legt Orbit an). Leere Werte bleiben weg. */
+export async function setGhlFields(contactId: string, values: { def: GhlFieldDef; value: string | number | null }[]): Promise<void> {
+  if (!ghlConfigured()) return;
+  const set = values.filter((v) => v.value !== null && v.value !== "");
+  if (!set.length) return;
+  const ids = await resolveFields(set.map((v) => v.def));
+  const customFields = set.filter((v) => ids.has(v.def.name)).map((v) => ({ id: ids.get(v.def.name), field_value: v.value }));
+  if (customFields.length) await ghl(`/contacts/${encodeURIComponent(contactId)}`, { customFields }, "PUT");
 }
 
 export async function syncLeadToGhl(leadId: string): Promise<void> {
