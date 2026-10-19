@@ -31,7 +31,7 @@ const EMPTY: ScanContact = {
   language: null, roleTags: [], notes: null, sourceType: "business_card", handwritten: false, uncertain: []
 };
 
-const FIELDS: { key: keyof ScanContact; label: string; type?: string; wide?: boolean }[] = [
+const FIELDS: { key: keyof ScanContact; label: string; type?: string; inputMode?: "url"; wide?: boolean }[] = [
   { key: "firstName", label: "Vorname" },
   { key: "lastName", label: "Nachname" },
   { key: "company", label: "Firma" },
@@ -39,8 +39,9 @@ const FIELDS: { key: keyof ScanContact; label: string; type?: string; wide?: boo
   { key: "email", label: "E-Mail", type: "email" },
   { key: "phone", label: "Telefon", type: "tel" },
   { key: "mobile", label: "Mobil", type: "tel" },
-  { key: "website", label: "Website", type: "url" },
-  { key: "linkedin", label: "LinkedIn", type: "url", wide: true },
+  // Kein type="url": Der Browser würde "www.firma.com" ohne https:// als ungültig ablehnen und das Speichern blockieren
+  { key: "website", label: "Website", inputMode: "url" },
+  { key: "linkedin", label: "LinkedIn", inputMode: "url", wide: true },
   { key: "street", label: "Strasse", wide: true },
   { key: "postalCode", label: "PLZ" },
   { key: "city", label: "Ort" },
@@ -534,6 +535,7 @@ export function Scanner() {
           {mode === "review" && (
             <form
               className="sc-review"
+              noValidate
               onSubmit={(e) => {
                 e.preventDefault();
                 void send(false);
@@ -568,7 +570,15 @@ export function Scanner() {
                       {f.label}
                       {isUncertain(f.key) && <em> · prüfen</em>}
                     </span>
-                    <input type={f.type ?? "text"} value={(contact[f.key] as string | null) ?? ""} onChange={(e) => set(f.key, e.target.value)} />
+                    <input
+                      type={f.type ?? "text"}
+                      inputMode={f.inputMode}
+                      autoCapitalize={f.inputMode ? "off" : undefined}
+                      autoCorrect={f.inputMode ? "off" : undefined}
+                      spellCheck={f.inputMode ? false : undefined}
+                      value={(contact[f.key] as string | null) ?? ""}
+                      onChange={(e) => set(f.key, e.target.value)}
+                    />
                   </label>
                 ))}
                 <label className="sc-field sc-wide">
