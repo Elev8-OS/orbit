@@ -420,7 +420,8 @@ export function OrbitShell({ apps, initialApp, initialPath, locale, theme, child
                     id={`frame-${id}`}
                     title={app.name}
                     src={srcs[id] ?? app.url}
-                    allow="clipboard-read; clipboard-write; fullscreen"
+                    /* Kamera nur für den Visitenkarten-Scanner (/scan); alle anderen Apps bekommen sie nicht */
+                    allow={`clipboard-read; clipboard-write; fullscreen${id === "scan" ? "; camera" : ""}`}
                     referrerPolicy="strict-origin-when-cross-origin"
                     onLoad={() => setLoading((prev) => ({ ...prev, [id]: false }))}
                   />
