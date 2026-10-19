@@ -109,3 +109,9 @@
 .sc-table .sc-chips { margin: 0; }
 .sc-empty { max-width: 32rem; margin: 3rem auto; text-align: center; }
 .sc-empty p { color: var(--muted); }
+
+/* Unsicher gelesene Felder (meist Handschrift) */
+.sc-uncertain input { border-color: var(--yellow); background: var(--yellow-soft); }
+.sc-uncertain > span em { font-style: normal; font-weight: 600; color: var(--yellow-ink); }
+.sc-ref { display: flex; gap: 0.5rem; overflow-x: auto; }
+.sc-ref img { height: 9rem; width: auto; max-width: 100%; border-radius: 0.5rem; border: 1px solid var(--line); object-fit: contain; background: var(--bg); }

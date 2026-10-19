@@ -13,6 +13,11 @@ export function claudeConfigured(): boolean {
 /** Maximale Bildgrösse pro Seite (Base64), der Browser verkleinert auf 1600 px → typischerweise 200–500 KB */
 export const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
 
+/** Felder, die als unsicher markiert werden können */
+export const UNCERTAIN_FIELDS = [
+  "firstName", "lastName", "email", "phone", "mobile", "company", "title", "website", "street", "city", "postalCode", "linkedin"
+];
+
 const TOOL = {
   name: "contact_extracted",
   description: "Die aus dem Bild gelesenen Kontaktdaten.",
@@ -38,7 +43,13 @@ const TOOL = {
       language: { type: ["string", "null"], description: "ISO 639-1, z. B. de" },
       roleTags: { type: "array", items: { type: "string" } },
       notes: { type: ["string", "null"] },
-      sourceType: { type: "string", enum: ["business_card", "linkedin_profile", "other"] }
+      sourceType: { type: "string", enum: ["business_card", "linkedin_profile", "other"] },
+      handwritten: { type: "boolean", description: "true, wenn Kontaktdaten ganz oder teilweise von Hand geschrieben sind" },
+      uncertain: {
+        type: "array",
+        items: { type: "string", enum: UNCERTAIN_FIELDS },
+        description: "Felder, deren Lesung unsicher ist"
+      }
     },
     required: ["firstName", "lastName", "sourceType"]
   }
@@ -54,6 +65,7 @@ function prompt(hasBack: boolean): string {
   return `You extract contact data from images for a CRM. The image is either
 (A) a business card${hasBack ? " – image 1 is the FRONT, image 2 the BACK; merge both sides into one contact, preferring the more complete value when both sides differ" : ""}, or
 (B) a photo or screenshot of a LinkedIn profile (circular photo, large name, headline below).
+Cards may be partly or fully HANDWRITTEN (a blank card, a napkin, a note with name, email and phone). Read handwriting as carefully as print.
 
 Decide which, then extract what is visible. Rules:
 - A field that is not visible is null. Invent nothing factual.
@@ -66,6 +78,11 @@ Decide which, then extract what is visible. Rules:
 - language = best guess of the person's primary language (ISO 639-1) from country, script and visible hints.
 - roleTags = 1–3 lowercase labels for seniority/function from this list only: ${ROLE_VOCAB.join(", ")}. Empty array if unclear.
 - notes = slogans, About text, anything useful that fits nowhere else.
+- Handwriting: set handwritten=true. For ambiguous characters (0/o, 1/l/I, rn/m, u/v, 5/s, 7/1) choose the most plausible reading
+  in context – emails usually end in a real domain (gmail.com, outlook.com, the company website), phone numbers have the usual length for the country.
+- If a reading is still doubtful, put the field name into uncertain (only these names: ${UNCERTAIN_FIELDS.join(", ")}). Do not list fields you read clearly.
+- Handwritten remarks on a printed card (e.g. "demo in March", "12 units", "call back Tuesday") are NOT contact data: put them into notes,
+  prefixed with "Handnotiz: ". Only treat handwritten text as contact data when it clearly is (an added mobile number, a corrected email).
 Answer by calling the tool contact_extracted exactly once.`;
 }
 
@@ -103,7 +120,11 @@ function normalise(raw: unknown): ExtractedContact {
     language: str(o.language)?.toLowerCase().slice(0, 2) ?? null,
     roleTags: [...new Set(roleTags)].slice(0, 3),
     notes: str(o.notes),
-    sourceType
+    sourceType,
+    handwritten: o.handwritten === true,
+    uncertain: Array.isArray(o.uncertain)
+      ? [...new Set(o.uncertain.map((f) => String(f)).filter((f) => UNCERTAIN_FIELDS.includes(f)))]
+      : []
   };
 }
 
@@ -148,7 +169,7 @@ export async function extractContact(front: string, back: string | null): Promis
     },
     body: JSON.stringify({
       model,
-      max_tokens: 1200,
+      max_tokens: 1500,
       tools: [TOOL],
       tool_choice: { type: "auto" },
       messages: [{ role: "user", content }]

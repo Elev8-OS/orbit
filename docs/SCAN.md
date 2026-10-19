@@ -10,6 +10,11 @@ GHL und Claude über die Variablen, die Orbit ohnehin hat.
    1600 px verkleinert und als JPEG geschickt.
 2. Claude liest beide Seiten in einem Aufruf aus (`src/lib/scan/extract.ts`). Erkennt auch Fotos oder
    Screenshots eines LinkedIn-Profils. Prompt und Modell liegen auf dem Server; der Browser schickt nur Bilder.
+   **Handschrift:** Ganz oder teilweise handgeschriebene Karten werden erkannt (Badge „Handschrift“). Bei
+   verwechselbaren Zeichen (0/o, 1/l, rn/m) wählt Claude die plausibelste Lesung; bleibt ein Feld unsicher,
+   wird es gelb markiert, bis die Person es bearbeitet. Das Kartenfoto steht im Prüfschritt zum Vergleich daneben.
+   Handnotizen auf gedruckten Karten („Demo im März“, „12 Units“) landen als „Handnotiz:“ in den Notizen,
+   nicht in den Kontaktfeldern.
 3. Die Person prüft die Felder, wählt Tags (bestehende aus GHL oder neue) und optional eine **Messe** aus `/messen`.
 4. **Senden:** Dublettenprüfung über E-Mail/Telefon (bei Treffer Rückfrage), dann Upsert in GHL mit
    - Quelle `Visitenkarte – <Name>` oder `Messe: <Messename>`

@@ -22,11 +22,17 @@ export type ExtractedContact = {
   roleTags: string[];
   notes: string | null;
   sourceType: "business_card" | "linkedin_profile" | "other";
+  /** Ganz oder teilweise handschriftlich */
+  handwritten: boolean;
+  /** Felder, bei denen Claude sich beim Lesen nicht sicher ist (z. B. 0/o, 1/l in der E-Mail) */
+  uncertain: string[];
 };
 
-export type ScanContact = Omit<ExtractedContact, "roleTags" | "sourceType"> & {
+export type ScanContact = Omit<ExtractedContact, "roleTags" | "sourceType" | "handwritten" | "uncertain"> & {
   roleTags?: string[];
   sourceType?: ExtractedContact["sourceType"];
+  handwritten?: boolean;
+  uncertain?: string[];
 };
 
 export type SendRequest = {

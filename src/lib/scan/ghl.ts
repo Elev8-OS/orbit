@@ -256,6 +256,7 @@ export async function upsertContact(input: UpsertInput): Promise<{ id: string; i
   const noteLines = [
     `Visitenkarte gescannt von ${input.scannedBy.name} am ${new Date().toISOString().slice(0, 16).replace("T", " ")} UTC`,
     c.sourceType === "linkedin_profile" ? "Quelle: LinkedIn-Profil" : "",
+    c.handwritten ? "Handschriftliche Karte – Angaben vor dem Senden geprüft" : "",
     leftover.title ? `Position: ${leftover.title}` : "",
     leftover.mobile ? `Mobil: ${leftover.mobile}` : "",
     leftover.linkedin ? `LinkedIn: ${leftover.linkedin}` : "",

@@ -35,7 +35,8 @@ function cleanContact(raw: unknown): ScanContact {
     language: str(o.language, 5)?.toLowerCase() ?? null,
     roleTags: Array.isArray(o.roleTags) ? o.roleTags.map((t) => String(t).toLowerCase().trim()).filter(Boolean).slice(0, 3) : [],
     notes: str(o.notes, 2000),
-    sourceType: o.sourceType === "linkedin_profile" ? "linkedin_profile" : "business_card"
+    sourceType: o.sourceType === "linkedin_profile" ? "linkedin_profile" : "business_card",
+    handwritten: o.handwritten === true
   };
 }
 
