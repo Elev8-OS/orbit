@@ -196,6 +196,15 @@ sobald dort das Paket geändert wird; versendete Offerten bleiben unverändert.
 **Code:** `src/lib/offerten` (Preislogik, Fireflies, Claude, GHL, PDF, Excel, Versand),
 `src/app/offerten` (Seiten), `src/app/api/offerten` (API), `src/components/offerten` (Oberfläche).
 
+## 7. Visitenkarten-Scanner (`/scan`)
+
+Visitenkarte fotografieren (auch Rückseite), Claude liest die Daten aus, die Person prüft sie und der Kontakt
+geht mit Tags, Notiz und Kartenfotos nach GoHighLevel – zugewiesen an den GHL-User mit derselben E-Mail wie
+die Orbit-Anmeldung. Optional einer Messe aus `/messen` zuordnen: Quelle und Tags kommen dann von dort.
+Ohne Netz landen Scans in einer Warteschlange im Browser und werden später gesendet.
+Ersetzt den eigenständigen Dienst `GHL_BC_Scanner`. Rollen: `App.Scan` sowie Messen- und Sales-Rollen.
+Details in [`docs/SCAN.md`](docs/SCAN.md).
+
 ## Sicherheit
 
 - **Eine ausgeblendete Kachel ist kein Zugriffsschutz.** Jedes Tool muss den Login selbst
