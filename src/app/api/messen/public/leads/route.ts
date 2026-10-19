@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getEventBySlug, upsertLead } from "@/lib/messen/store";
 import { syncLeadToGhl } from "@/lib/messen/ghl";
 import { notifyMake, type MesseWebhookEvent } from "@/lib/messen/webhook";
+import { enrichLeadWithAirroi } from "@/lib/messen/airroi";
 
 export const dynamic = "force-dynamic";
 
@@ -139,10 +140,11 @@ export async function POST(req: Request) {
     const events: MesseWebhookEvent[] = [];
     if (result.created) events.push("lead.created");
     if (result.becameComplete) events.push("lead.completed");
-    // Erst GHL (damit Make die Kontakt-ID bekommt), dann Make
+    // Erst GHL (damit Make und AirROI die Kontakt-ID haben), dann Make, dann einmal die AirROI-Notiz
     after(async () => {
       await syncLeadToGhl(result.id);
       await notifyMake(result.id, events);
+      if (result.becameComplete) await enrichLeadWithAirroi(result.id);
     });
   }
   return Response.json({ ok: true, duplicate: !result }, { headers });
