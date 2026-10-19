@@ -1,4 +1,5 @@
 import type { ExtractedContact } from "./types";
+import { normalizeUrl } from "./url";
 
 /**
  * Liest eine Visitenkarte (Vorder- und optional Rückseite) oder ein LinkedIn-Profil-Foto mit Claude aus.
@@ -108,14 +109,14 @@ function normalise(raw: unknown): ExtractedContact {
     mobile: str(o.mobile),
     company: str(o.company),
     title: str(o.title),
-    website: str(o.website),
+    website: normalizeUrl(str(o.website)),
     street: str(o.street),
     city: str(o.city),
     state: str(o.state),
     postalCode: str(o.postalCode),
     country: str(o.country),
     timezone: str(o.timezone),
-    linkedin: str(o.linkedin),
+    linkedin: normalizeUrl(str(o.linkedin)),
     industry: str(o.industry),
     language: str(o.language)?.toLowerCase().slice(0, 2) ?? null,
     roleTags: [...new Set(roleTags)].slice(0, 3),

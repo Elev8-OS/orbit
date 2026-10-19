@@ -2,6 +2,7 @@ import { requireScanUser } from "@/lib/scan/access";
 import { attachPhotos, contactUrl, eventSourceAndTags, findDuplicate, ghlConfigured, upsertContact } from "@/lib/scan/ghl";
 import { addHistory } from "@/lib/scan/store";
 import { getEvent } from "@/lib/messen/store";
+import { normalizeUrl } from "@/lib/scan/url";
 import type { DuplicateHit, ScanContact, SendRequest, SendResult } from "@/lib/scan/types";
 
 export const dynamic = "force-dynamic";
@@ -23,14 +24,14 @@ function cleanContact(raw: unknown): ScanContact {
     mobile: str(o.mobile, 40),
     company: str(o.company, 160),
     title: str(o.title, 160),
-    website: str(o.website, 200),
+    website: normalizeUrl(str(o.website, 300)),
     street: str(o.street, 200),
     city: str(o.city, 100),
     state: str(o.state, 100),
     postalCode: str(o.postalCode, 20),
     country: str(o.country, 80),
     timezone: str(o.timezone, 60),
-    linkedin: str(o.linkedin, 200),
+    linkedin: normalizeUrl(str(o.linkedin, 300)),
     industry: str(o.industry, 80),
     language: str(o.language, 5)?.toLowerCase() ?? null,
     roleTags: Array.isArray(o.roleTags) ? o.roleTags.map((t) => String(t).toLowerCase().trim()).filter(Boolean).slice(0, 3) : [],
