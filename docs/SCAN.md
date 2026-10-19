@@ -27,6 +27,15 @@ GHL und Claude über die Variablen, die Orbit ohnehin hat.
 **Offline:** Ohne Netz landen Scans in einer IndexedDB-Warteschlange im Browser und werden automatisch gesendet,
 sobald die Verbindung zurück ist (auch das Auslesen wird dann nachgeholt). Die Warteschlange ist pro Gerät.
 
+## Schnellzugriff auf der Messe
+
+- **Eigenes Icon:** `https://myorbit.elev8-suite.com/scan?kamera=1` im Handy-Browser öffnen, anmelden und
+  „Zum Home-Bildschirm“ (iPhone, Safari) bzw. „Zum Startbildschirm hinzufügen“ (Android, Chrome) wählen.
+  Ein Tipp aufs Icon öffnet direkt die Kamera.
+- **App-Verknüpfung:** Ist Orbit als App installiert, erscheint beim langen Drücken aufs Orbit-Icon „Scannen“
+  (Android, Windows, macOS; nicht auf dem iPhone).
+- Morgens anmelden: Orbit-Sessions laufen nach spätestens 8 Stunden ab. Messe und Serienmodus bleiben pro Gerät gespeichert.
+
 ## Was gegenüber der alten App wegfällt
 
 | Alt | Neu |
