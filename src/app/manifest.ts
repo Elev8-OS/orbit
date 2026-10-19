@@ -20,7 +20,10 @@ export default function manifest(): MetadataRoute.Manifest {
       { src: "/pwa/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
       { src: "/pwa/maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" }
     ],
+    // Langes Drücken aufs App-Icon (Android, Windows, macOS). Android zeigt meist nur die ersten vier.
     shortcuts: [
+      // Öffnet den Scanner direkt mit Kamera, ohne Umweg über die Kacheln (für Messen)
+      { name: "Visitenkarte scannen", short_name: "Scannen", url: "/scan?kamera=1", icons: [{ src: "/pwa/icon-192.png", sizes: "192x192" }] },
       { name: "Suche und Noah", short_name: "Suche", url: "/?palette=1", icons: [{ src: "/pwa/icon-192.png", sizes: "192x192" }] },
       { name: "E-Mail-Assistent", short_name: "Assistent", url: "/?app=assistent", icons: [{ src: "/pwa/icon-192.png", sizes: "192x192" }] },
       { name: "Kunden", short_name: "Kunden", url: "/?app=kunden", icons: [{ src: "/pwa/icon-192.png", sizes: "192x192" }] }
