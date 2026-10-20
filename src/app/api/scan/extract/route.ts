@@ -1,5 +1,7 @@
 import { requireScanUser } from "@/lib/scan/access";
 import { extractContact } from "@/lib/scan/extract";
+import { crmFieldDefs, ghlConfigured } from "@/lib/scan/ghl";
+import type { CrmField } from "@/lib/scan/crm";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 90;
@@ -16,7 +18,9 @@ export async function POST(req: Request) {
   }
   if (!body.front) return Response.json({ error: "front_missing", message: "Vorderseite fehlt" }, { status: 400 });
   try {
-    const contact = await extractContact(body.front, body.back || null);
+    // GHL-Felder (Units, PMS, Objektart …): Claude bekommt deren Optionen und wählt passend
+    const crmFields = ghlConfigured() ? await crmFieldDefs().catch((): CrmField[] => []) : [];
+    const contact = await extractContact(body.front, body.back || null, crmFields);
     return Response.json({ contact });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

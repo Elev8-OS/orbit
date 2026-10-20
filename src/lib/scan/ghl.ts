@@ -1,6 +1,7 @@
 import { ghlConfigured, userByEmail, contactUrl } from "@/lib/sales/ghl";
 import type { MesseEvent } from "@/lib/messen/store";
 import type { DuplicateHit, ScanContact } from "./types";
+import { crmFieldConfig, sanitizeCrm, type CrmField, type CrmValue } from "./crm";
 
 /**
  * GoHighLevel-Anbindung des Scanners. Nutzt GHL_API_TOKEN und GHL_LOCATION_ID wie Offerten, Sales und Messen.
@@ -87,7 +88,7 @@ export async function findDuplicate(email: string | null, phone: string | null):
 
 // ── Kontakt-Felder (Titel, Mobil, LinkedIn, Branche, Sprache) ──
 
-type FieldDef = { id: string; name: string; dataType: string; options: unknown[] | null };
+type FieldDef = { id: string; key: string; name: string; dataType: string; options: unknown[] | null };
 const ALIASES: Record<string, string[]> = {
   title: ["job title", "title", "position", "role", "jobtitel", "funktion"],
   mobile: ["mobile", "mobile phone", "cell", "cell phone", "handy", "mobilnummer", "mobil"],
@@ -128,6 +129,7 @@ async function customFields(fresh = false): Promise<FieldDef[]> {
     .filter((f) => !f.model || f.model === "contact")
     .map((f) => ({
       id: str(f.id),
+      key: str(f.fieldKey).replace(/^contact\./, ""),
       name: str(f.name),
       dataType: str(f.dataType).toUpperCase(),
       options: Array.isArray(f.picklistOptions) ? f.picklistOptions : Array.isArray(f.options) ? f.options : null
@@ -169,7 +171,12 @@ export async function mapExtras(extras: Record<string, string | null>): Promise<
     const value = (raw ?? "").trim();
     if (!value) continue;
     const aliases = ALIASES[key] ?? [key];
-    let f = fields.find((x) => aliases.includes(x.name.toLowerCase().trim()));
+    // Aliase in ihrer Reihenfolge prüfen: "Job Title" vor einem Auswahlfeld "Role"
+    let f: FieldDef | undefined;
+    for (const a of aliases) {
+      f = fields.find((x) => x.name.toLowerCase().trim() === a);
+      if (f) break;
+    }
     if (!f && CREATE_AS[key]) {
       try {
         const r = await ghl<{ customField?: { id?: string } }>(`/locations/${loc()}/customFields`, {
@@ -177,7 +184,7 @@ export async function mapExtras(extras: Record<string, string | null>): Promise<
           body: JSON.stringify({ name: CREATE_AS[key], dataType: "TEXT", model: "contact" })
         });
         if (r.customField?.id) {
-          f = { id: str(r.customField.id), name: CREATE_AS[key], dataType: "TEXT", options: null };
+          f = { id: str(r.customField.id), key: "", name: CREATE_AS[key], dataType: "TEXT", options: null };
           fieldCache = null;
           fields = [...fields, f];
         }
@@ -206,6 +213,30 @@ export async function mapExtras(extras: Record<string, string | null>): Promise<
   return { customFields: mapped, leftover };
 }
 
+// ── CRM-Felder (Units, PMS, Objektart …) ─────────────────────
+
+const optionLabel = (o: unknown) => {
+  if (typeof o === "string") return o;
+  const r = (o ?? {}) as Record<string, unknown>;
+  return str(r.label || r.value || r.name || r.key);
+};
+
+/**
+ * Die GHL-Kontaktfelder, die der Scanner aus der Karte füllt, mit Typ und Optionen aus GHL.
+ * Auswahl über SCAN_CRM_FIELDS (siehe lib/scan/crm.ts). Felder, die es in GHL nicht gibt, fallen weg.
+ */
+export async function crmFieldDefs(): Promise<CrmField[]> {
+  const config = crmFieldConfig(process.env.SCAN_CRM_FIELDS);
+  const fields = await customFields();
+  const out: CrmField[] = [];
+  for (const [key, conf] of Object.entries(config)) {
+    const f = fields.find((x) => x.key === key);
+    if (!f || out.some((x) => x.id === f.id)) continue;
+    out.push({ id: f.id, key, name: f.name, type: f.dataType, options: (f.options ?? []).map(optionLabel).filter(Boolean), kind: conf.kind, hint: conf.hint });
+  }
+  return out;
+}
+
 // ── Upsert, Notiz, Fotos ────────────────────────────────────
 
 export type UpsertInput = {
@@ -218,13 +249,21 @@ export type UpsertInput = {
 export async function upsertContact(input: UpsertInput): Promise<{ id: string; isNew: boolean; warnings: string[] }> {
   const c = input.contact;
   const warnings: string[] = [];
-  const { customFields, leftover } = await mapExtras({
+  const extras = await mapExtras({
     title: c.title,
     mobile: c.mobile,
     linkedin: c.linkedin,
     industry: c.industry,
     language: c.language
   });
+  const { leftover } = extras;
+  // CRM-Felder aus dem Prüfschritt, gegen die aktuellen GHL-Definitionen geprüft; sie haben Vorrang
+  const crmDefs = c.crm && Object.keys(c.crm).length ? await crmFieldDefs().catch((): CrmField[] => []) : [];
+  const crm = sanitizeCrm(crmDefs, c.crm);
+  const customFields: { id: string; field_value: CrmValue }[] = [
+    ...extras.customFields.filter((x) => !(x.id in crm)),
+    ...Object.entries(crm).map(([id, field_value]) => ({ id, field_value }))
+  ];
   const ghlUser = await userByEmail(input.scannedBy.email).catch(() => null);
   if (!ghlUser) warnings.push("Kein GHL-User mit deiner E-Mail gefunden – Kontakt bleibt ohne Zuweisung.");
 
@@ -263,6 +302,8 @@ export async function upsertContact(input: UpsertInput): Promise<{ id: string; i
     leftover.industry ? `Branche: ${leftover.industry}` : "",
     leftover.language ? `Sprache: ${leftover.language}` : "",
     c.roleTags?.length ? `Rolle: ${c.roleTags.join(", ")}` : "",
+    c.units ? `Units laut Karte: ${c.units}` : "",
+    c.pms ? `PMS laut Karte: ${c.pms}` : "",
     c.notes ? `\n${c.notes}` : ""
   ].filter(Boolean);
   try {
