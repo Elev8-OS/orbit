@@ -1,10 +1,11 @@
 import { requireScanUser } from "@/lib/scan/access";
-import { ghlConfigured, listTags } from "@/lib/scan/ghl";
+import { crmFieldDefs, ghlConfigured, listTags } from "@/lib/scan/ghl";
 import { claudeConfigured } from "@/lib/scan/extract";
 import { recentHistory } from "@/lib/scan/store";
 import { listEvents, type EventSummary } from "@/lib/messen/store";
 import { userByEmail } from "@/lib/sales/ghl";
 import type { ScanContext, ScanHistoryEntry } from "@/lib/scan/types";
+import type { CrmField } from "@/lib/scan/crm";
 
 export const dynamic = "force-dynamic";
 
@@ -15,11 +16,12 @@ export async function GET() {
   const { user } = guard;
   const ghl = ghlConfigured();
 
-  const [events, tags, history, ghlUser] = await Promise.all([
+  const [events, tags, history, ghlUser, crmFields] = await Promise.all([
     listEvents().catch((): EventSummary[] => []),
     ghl ? listTags().catch(() => [] as string[]) : Promise.resolve([] as string[]),
     recentHistory(50).catch((): ScanHistoryEntry[] => []),
-    ghl ? userByEmail(user.email).catch(() => null) : Promise.resolve(null)
+    ghl ? userByEmail(user.email).catch(() => null) : Promise.resolve(null),
+    ghl ? crmFieldDefs().catch((): CrmField[] => []) : Promise.resolve([] as CrmField[])
   ]);
 
   const ctx: ScanContext = {
@@ -29,7 +31,8 @@ export async function GET() {
     enrichConfigured: Boolean(process.env.PDL_API_KEY),
     events: events.filter((e) => e.active).map((e) => ({ id: e.id, name: e.name, slug: e.slug, tags: e.ghlTags })),
     tags,
-    history
+    history,
+    crmFields
   };
   return Response.json(ctx, { headers: { "Cache-Control": "no-store" } });
 }

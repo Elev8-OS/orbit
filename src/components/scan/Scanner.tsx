@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Camera, Check, CloudOff, ExternalLink, Image as ImageIcon, Loader2, RefreshCw, RotateCcw, X } from "lucide-react";
 import type { DuplicateHit, ScanContact, ScanContext, ScanHistoryEntry, SendResult } from "@/lib/scan/types";
+import { MULTI_TYPES, NUMBER_TYPES, OPTION_TYPES, parseUnits, rederive, type CrmField, type CrmValue } from "@/lib/scan/crm";
 
 /**
  * Visitenkarten-Scanner: Foto (Kamera oder Datei) → Claude liest die Karte → prüfen → nach GHL.
@@ -28,7 +29,8 @@ type QueuedScan = {
 const EMPTY: ScanContact = {
   firstName: null, lastName: null, email: null, phone: null, mobile: null, company: null, title: null, website: null,
   street: null, city: null, state: null, postalCode: null, country: null, timezone: null, linkedin: null, industry: null,
-  language: null, roleTags: [], notes: null, sourceType: "business_card", handwritten: false, uncertain: []
+  language: null, roleTags: [], notes: null, sourceType: "business_card", handwritten: false, uncertain: [],
+  units: null, pms: null, crm: {}
 };
 
 const FIELDS: { key: keyof ScanContact; label: string; type?: string; inputMode?: "url"; wide?: boolean }[] = [
@@ -436,8 +438,83 @@ export function Scanner() {
   const set = (key: keyof ScanContact, value: string) =>
     setContact((c) => ({ ...c, [key]: value.trim() ? value : null, uncertain: (c.uncertain ?? []).filter((f) => f !== key) }));
   const isUncertain = (key: keyof ScanContact) => (contact.uncertain ?? []).includes(key as string);
-  const uncertainLabels = FIELDS.filter((f) => isUncertain(f.key)).map((f) => f.label);
+  const uncertainLabels = [
+    ...FIELDS.filter((f) => isUncertain(f.key)).map((f) => f.label),
+    ...(isUncertain("units") ? ["Anzahl Units"] : []),
+    ...(isUncertain("pms") ? ["PMS"] : [])
+  ];
   const currentEvent = ctx?.events.find((e) => e.id === eventId) ?? null;
+
+  // ── GHL-Felder (Units, PMS, Objektart …) ──
+  const crmFields = ctx?.crmFields ?? [];
+  const setCrm = (id: string, v: CrmValue | null) =>
+    setContact((c) => {
+      const crm = { ...(c.crm ?? {}) };
+      if (v == null || v === "" || (Array.isArray(v) && !v.length)) delete crm[id];
+      else crm[id] = v;
+      return { ...c, crm };
+    });
+  // Units oder PMS geändert: abhängige Felder (Bereich, PMS-Auswahl, Ja/Nein) sofort neu rechnen
+  const setUnitsPms = (units: number | null, pms: string | null, touched: "units" | "pms") =>
+    setContact((c) => ({
+      ...c,
+      units,
+      pms,
+      crm: rederive(crmFields, c.crm ?? {}, units, pms),
+      uncertain: (c.uncertain ?? []).filter((f) => f !== touched)
+    }));
+  const crmFilled = crmFields.filter((f) => contact.crm?.[f.id] != null);
+  const crmEmpty = crmFields.filter((f) => contact.crm?.[f.id] == null);
+
+  function renderCrm(f: CrmField) {
+    const v = contact.crm?.[f.id];
+    const multi = MULTI_TYPES.includes(f.type);
+    const source = f.kind === "units" ? "aus Units" : f.kind === "pms" || f.kind === "usesPms" ? "aus PMS" : null;
+    return (
+      <div key={f.id} className={`sc-field${multi ? " sc-wide" : ""}`}>
+        <span>
+          {f.name}
+          {source && <i className="sc-crm-src"> · {source}</i>}
+        </span>
+        {multi ? (
+          <div className="sc-chips">
+            {f.options.map((o) => {
+              const cur = Array.isArray(v) ? v : [];
+              const on = cur.includes(o);
+              return (
+                <button
+                  type="button"
+                  key={o}
+                  className={`sc-chip sc-chip-toggle${on ? " is-on" : ""}`}
+                  aria-pressed={on}
+                  onClick={() => setCrm(f.id, on ? cur.filter((x) => x !== o) : [...cur, o])}
+                >
+                  {o}
+                </button>
+              );
+            })}
+          </div>
+        ) : OPTION_TYPES.includes(f.type) ? (
+          <select value={typeof v === "string" ? v : ""} onChange={(e) => setCrm(f.id, e.target.value || null)} aria-label={f.name}>
+            <option value="">–</option>
+            {f.options.map((o) => (
+              <option key={o} value={o}>
+                {o}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <input
+            type="text"
+            inputMode={NUMBER_TYPES.includes(f.type) ? "decimal" : undefined}
+            value={v == null ? "" : String(v)}
+            onChange={(e) => setCrm(f.id, e.target.value || null)}
+            aria-label={f.name}
+          />
+        )}
+      </div>
+    );
+  }
 
   if (ctxError) return <div className="sc-page"><p className="sc-msg sc-msg-error">{ctxError}</p></div>;
 
@@ -586,6 +663,50 @@ export function Scanner() {
                   <textarea rows={3} value={contact.notes ?? ""} onChange={(e) => set("notes", e.target.value)} />
                 </label>
               </div>
+
+              {crmFields.length > 0 && (
+                <div className="sc-crm">
+                  <div className="sc-crm-head">
+                    <h3>Für GHL</h3>
+                    <span className="sc-muted">Units und PMS füllen die passenden GHL-Felder automatisch.</span>
+                  </div>
+                  <div className="sc-fields">
+                    <label className={`sc-field${isUncertain("units") ? " sc-uncertain" : ""}`}>
+                      <span>
+                        Anzahl Units
+                        {isUncertain("units") && <em> · prüfen</em>}
+                      </span>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="z. B. 12"
+                        value={contact.units ?? ""}
+                        onChange={(e) => setUnitsPms(parseUnits(e.target.value), contact.pms ?? null, "units")}
+                      />
+                    </label>
+                    <label className={`sc-field${isUncertain("pms") ? " sc-uncertain" : ""}`}>
+                      <span>
+                        PMS / Software
+                        {isUncertain("pms") && <em> · prüfen</em>}
+                      </span>
+                      <input
+                        type="text"
+                        placeholder="z. B. Guesty, Excel"
+                        autoCapitalize="off"
+                        value={contact.pms ?? ""}
+                        onChange={(e) => setUnitsPms(contact.units ?? null, e.target.value || null, "pms")}
+                      />
+                    </label>
+                    {crmFilled.map(renderCrm)}
+                  </div>
+                  {crmEmpty.length > 0 && (
+                    <details className="sc-crm-more">
+                      <summary>Weitere GHL-Felder ({crmEmpty.length})</summary>
+                      <div className="sc-fields">{crmEmpty.map(renderCrm)}</div>
+                    </details>
+                  )}
+                </div>
+              )}
 
               <div className="sc-field sc-wide">
                 <span>Tags</span>

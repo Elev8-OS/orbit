@@ -1,5 +1,7 @@
 /** Gemeinsame Typen des Scan-Moduls (Server und Browser). */
 
+import type { CrmField, CrmValues } from "./crm";
+
 export type ExtractedContact = {
   firstName: string | null;
   lastName: string | null;
@@ -26,9 +28,18 @@ export type ExtractedContact = {
   handwritten: boolean;
   /** Felder, bei denen Claude sich beim Lesen nicht sicher ist (z. B. 0/o, 1/l in der E-Mail) */
   uncertain: string[];
+  /** Anzahl Units/Objekte, nur wenn auf der Karte oder in einer Handnotiz ersichtlich */
+  units: number | null;
+  /** Genutztes PMS / Channel Manager, wie gelesen (z. B. "Guesty", "Excel") */
+  pms: string | null;
+  /** Werte für GHL-Kontaktfelder nach Feld-ID (abgeleitet aus units/pms oder von Claude gewählt) */
+  crm: CrmValues;
 };
 
-export type ScanContact = Omit<ExtractedContact, "roleTags" | "sourceType" | "handwritten" | "uncertain"> & {
+export type ScanContact = Omit<ExtractedContact, "roleTags" | "sourceType" | "handwritten" | "uncertain" | "units" | "pms" | "crm"> & {
+  units?: number | null;
+  pms?: string | null;
+  crm?: CrmValues;
   roleTags?: string[];
   sourceType?: ExtractedContact["sourceType"];
   handwritten?: boolean;
@@ -80,4 +91,6 @@ export type ScanContext = {
   events: { id: string; name: string; slug: string; tags: string[] }[];
   tags: string[];
   history: ScanHistoryEntry[];
+  /** GHL-Kontaktfelder, die der Scanner füllt (SCAN_CRM_FIELDS) */
+  crmFields: CrmField[];
 };
