@@ -14,18 +14,42 @@ GHL und Claude über die Variablen, die Orbit ohnehin hat.
    verwechselbaren Zeichen (0/o, 1/l, rn/m) wählt Claude die plausibelste Lesung; bleibt ein Feld unsicher,
    wird es gelb markiert, bis die Person es bearbeitet. Das Kartenfoto steht im Prüfschritt zum Vergleich daneben.
    Handnotizen auf gedruckten Karten („Demo im März“, „12 Units“) landen als „Handnotiz:“ in den Notizen,
-   nicht in den Kontaktfeldern.
+   nicht in den Kontaktfeldern. Units und PMS aus solchen Notizen werden zusätzlich erkannt (siehe unten).
 3. Die Person prüft die Felder, wählt Tags (bestehende aus GHL oder neue) und optional eine **Messe** aus `/messen`.
 4. **Senden:** Dublettenprüfung über E-Mail/Telefon (bei Treffer Rückfrage), dann Upsert in GHL mit
    - Quelle `Visitenkarte – <Name>` oder `Messe: <Messename>`
    - `assignedTo` = der GHL-User mit derselben E-Mail wie die Orbit-Anmeldung (keine manuelle Zuordnung mehr)
    - Tags: gewählte Tags + `visitenkarte` + Rollen-Tags (`rolle-manager` …) + bei Messe `messe-lead`, `messe-<slug>` und die Messe-Tags
    - Position, Mobil, LinkedIn, Branche, Sprache in Kontaktfelder (werden nach Namen gesucht, fehlende als Textfeld angelegt; Dropdowns nur bei passender Option, sonst in die Notiz)
-   - Notiz mit Scanner, Zeit, Rolle und Freitext; zweite Notiz mit den Kartenfotos aus der GHL-Mediathek
+   - die **GHL-Felder** aus dem Abschnitt „Für GHL“ (Units, PMS, Objektart … – siehe unten)
+   - Notiz mit Scanner, Zeit, Rolle, Units, PMS und Freitext; zweite Notiz mit den Kartenfotos aus der GHL-Mediathek
 5. Eintrag in `scan_history` (Team-Verlauf unter `/scan/verlauf`).
 
 **Offline:** Ohne Netz landen Scans in einer IndexedDB-Warteschlange im Browser und werden automatisch gesendet,
 sobald die Verbindung zurück ist (auch das Auslesen wird dann nachgeholt). Die Warteschlange ist pro Gerät.
+
+## GHL-Felder aus der Karte (Units, PMS, Objektart …)
+
+Claude sucht auf der Karte und in Handnotizen nach der **Anzahl Units** („40 Villas“, „120+ units“, „12 Units“) und dem
+**PMS** (Logo, „powered by Guesty“, Partner-Badge, Notiz „nutzt Smoobu“ / „nur Excel“). Nichts wird geschätzt: Steht
+nichts da, bleibt das Feld leer. Mitarbeitende eines Software-Anbieters bekommen dessen Produkt nicht als PMS.
+
+Daraus füllt Orbit alle passenden GHL-Felder auf einmal, im Prüfschritt unter **„Für GHL“** sichtbar und änderbar:
+
+| Erkannt | GHL-Felder | Regel |
+|---|---|---|
+| Units, z. B. 12 | Number of Properties, VRM26 Units Managed, Lead Units | Auswahlfelder bekommen den Bereich (`6 - 20`, `11 to 50`), Textfelder die Zahl |
+| PMS, z. B. „Little Hotelier“ | Current PMS / Software, … DE, VRM26 Current PMS, Lead Current Tools | passende Option (`Littlehotelier (Siteminder)`), sonst `Other` / `Anderes System`; „keins/Excel“ → `None / Manual` / `Keins / Manuell` |
+| PMS vorhanden ja/nein | „Are you currently using a Channel Manager or PMS?“, „Nutzen Sie aktuell …?“ | `Yes`/`Ja` bzw. `No`/`Nein` |
+| direkt von Claude gewählt | Property Type, Role, Interested In, Listing / Website URL | nur Optionen, die es in GHL gibt; nur wenn die Karte es klar hergibt |
+
+Korrigiert man im Prüfschritt die Units oder das PMS, rechnen sich die abhängigen Felder sofort neu. Typen und Optionen
+kommen live aus GHL; vor dem Schreiben prüft der Server jeden Wert erneut gegen die Felddefinition.
+
+**Andere Felder:** über `SCAN_CRM_FIELDS` (GHL-Feldschlüssel ohne `contact.`, kommagetrennt, optional mit Art
+`units`, `pms`, `usesPms` oder `ai`), z. B.
+`SCAN_CRM_FIELDS=number_of_properties:units,current_pms__software:pms,property_type,lead_region`.
+Ohne Art wählt Claude den Wert. Die Liste ersetzt die Standardauswahl (`DEFAULT_CRM_FIELDS` in `src/lib/scan/crm.ts`).
 
 ## Schnellzugriff auf der Messe
 
@@ -54,7 +78,7 @@ sobald die Verbindung zurück ist (auch das Auslesen wird dann nachgeholt). Die 
 |---|---|
 | App Role `App.Scan` (wer nur scannen soll; Messen- und Sales-Rollen dürfen ohnehin) | Entra → App-Registrierung Orbit → App roles |
 | Scopes am GHL-Token zusätzlich: `locations/tags.readonly`, `locations/tags.write`, `medias.write`, `users.readonly`, optional `locations/customFields.write` | GHL → Private Integrations |
-| `SCAN_ROLES` (optional, kommagetrennt), `SCAN_MODEL` (optional), `PDL_API_KEY` (optional, LinkedIn-Suche über People Data Labs) | Railway |
+| `SCAN_ROLES` (optional, kommagetrennt), `SCAN_MODEL` (optional), `SCAN_CRM_FIELDS` (optional, siehe oben), `PDL_API_KEY` (optional, LinkedIn-Suche über People Data Labs) | Railway |
 
 Danach den alten Dienst `GHL_BC_Scanner` auf Railway stoppen und das Repo archivieren.
 
