@@ -3,6 +3,7 @@ import { attachPhotos, contactUrl, eventSourceAndTags, findDuplicate, ghlConfigu
 import { addHistory } from "@/lib/scan/store";
 import { getEvent } from "@/lib/messen/store";
 import { normalizeUrl } from "@/lib/scan/url";
+import { parseUnits } from "@/lib/scan/crm";
 import type { DuplicateHit, ScanContact, SendRequest, SendResult } from "@/lib/scan/types";
 
 export const dynamic = "force-dynamic";
@@ -37,7 +38,11 @@ function cleanContact(raw: unknown): ScanContact {
     roleTags: Array.isArray(o.roleTags) ? o.roleTags.map((t) => String(t).toLowerCase().trim()).filter(Boolean).slice(0, 3) : [],
     notes: str(o.notes, 2000),
     sourceType: o.sourceType === "linkedin_profile" ? "linkedin_profile" : "business_card",
-    handwritten: o.handwritten === true
+    handwritten: o.handwritten === true,
+    units: parseUnits(o.units),
+    pms: str(o.pms, 120),
+    // Wird in upsertContact gegen die GHL-Felddefinitionen geprüft
+    crm: o.crm && typeof o.crm === "object" && !Array.isArray(o.crm) ? (o.crm as ScanContact["crm"]) : {}
   };
 }
 
