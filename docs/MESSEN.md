@@ -25,6 +25,8 @@ Seite lässt sich vor dem Start wechseln. In WordPress pro Sprache eine Seite an
 
 - Gespeichert in `messe_leads`. Die Losnummer macht das Senden idempotent: Die Seite speichert Leads bei
   fehlendem Netz im Browser und sendet sie später erneut, ohne Doppel.
+- Papierkarten vom Stand: im Scanner (`/scan`) fotografieren, sie landen mit Quelle `paper_card` im selben Lostopf
+  (siehe `docs/SCAN.md`, Abschnitt Gewinnspiel). Wer schon online teilgenommen hat, bekommt kein zweites Los.
 - Einstufung nach Units: ab 20 = hot, 5–19 = warm, sonst cold. Ein Airbnb-Link gibt einen Punkt mehr.
 - GHL: Kontakt per Upsert (E-Mail oder Telefon), Quelle `Messe: <Name>`, Notiz mit allen Angaben und Tags
   `messe-lead`, `messe-<kurzadresse>`, `tier-<hot|warm|cold>`, `units-<…>`, `kanal-<whatsapp|email>`,

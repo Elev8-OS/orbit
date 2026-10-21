@@ -66,7 +66,7 @@ function noteBody(event: MesseEvent, lead: MesseLead): string {
     `Kontakt bevorzugt: ${lead.preferredChannel === "whatsapp" ? "WhatsApp" : "E-Mail"}`,
     lead.airbnbUrl ? `Airbnb: ${lead.airbnbUrl}` : "Airbnb: kein Link",
     `Werbung/Updates erlaubt: ${lead.consentMarketing ? "ja" : "nein"}`,
-    `Quelle: ${lead.source === "booth_tablet" ? "Tablet am Stand" : "QR-Code"}`
+    `Quelle: ${lead.source === "booth_tablet" ? "Tablet am Stand" : lead.source === "paper_card" ? "Papierkarte (Scanner)" : "QR-Code"}`
   ].filter(Boolean).join("\n");
 }
 

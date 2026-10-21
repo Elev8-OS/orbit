@@ -277,3 +277,25 @@ export async function drawWinner(eventId: string): Promise<MesseLead | null> {
 export async function deleteLead(id: string): Promise<void> {
   await sql`DELETE FROM messe_leads WHERE id = ${id}`;
 }
+
+// ── Papierkarten aus dem Scanner (/scan) ─────────────────────
+
+/** Ist die Losnummer in dieser Messe schon vergeben? */
+export async function ticketTaken(eventId: string, ticket: string): Promise<boolean> {
+  const [row] = await sql`SELECT 1 FROM messe_leads WHERE event_id = ${eventId} AND ticket = ${ticket} LIMIT 1`;
+  return Boolean(row);
+}
+
+/** Schon im Lostopf? Sucht nach E-Mail oder WhatsApp-Nummer (nur Ziffern verglichen). */
+export async function findLeadByContact(eventId: string, email: string, whatsapp: string): Promise<MesseLead | null> {
+  const mail = email.trim().toLowerCase();
+  const digits = whatsapp.replace(/\D/g, "");
+  if (!mail && digits.length < 8) return null;
+  const [row] = await sql`
+    SELECT * FROM messe_leads
+    WHERE event_id = ${eventId}
+      AND ((${mail} <> '' AND lower(email) = ${mail})
+        OR (${digits} <> '' AND length(${digits}) >= 8 AND regexp_replace(whatsapp, '[^0-9]', '', 'g') = ${digits}))
+    ORDER BY created_at LIMIT 1`;
+  return row ? toLead(row) : null;
+}

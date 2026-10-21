@@ -29,7 +29,9 @@ export async function GET() {
     ghlConfigured: ghl,
     claudeConfigured: claudeConfigured(),
     enrichConfigured: Boolean(process.env.PDL_API_KEY),
-    events: events.filter((e) => e.active).map((e) => ({ id: e.id, name: e.name, slug: e.slug, tags: e.ghlTags })),
+    events: events
+      .filter((e) => e.active)
+      .map((e) => ({ id: e.id, name: e.name, slug: e.slug, tags: e.ghlTags, drawAt: e.drawAt ? e.drawAt.toISOString() : null })),
     tags,
     history,
     crmFields

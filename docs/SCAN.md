@@ -51,6 +51,40 @@ kommen live aus GHL; vor dem Schreiben prüft der Server jeden Wert erneut gegen
 `SCAN_CRM_FIELDS=number_of_properties:units,current_pms__software:pms,property_type,lead_region`.
 Ohne Art wählt Claude den Wert. Die Liste ersetzt die Standardauswahl (`DEFAULT_CRM_FIELDS` in `src/lib/scan/crm.ts`).
 
+## Gewinnspiel: Teilnahmekarten scannen
+
+Teilnahmekarten vom Stand (Papier) und handgeschriebene Zettel kommen in denselben Lostopf wie Online-Teilnahmen
+(`messe_leads` der Messe in `/messen`).
+
+**Erkennung:** Claude erkennt die gedruckte Teilnahmekarte (Quiz „Was ist die Elev8-Suite?“, Units-Kästchen,
+Einwilligungen) und Zettel, die klar als Teilnahme gemeint sind („für die Verlosung“, „raffle“, eine Losnummer).
+Gelesen werden Quizantwort, Units-Bereich, Werbe-Einwilligung, Teilnahmebedingungen, bevorzugter Kanal und eine
+aufgedruckte Losnummer. Eine gewöhnliche Visitenkarte ohne solchen Hinweis nimmt nicht teil.
+
+**Zuordnung:** Offen ist ein Gewinnspiel, wenn die Messe aktiv ist und die Ziehung noch nicht vorbei ist.
+
+| Offene Gewinnspiele | Verhalten |
+|---|---|
+| eines | Karte kommt automatisch hinein („… (automatisch)“) |
+| mehrere | Der Scanner fragt; die in den Einstellungen gewählte Messe ist vorausgewählt. Ohne Auswahl wird nicht gesendet |
+| keines | Hinweis, die Karte wird als normaler Kontakt gespeichert |
+
+Im Prüfschritt lässt sich die Teilnahme ein- und ausschalten und jede Angabe korrigieren. Für Visitenkarten aus einer
+Box am Stand gibt es in den Einstellungen die **Visitenkarten-Box**: Jede gescannte Karte nimmt dann teil.
+
+**Beim Senden:**
+- Prüfung vor dem Schreiben: Gewinnspiel offen, Mobilnummer oder E-Mail vorhanden.
+- **Kein doppeltes Los:** Ist die Person (gleiche E-Mail oder WhatsApp-Nummer) schon im Lostopf, z. B. online, bleibt es
+  bei ihrem Los; der Scanner zeigt es an.
+- Losnummer: die von der Karte, wenn frei; sonst eine neue (`E8-123 456`).
+- Lead mit Quelle `paper_card`, Einstufung wie online (Units-Bereich → hot/warm/cold), danach wie jede Teilnahme:
+  GHL-Tags und Notiz (`syncLeadToGhl`), Bestätigung mit Losnummer über Make (`lead.created`, `lead.completed`),
+  Losnummer im GHL-Feld „Messe Losnummer“.
+- Der Erfolgsscreen zeigt das Los gross an, damit es auf die Karte geschrieben werden kann.
+
+Offline gescannte Karten werden beim Nachsenden genauso zugeordnet; bei mehreren offenen Gewinnspielen nur in die
+Messe aus den Einstellungen. Nach der Ziehung nimmt das Gewinnspiel keine Karten mehr an: Karten vorher scannen.
+
 ## Schnellzugriff auf der Messe
 
 - **Eigenes Icon:** `https://myorbit.elev8-suite.com/scan?kamera=1` im Handy-Browser öffnen, anmelden und
@@ -92,5 +126,5 @@ Danach den alten Dienst `GHL_BC_Scanner` auf Railway stoppen und das Repo archiv
 
 ## Code
 
-`src/lib/scan` (Zugriff, Extraktion, GHL, Verlauf, Typen), `src/app/scan` (Seiten), `src/app/api/scan` (API),
+`src/lib/scan` (Zugriff, Extraktion, GHL, Verlauf, Typen, `contest.ts` + `contest-server.ts` fürs Gewinnspiel), `src/app/scan` (Seiten), `src/app/api/scan` (API),
 `src/components/scan/Scanner.tsx` (Oberfläche), `db/migrations/019_scan.sql`.

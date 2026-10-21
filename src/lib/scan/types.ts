@@ -1,6 +1,7 @@
 /** Gemeinsame Typen des Scan-Moduls (Server und Browser). */
 
 import type { CrmField, CrmValues } from "./crm";
+import type { ContestEntry, ContestInfo, ContestResult } from "./contest";
 
 export type ExtractedContact = {
   firstName: string | null;
@@ -23,7 +24,7 @@ export type ExtractedContact = {
   language: string | null;
   roleTags: string[];
   notes: string | null;
-  sourceType: "business_card" | "linkedin_profile" | "other";
+  sourceType: "business_card" | "linkedin_profile" | "contest_form" | "other";
   /** Ganz oder teilweise handschriftlich */
   handwritten: boolean;
   /** Felder, bei denen Claude sich beim Lesen nicht sicher ist (z. B. 0/o, 1/l in der E-Mail) */
@@ -34,9 +35,12 @@ export type ExtractedContact = {
   pms: string | null;
   /** Werte für GHL-Kontaktfelder nach Feld-ID (abgeleitet aus units/pms oder von Claude gewählt) */
   crm: CrmValues;
+  /** Gewinnspiel-Teilnahme (Teilnahmekarte oder Zettel), null = keine erkannt */
+  contest: ContestInfo | null;
 };
 
-export type ScanContact = Omit<ExtractedContact, "roleTags" | "sourceType" | "handwritten" | "uncertain" | "units" | "pms" | "crm"> & {
+export type ScanContact = Omit<ExtractedContact, "roleTags" | "sourceType" | "handwritten" | "uncertain" | "units" | "pms" | "crm" | "contest"> & {
+  contest?: ContestInfo | null;
   units?: number | null;
   pms?: string | null;
   crm?: CrmValues;
@@ -55,6 +59,8 @@ export type SendRequest = {
   photos: { front?: string | null; back?: string | null };
   /** Vorhandenen Kontakt bewusst aktualisieren (nach Dublettenhinweis) */
   confirmUpdate?: boolean;
+  /** Ins Gewinnspiel dieser Messe eintragen (Lostopf aus /messen) */
+  contest?: ContestEntry | null;
 };
 
 export type SendResult = {
@@ -64,6 +70,8 @@ export type SendResult = {
   contactUrl: string;
   photos: number;
   warnings: string[];
+  /** Los im Gewinnspiel, falls eingetragen */
+  contest?: ContestResult;
 };
 
 export type DuplicateHit = {
@@ -88,7 +96,8 @@ export type ScanContext = {
   ghlConfigured: boolean;
   claudeConfigured: boolean;
   enrichConfigured: boolean;
-  events: { id: string; name: string; slug: string; tags: string[] }[];
+  /** Aktive Messen; drawAt (ISO) für die Frage, ob das Gewinnspiel noch offen ist */
+  events: { id: string; name: string; slug: string; tags: string[]; drawAt: string | null }[];
   tags: string[];
   history: ScanHistoryEntry[];
   /** GHL-Kontaktfelder, die der Scanner füllt (SCAN_CRM_FIELDS) */
