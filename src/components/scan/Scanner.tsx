@@ -4,12 +4,25 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Camera, Check, CloudOff, ExternalLink, Image as ImageIcon, Loader2, RefreshCw, RotateCcw, X } from "lucide-react";
 import type { DuplicateHit, ScanContact, ScanContext, ScanHistoryEntry, SendResult } from "@/lib/scan/types";
 import { MULTI_TYPES, NUMBER_TYPES, OPTION_TYPES, parseUnits, rederive, type CrmField, type CrmValue } from "@/lib/scan/crm";
+import {
+  QUIZ_ANSWERS,
+  UNIT_RANGES,
+  autoContest,
+  channelFor,
+  contestOpen,
+  normalizeTicket,
+  unitRangeFor,
+  type ContestEntry,
+  type QuizAnswer,
+  type UnitRange
+} from "@/lib/scan/contest";
 
 /**
  * Visitenkarten-Scanner: Foto (Kamera oder Datei) → Claude liest die Karte → prüfen → nach GHL.
  * Läuft offline weiter: Scans ohne Netz landen in einer Warteschlange im Browser (IndexedDB)
  * und werden gesendet, sobald die Verbindung zurück ist.
  * /scan?kamera=1 öffnet die Kamera sofort (Home-Bildschirm-Icon und App-Verknüpfung für Messen).
+ * Teilnahmekarten fürs Gewinnspiel erkennt Claude; sie landen im Lostopf der Messe (siehe lib/scan/contest.ts).
  */
 
 type Mode = "idle" | "camera" | "preview" | "review" | "success";
@@ -24,7 +37,62 @@ type QueuedScan = {
   eventId: string | null;
   attempts: number;
   lastError: string | null;
+  /** Gewinnspiel-Entscheid beim Speichern; undefined = erst nach dem Auslesen automatisch entscheiden */
+  entry?: ContestEntry | null;
 };
+
+/** Gewinnspiel-Angaben im Prüfschritt */
+type Entry = {
+  on: boolean;
+  /** Von Claude als Teilnahme erkannt (sonst von Hand oder über die Visitenkarten-Box) */
+  detected: boolean;
+  eventId: string;
+  /** Mehrere offene Gewinnspiele: Auswahl nötig */
+  ask: boolean;
+  quizAnswer: QuizAnswer | null;
+  unitRange: UnitRange | null;
+  consentMarketing: boolean;
+  consentTerms: boolean | null;
+  preferredChannel: "whatsapp" | "email";
+  ticket: string;
+};
+const NO_ENTRY: Entry = {
+  on: false, detected: false, eventId: "", ask: false, quizAnswer: null, unitRange: null,
+  consentMarketing: false, consentTerms: null, preferredChannel: "whatsapp", ticket: ""
+};
+
+type OpenContest = { id: string; name: string; drawAt: string | null };
+
+/** Gewinnspiel-Entscheid für einen ausgelesenen Kontakt */
+function initEntry(c: ScanContact, open: OpenContest[], settingsEventId: string, boxMode: boolean): Entry {
+  const info = c.contest ?? null;
+  const wanted = Boolean(info?.isEntry) || boxMode;
+  const { pick, ask } = autoContest(open, settingsEventId || null);
+  return {
+    on: wanted && open.length > 0,
+    detected: Boolean(info?.isEntry),
+    eventId: pick?.id ?? "",
+    ask: wanted && ask,
+    quizAnswer: info?.quizAnswer ?? null,
+    unitRange: info?.unitRange ?? unitRangeFor(c.units),
+    consentMarketing: info?.consentMarketing ?? false,
+    consentTerms: info?.consentTerms ?? null,
+    preferredChannel: channelFor(info, c),
+    ticket: info?.ticket ?? ""
+  };
+}
+
+const toContestEntry = (e: Entry): ContestEntry | null =>
+  e.on && e.eventId
+    ? {
+        eventId: e.eventId,
+        quizAnswer: e.quizAnswer,
+        unitRange: e.unitRange,
+        consentMarketing: e.consentMarketing,
+        preferredChannel: e.preferredChannel,
+        ticket: normalizeTicket(e.ticket)
+      }
+    : null;
 
 const EMPTY: ScanContact = {
   firstName: null, lastName: null, email: null, phone: null, mobile: null, company: null, title: null, website: null,
@@ -160,11 +228,19 @@ export function Scanner() {
   const [online, setOnline] = useState(true);
   const [continuous, setContinuous] = useState(false);
   const [history, setHistory] = useState<ScanHistoryEntry[]>([]);
+  const [entry, setEntry] = useState<Entry>(NO_ENTRY);
+  const [boxMode, setBoxMode] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const refreshQueue = useCallback(() => dbAll().then(setQueue).catch(() => setQueue([])), []);
+
+  // Offene Gewinnspiele (aktive Messe, Ziehung noch nicht vorbei)
+  const openContests: OpenContest[] = (ctx?.events ?? []).filter((e) => contestOpen(e));
+  // Für die Warteschlange (läuft ausserhalb des Renderns): aktuelle Werte
+  const live = useRef({ open: openContests, eventId, boxMode });
+  live.current = { open: openContests, eventId, boxMode };
 
   useEffect(() => {
     api<ScanContext>("/api/scan/context")
@@ -174,6 +250,7 @@ export function Scanner() {
         const savedEvent = localStorage.getItem("orbit-scan-event") ?? "";
         if (c.events.some((e) => e.id === savedEvent)) setEventId(savedEvent);
         setContinuous(localStorage.getItem("orbit-scan-continuous") === "1");
+        setBoxMode(localStorage.getItem("orbit-scan-box") === "1");
         // /scan?kamera=1 (Home-Bildschirm-Icon, App-Verknüpfung): Kamera sofort öffnen
         if (new URLSearchParams(window.location.search).get("kamera") === "1") void startCamera(false);
       })
@@ -199,6 +276,10 @@ export function Scanner() {
     localStorage.setItem("orbit-scan-continuous", continuous ? "1" : "0");
   }, [continuous]);
 
+  useEffect(() => {
+    localStorage.setItem("orbit-scan-box", boxMode ? "1" : "0");
+  }, [boxMode]);
+
   const stopCamera = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
@@ -212,9 +293,15 @@ export function Scanner() {
       try {
         let c = rec.contact;
         if (!c) c = (await api<{ contact: ScanContact }>("/api/scan/extract", { method: "POST", body: JSON.stringify({ front: rec.front, back: rec.back }) })).contact;
+        // Offline gespeichert und erst jetzt ausgelesen: Gewinnspiel automatisch zuordnen (bei mehreren nur die gewählte Messe)
+        let contest = rec.entry;
+        if (contest === undefined) {
+          const { open, eventId: chosen, boxMode: box } = live.current;
+          contest = toContestEntry(initEntry(c, open, rec.eventId ?? chosen, box));
+        }
         await api<SendResult>("/api/scan/send", {
           method: "POST",
-          body: JSON.stringify({ contact: c, tags: rec.tags, eventId: rec.eventId, photos: { front: rec.front, back: rec.back }, confirmUpdate: true })
+          body: JSON.stringify({ contact: c, tags: rec.tags, eventId: rec.eventId, photos: { front: rec.front, back: rec.back }, confirmUpdate: true, contest })
         });
         await dbDelete(rec.id);
         return true;
@@ -305,7 +392,9 @@ export function Scanner() {
     setError(null);
     try {
       const r = await api<{ contact: ScanContact }>("/api/scan/extract", { method: "POST", body: JSON.stringify({ front, back }) });
-      setContact({ ...EMPTY, ...r.contact });
+      const next = { ...EMPTY, ...r.contact };
+      setContact(next);
+      setEntry(initEntry(next, openContests, eventId, boxMode));
       setTags([]);
       setMode("review");
     } catch (err) {
@@ -315,6 +404,7 @@ export function Scanner() {
       }
       setError(`Auslesen fehlgeschlagen: ${err instanceof Error ? err.message : err}. Du kannst die Daten von Hand eintragen.`);
       setContact(EMPTY);
+      setEntry(initEntry(EMPTY, openContests, eventId, boxMode));
       setTags([]);
       setMode("review");
     } finally {
@@ -333,7 +423,9 @@ export function Scanner() {
       tags,
       eventId: eventId || null,
       attempts: 0,
-      lastError: null
+      lastError: null,
+      // Ohne ausgelesenen Kontakt entscheidet die Warteschlange später automatisch
+      entry: c ? toContestEntry(entry) : undefined
     });
     await refreshQueue();
     setResult(null);
@@ -343,12 +435,16 @@ export function Scanner() {
 
   // ── Senden ──
   async function send(confirmUpdate = false) {
+    if (entry.on && !entry.eventId) {
+      setError("Bitte wählen, in welches Gewinnspiel die Karte kommt (oder das Gewinnspiel ausschalten).");
+      return;
+    }
     setBusy(confirmUpdate ? "Kontakt wird aktualisiert …" : "Wird an GHL gesendet …");
     setError(null);
     try {
       const r = await api<SendResult>("/api/scan/send", {
         method: "POST",
-        body: JSON.stringify({ contact, tags, eventId: eventId || null, photos: { front, back }, confirmUpdate })
+        body: JSON.stringify({ contact, tags, eventId: eventId || null, photos: { front, back }, confirmUpdate, contest: toContestEntry(entry) })
       });
       setResult(r);
       setMode("success");
@@ -379,6 +475,7 @@ export function Scanner() {
     setFront(null);
     setBack(null);
     setContact(EMPTY);
+    setEntry(NO_ENTRY);
     setTags([]);
     setResult(null);
     setError(null);
@@ -443,7 +540,8 @@ export function Scanner() {
     ...(isUncertain("units") ? ["Anzahl Units"] : []),
     ...(isUncertain("pms") ? ["PMS"] : [])
   ];
-  const currentEvent = ctx?.events.find((e) => e.id === eventId) ?? null;
+  // Mit Gewinnspiel gelten dessen Messe-Tags, sonst die Messe aus den Einstellungen
+  const currentEvent = ctx?.events.find((e) => e.id === (entry.on && entry.eventId ? entry.eventId : eventId)) ?? null;
 
   // ── GHL-Felder (Units, PMS, Objektart …) ──
   const crmFields = ctx?.crmFields ?? [];
@@ -515,6 +613,11 @@ export function Scanner() {
       </div>
     );
   }
+
+  const setEntryField = <K extends keyof Entry>(key: K, value: Entry[K]) => setEntry((e) => ({ ...e, [key]: value }));
+  const entryEvent = openContests.find((e) => e.id === entry.eventId) ?? null;
+  const drawLabel = (iso: string | null) =>
+    iso ? new Date(iso).toLocaleString("de-CH", { weekday: "short", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "ohne Termin";
 
   if (ctxError) return <div className="sc-page"><p className="sc-msg sc-msg-error">{ctxError}</p></div>;
 
@@ -640,6 +743,95 @@ export function Scanner() {
                   )}
                 </div>
               )}
+              {(entry.on || entry.detected || openContests.length > 0) && (
+                <div className={`sc-contest${entry.on ? " is-on" : ""}`}>
+                  {openContests.length > 0 ? (
+                    <label className="sc-switch sc-contest-switch">
+                      <input type="checkbox" checked={entry.on} onChange={(e) => setEntryField("on", e.target.checked)} />
+                      <span>
+                        <b>{entry.detected ? "Teilnahmekarte erkannt – ins Gewinnspiel" : "Ins Gewinnspiel"}</b>
+                        {entry.on && entryEvent && !entry.ask && <span className="sc-muted"> · {entryEvent.name} (automatisch)</span>}
+                      </span>
+                    </label>
+                  ) : (
+                    <p className="sc-msg sc-msg-warn">Teilnahmekarte erkannt, aber kein Gewinnspiel ist offen. Die Karte wird als normaler Kontakt gespeichert.</p>
+                  )}
+                  {entry.on && (
+                    <>
+                      {openContests.length > 1 && (
+                        <div className="sc-field sc-wide">
+                          <span>
+                            Welches Gewinnspiel?
+                            {!entry.eventId && <em className="sc-required"> · bitte wählen</em>}
+                          </span>
+                          <div className="sc-chips">
+                            {openContests.map((e) => (
+                              <button
+                                type="button"
+                                key={e.id}
+                                className={`sc-chip sc-chip-toggle${entry.eventId === e.id ? " is-on" : ""}`}
+                                aria-pressed={entry.eventId === e.id}
+                                onClick={() => setEntryField("eventId", e.id)}
+                              >
+                                {e.name} <span className="sc-chip-sub">Ziehung {drawLabel(e.drawAt)}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      <div className="sc-fields">
+                        <label className="sc-field">
+                          <span>Quizantwort</span>
+                          <select value={entry.quizAnswer ?? ""} onChange={(e) => setEntryField("quizAnswer", (e.target.value || null) as QuizAnswer | null)}>
+                            <option value="">– nicht angekreuzt</option>
+                            {QUIZ_ANSWERS.map((q) => (
+                              <option key={q.value} value={q.value}>
+                                {q.label}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <label className="sc-field">
+                          <span>Units (Bereich)</span>
+                          <select value={entry.unitRange ?? ""} onChange={(e) => setEntryField("unitRange", (e.target.value || null) as UnitRange | null)}>
+                            <option value="">–</option>
+                            {UNIT_RANGES.map((u) => (
+                              <option key={u.value} value={u.value}>
+                                {u.label}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <label className="sc-field">
+                          <span>Bestätigung per</span>
+                          <select value={entry.preferredChannel} onChange={(e) => setEntryField("preferredChannel", e.target.value === "email" ? "email" : "whatsapp")}>
+                            <option value="whatsapp">WhatsApp</option>
+                            <option value="email">E-Mail</option>
+                          </select>
+                        </label>
+                        <label className="sc-field">
+                          <span>Losnummer</span>
+                          <input
+                            type="text"
+                            placeholder="wird automatisch vergeben"
+                            autoCapitalize="characters"
+                            value={entry.ticket}
+                            onChange={(e) => setEntryField("ticket", e.target.value)}
+                          />
+                        </label>
+                      </div>
+                      <label className="sc-switch">
+                        <input type="checkbox" checked={entry.consentMarketing} onChange={(e) => setEntryField("consentMarketing", e.target.checked)} />
+                        Werbung/Updates erlaubt (angekreuzt)
+                      </label>
+                      {entry.consentTerms === false && (
+                        <p className="sc-msg sc-msg-warn">Teilnahmebedingungen sind auf der Karte nicht angekreuzt. Nur eintragen, wenn die Person zugestimmt hat.</p>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+
               <div className="sc-fields">
                 {FIELDS.map((f) => (
                   <label key={f.key} className={`sc-field${f.wide ? " sc-wide" : ""}${isUncertain(f.key) ? " sc-uncertain" : ""}`}>
@@ -782,6 +974,13 @@ export function Scanner() {
                     {[contact.firstName, contact.lastName].filter(Boolean).join(" ") || contact.email}
                     {result.photos ? ` · ${result.photos} Foto${result.photos > 1 ? "s" : ""} angehängt` : ""}
                   </p>
+                  {result.contest && (
+                    <div className="sc-ticket">
+                      <span className="sc-muted">{result.contest.existing ? "War schon im Lostopf" : "Im Lostopf"} · {result.contest.eventName}</span>
+                      <b className="sc-ticket-no">{result.contest.ticket}</b>
+                      {!result.contest.existing && <span className="sc-muted">Losnummer auf die Karte schreiben. Die Bestätigung geht automatisch raus.</span>}
+                    </div>
+                  )}
                   {result.warnings.map((w) => (
                     <p key={w} className="sc-msg sc-msg-warn">
                       {w}
@@ -828,6 +1027,12 @@ export function Scanner() {
               <input type="checkbox" checked={continuous} onChange={(e) => setContinuous(e.target.checked)} />
               Serienmodus: nach dem Senden direkt die nächste Karte
             </label>
+            {openContests.length > 0 && (
+              <label className="sc-switch">
+                <input type="checkbox" checked={boxMode} onChange={(e) => setBoxMode(e.target.checked)} />
+                Visitenkarten-Box: jede gescannte Karte nimmt am Gewinnspiel teil
+              </label>
+            )}
           </section>
 
           {queue.length > 0 && (
