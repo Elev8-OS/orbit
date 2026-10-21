@@ -1,6 +1,7 @@
 import type { ExtractedContact } from "./types";
 import { normalizeUrl } from "./url";
 import { MULTI_TYPES, OPTION_TYPES, deriveCrm, parseUnits, type CrmField } from "./crm";
+import { QUIZ_ANSWERS, UNIT_RANGES, isQuiz, isUnitRange, normalizeTicket, type ContestInfo } from "./contest";
 
 /**
  * Liest eine Visitenkarte (Vorder- und optional Rückseite) oder ein LinkedIn-Profil-Foto mit Claude aus.
@@ -80,7 +81,21 @@ const TOOL = {
       language: { type: ["string", "null"], description: "ISO 639-1, z. B. de" },
       roleTags: { type: "array", items: { type: "string" } },
       notes: { type: ["string", "null"] },
-      sourceType: { type: "string", enum: ["business_card", "linkedin_profile", "other"] },
+      sourceType: { type: "string", enum: ["business_card", "linkedin_profile", "contest_form", "other"] },
+      contest: {
+        type: "object",
+        description: "Only for a raffle / prize-draw entry (printed entry card or a note clearly meant as an entry); omit otherwise",
+        properties: {
+          isEntry: { type: "boolean" },
+          quizAnswer: { type: ["string", "null"], enum: [...QUIZ_ANSWERS.map((q) => q.value), null], description: "Ticked answer to 'What is the Elev8 Suite?'" },
+          unitRange: { type: ["string", "null"], enum: [...UNIT_RANGES.map((u) => u.value), null], description: "Ticked range of rental units" },
+          consentMarketing: { type: ["boolean", "null"], description: "Marketing/updates box ticked (true), visibly not ticked (false), not on the card (null)" },
+          consentTerms: { type: ["boolean", "null"], description: "Terms box ticked or signed (true), visibly empty (false), not on the card (null)" },
+          preferredChannel: { type: ["string", "null"], enum: ["whatsapp", "email", null] },
+          ticket: { type: ["string", "null"], description: "Ticket number printed or written on the card, e.g. E8-123 456" }
+        },
+        required: ["isEntry"]
+      },
       handwritten: { type: "boolean", description: "true, wenn Kontaktdaten ganz oder teilweise von Hand geschrieben sind" },
       units: {
         type: ["integer", "null"],
@@ -113,7 +128,10 @@ function prompt(hasBack: boolean, fields: CrmField[]): string {
     : "";
   return `You extract contact data from images for a CRM. The image is either
 (A) a business card${hasBack ? " – image 1 is the FRONT, image 2 the BACK; merge both sides into one contact, preferring the more complete value when both sides differ" : ""}, or
-(B) a photo or screenshot of a LinkedIn profile (circular photo, large name, headline below).
+(B) a photo or screenshot of a LinkedIn profile (circular photo, large name, headline below), or
+(C) a RAFFLE ENTRY: Elev8's printed entry card (prize draw / Gewinnspiel / Verlosung / lucky draw, quiz "Was ist die Elev8-Suite?" /
+"What is the Elev8 Suite?" with tick boxes, unit ranges, consent boxes) or a handwritten slip clearly meant as an entry
+("für die Verlosung", "raffle", "lucky draw", a ticket number). Use sourceType contest_form for printed entry cards.
 Cards may be partly or fully HANDWRITTEN (a blank card, a napkin, a note with name, email and phone). Read handwriting as carefully as print.
 
 Decide which, then extract what is visible. Rules:
@@ -134,6 +152,10 @@ Decide which, then extract what is visible. Rules:
   note ("12 units", "30 Villen"). Use the number (\"120+\" → 120, a range \"20–30\" → the upper value). Never guess from company size.
 - pms: only when visible – a software logo or "powered by …" / partner badge for the PMS they use, or a handwritten note ("Guesty",
   "uses Smoobu", "nur Excel" → none). If the card belongs to an employee of a software vendor, their own product is NOT their PMS: pms = null.${crmRules}
+- contest: only for (C) or a business card that clearly says it is an entry (e.g. "Gewinnspiel" written on it). Set isEntry=true and
+  read the ticked boxes: quizAnswer (${QUIZ_ANSWERS.map((q) => `${q.value} = "${q.label}"`).join(", ")}), unitRange
+  (${UNIT_RANGES.map((u) => u.value).join(", ")}), consentMarketing, consentTerms, preferredChannel (WhatsApp or e-mail box),
+  ticket. An ordinary business card without such a hint gets no contest object.
 - Handwritten remarks on a printed card (e.g. "demo in March", "12 units", "call back Tuesday") are NOT contact data: put them into notes,
   prefixed with "Handnotiz: ". Only treat handwritten text as contact data when it clearly is (an added mobile number, a corrected email).
   Units and PMS from such a note go into units/pms as well (keep the note too).
@@ -156,7 +178,22 @@ function normalise(raw: unknown, fields: CrmField[] = []): ExtractedContact {
   const units = parseUnits(o.units);
   const pms = str(o.pms);
   const crm = deriveCrm(fields, units, pms, o.crm && typeof o.crm === "object" ? (o.crm as Record<string, unknown>) : {});
-  const sourceType = o.sourceType === "linkedin_profile" ? "linkedin_profile" : o.sourceType === "other" ? "other" : "business_card";
+  const sourceType =
+    o.sourceType === "linkedin_profile" ? "linkedin_profile" : o.sourceType === "contest_form" ? "contest_form" : o.sourceType === "other" ? "other" : "business_card";
+  const c = o.contest && typeof o.contest === "object" ? (o.contest as Record<string, unknown>) : null;
+  const bool = (v: unknown) => (v === true ? true : v === false ? false : null);
+  const contest: ContestInfo | null =
+    (c && c.isEntry === true) || sourceType === "contest_form"
+      ? {
+          isEntry: true,
+          quizAnswer: isQuiz(c?.quizAnswer) ? (c?.quizAnswer as ContestInfo["quizAnswer"]) : null,
+          unitRange: isUnitRange(c?.unitRange) ? (c?.unitRange as ContestInfo["unitRange"]) : null,
+          consentMarketing: bool(c?.consentMarketing),
+          consentTerms: bool(c?.consentTerms),
+          preferredChannel: c?.preferredChannel === "whatsapp" ? "whatsapp" : c?.preferredChannel === "email" ? "email" : null,
+          ticket: normalizeTicket(c?.ticket)
+        }
+      : null;
   return {
     firstName: str(o.firstName),
     lastName: str(o.lastName),
@@ -184,7 +221,8 @@ function normalise(raw: unknown, fields: CrmField[] = []): ExtractedContact {
       : [],
     units,
     pms,
-    crm
+    crm,
+    contest
   };
 }
 
