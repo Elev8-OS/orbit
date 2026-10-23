@@ -1,4 +1,4 @@
-# ─────────────────────────────────────────────────────────────
+# ───────────────────────────────────────────────────────────────
 # Orbit App-Registry
 #
 # Jede App erscheint als Kachel, wenn der User mindestens eine der
@@ -18,7 +18,7 @@
 # durch Orbit. "embed: false" öffnet im neuen Browser-Tab (z.B. Jira).
 #
 # Prüfen: npm run apps:check
-# ─────────────────────────────────────────────────────────────
+# ───────────────────────────────────────────────────────────────
 
 categories:
   - id: reporting
@@ -213,6 +213,21 @@ apps:
     icon: ClipboardCheck
     category: customers
     roles: [App.TenantIntake]
+    requestableBy: [Orbit.Staff]
+    embed: true
+
+  # Onboarding – direkt in Orbit gebaut (/onboarding). Nach einem Fireflies-Call mit Startwunsch legt Orbit einen
+  # Entwurf an; „Senden“ legt in Orbit 4 (Partnerportal) das Kundenkonto an und schickt die Einladung. Gesendet wird
+  # nie automatisch. Rollen: App.Onboarding, App.Onboarding.Admin. Siehe docs/ONBOARDING.md.
+  - id: onboarding
+    name: { de: Onboarding, en: Onboarding }
+    description:
+      de: Startwunsch aus Democalls erkennen, Entwurf prüfen und das Onboarding mit einem Klick an den Kunden senden.
+      en: Spot onboarding requests in demo calls, review the draft and send the onboarding to the customer with one click.
+    url: https://myorbit.elev8-suite.com/onboarding
+    icon: Rocket
+    category: customers
+    roles: [App.Onboarding, App.Onboarding.Admin]
     requestableBy: [Orbit.Staff]
     embed: true
 
