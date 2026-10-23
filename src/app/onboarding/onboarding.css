@@ -1,0 +1,84 @@
+/* Onboarding – Entwürfe aus Calls. Farben aus den Orbit-Variablen (globals.css, theme.css), Aufbau wie Scan und Messen. */
+.ob-main { padding: 1.5rem clamp(1rem, 3vw, 2.5rem) 3rem; max-width: 80rem; }
+.ob-page { display: grid; gap: 1.25rem; }
+.ob-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 1rem; }
+.ob-head h1 { margin: 0.25rem 0 0.25rem; font-size: 1.75rem; line-height: 1.15; letter-spacing: -0.01em; }
+.ob-sub { margin: 0; color: var(--muted); max-width: 60ch; }
+.ob-back { margin: 0; font-size: 0.875rem; }
+.ob-back a { color: var(--muted); }
+.ob-muted { color: var(--muted); font-size: 0.8125rem; }
+.ob-strong { font-weight: 600; }
+.ob-nowrap { white-space: nowrap; }
+.ob-err { color: var(--danger); font-size: 0.8125rem; }
+.ob-hint { margin: 0.5rem 0 0; color: var(--muted); font-size: 0.8125rem; }
+
+.ob-tabs { display: flex; gap: 0.25rem; }
+.ob-tabs a { padding: 0.4rem 0.9rem; border-radius: 999px; color: var(--muted); text-decoration: none; font-size: 0.875rem; border: 1px solid transparent; }
+.ob-tabs a:hover { color: var(--ink); }
+.ob-tabs a[aria-current="page"] { background: var(--ink); color: var(--bg); font-weight: 600; }
+
+.ob-grid { display: grid; gap: 1.25rem; }
+@media (min-width: 1000px) { .ob-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; } .ob-grid-detail { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); } }
+.ob-side { display: grid; gap: 1.25rem; }
+
+.ob-card { background: var(--surface); border: 1px solid var(--line); border-radius: 0.875rem; padding: 1.25rem; }
+.ob-card h2 { margin: 0 0 0.75rem; font-size: 1.0625rem; }
+
+.ob-table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 0.75rem; background: var(--surface); }
+.ob-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+.ob-table th { text-align: left; font-size: 0.75rem; font-weight: 600; color: var(--muted); padding: 0.6rem 1rem; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.ob-table td { padding: 0.7rem 1rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+.ob-table tr:last-child td { border-bottom: 0; }
+.ob-empty-row { margin: 0; padding: 1.5rem 1rem; color: var(--muted); text-align: center; }
+
+.ob-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.6rem; }
+.ob-list li { display: grid; gap: 0.1rem; padding-bottom: 0.6rem; border-bottom: 1px solid var(--line); font-size: 0.875rem; }
+.ob-list li:last-child { border-bottom: 0; padding-bottom: 0; }
+.ob-list a { color: var(--ink); }
+
+.ob-fields { display: grid; gap: 0.75rem; grid-template-columns: 1fr 1fr; }
+@media (max-width: 560px) { .ob-fields { grid-template-columns: 1fr; } }
+.ob-field { display: block; }
+.ob-field > span { display: block; font-size: 0.8125rem; font-weight: 600; margin-bottom: 0.3rem; color: var(--ink-2); }
+.ob-field small { display: block; color: var(--muted); font-size: 0.75rem; margin-top: 0.3rem; }
+.ob-wide { grid-column: 1 / -1; }
+.ob-field input, .ob-field select, .ob-field textarea {
+  width: 100%; box-sizing: border-box; padding: 0.6rem 0.75rem; border-radius: 0.5rem;
+  border: 1px solid var(--line-strong); background: var(--bg); color: var(--ink); font: inherit; font-size: 0.9375rem;
+}
+.ob-field input:disabled, .ob-field select:disabled, .ob-field textarea:disabled { opacity: 0.7; }
+.ob-field textarea { resize: vertical; }
+.ob-field input:focus, .ob-field select:focus, .ob-field textarea:focus { outline: 2px solid var(--yellow); outline-offset: 1px; border-color: transparent; }
+.ob-switch { display: flex; gap: 0.6rem; align-items: center; font-size: 0.875rem; cursor: pointer; }
+.ob-switch input { width: 1.1rem; height: 1.1rem; accent-color: var(--yellow); }
+
+.ob-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-top: 1rem; }
+.ob-spacer { flex: 1; }
+.ob-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; padding: 0.6rem 1rem;
+  border-radius: 0.5rem; border: 1px solid transparent; font: inherit; font-size: 0.9375rem; font-weight: 600;
+  cursor: pointer; text-decoration: none; white-space: nowrap;
+}
+.ob-btn:disabled { opacity: 0.55; cursor: default; }
+.ob-btn-primary { background: var(--yellow); color: #000; }
+.ob-btn-primary:hover:not(:disabled) { filter: brightness(0.95); }
+.ob-btn-secondary { background: var(--bg); color: var(--ink); border-color: var(--line-strong); }
+.ob-btn-secondary:hover:not(:disabled) { border-color: var(--ink); }
+.ob-btn-link { background: none; border: 0; padding: 0; color: var(--muted); font-weight: 400; font-size: 0.8125rem; text-decoration: underline; }
+.ob-btn-link:hover:not(:disabled) { color: var(--ink); }
+.ob-btn-sm { padding: 0.35rem 0.75rem; font-size: 0.8125rem; }
+
+.ob-msg { margin: 0.75rem 0 0; padding: 0.6rem 0.85rem; border-radius: 0.5rem; font-size: 0.875rem; border: 1px solid var(--line); background: var(--surface); }
+.ob-msg-ok { color: var(--success); border-color: color-mix(in srgb, var(--success) 35%, var(--line)); }
+.ob-msg-error { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 35%, var(--line)); }
+.ob-msg-warn { color: var(--yellow-ink); background: var(--yellow-soft); border-color: transparent; }
+
+.ob-quote { margin: 0 0 0.75rem; padding: 0.1rem 0 0.1rem 0.9rem; border-left: 3px solid var(--yellow); font-size: 0.9375rem; }
+.ob-facts { margin: 0.75rem 0 0; display: grid; grid-template-columns: auto 1fr; gap: 0.35rem 1rem; font-size: 0.875rem; }
+.ob-facts dt { color: var(--muted); }
+.ob-facts dd { margin: 0; }
+.ob-steps { margin: 0; padding-left: 1.25rem; display: grid; gap: 0.35rem; font-size: 0.875rem; }
+
+.ob-empty { max-width: 32rem; margin: 3rem auto; text-align: center; }
+.ob-empty p { color: var(--muted); }
+.ob-form { margin-top: 0.5rem; }
