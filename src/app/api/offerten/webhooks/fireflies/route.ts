@@ -1,6 +1,7 @@
 import { after } from "next/server";
 import { verifySignature, firefliesConfigured } from "@/lib/offerten/fireflies";
 import { processMeeting } from "@/lib/offerten/service";
+import { processOnboardingMeeting } from "@/lib/onboarding/service";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -8,7 +9,8 @@ export const maxDuration = 300;
 /**
  * Fireflies meldet hier jeden fertig verarbeiteten Call (Webhooks V1 und V2).
  * Öffentlich erreichbar, deshalb nur mit gültiger Signatur (FIREFLIES_WEBHOOK_SECRET).
- * Antwortet sofort; die Analyse läuft im Hintergrund weiter.
+ * Antwortet sofort; die Analysen laufen im Hintergrund weiter: Offerten und Onboarding getrennt,
+ * ein Fehler in der einen Strecke stoppt die andere nicht.
  */
 const ACCEPTED_EVENTS = new Set(["transcription completed", "meeting.transcribed", "meeting.summarized"]);
 
@@ -32,6 +34,8 @@ export async function POST(request: Request) {
   if (!/^[A-Za-z0-9_-]{6,64}$/.test(meetingId)) return Response.json({ error: "invalid_meeting" }, { status: 400 });
   if (!ACCEPTED_EVENTS.has(event)) return Response.json({ ok: true, ignored: event });
 
-  after(() => processMeeting(meetingId));
+  after(async () => {
+    await Promise.allSettled([processMeeting(meetingId), processOnboardingMeeting(meetingId)]);
+  });
   return Response.json({ ok: true });
 }
