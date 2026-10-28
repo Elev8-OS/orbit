@@ -70,7 +70,7 @@ export function RadarHome({ locale, view, items, counts, connections, settings, 
   }
 
   return (
-    <div className="p-page radar">
+    <div className="p-page radar" lang={locale}>
       <header className="radar-head">
         <div>
           <h1>{s.title}</h1>
@@ -156,14 +156,13 @@ export function RadarHome({ locale, view, items, counts, connections, settings, 
         </ul>
       )}
 
-      <SettingsPanel s={s} locale={locale} connections={connections} settings={settings} defaultInterests={defaultInterests} when={when} onChanged={() => router.refresh()} />
+      <SettingsPanel s={s} connections={connections} settings={settings} defaultInterests={defaultInterests} when={when} onChanged={() => router.refresh()} />
     </div>
   );
 }
 
 function SettingsPanel({
   s,
-  locale,
   connections,
   settings,
   defaultInterests,
@@ -171,7 +170,6 @@ function SettingsPanel({
   onChanged
 }: {
   s: ReturnType<typeof radarStrings>;
-  locale: "de" | "en";
   connections: Connection[];
   settings: Settings;
   defaultInterests: string;
@@ -227,7 +225,8 @@ function SettingsPanel({
         {connections.length === 0 ? <p className="radar-muted">{s.noSources}</p> : null}
         <ul className="radar-conns">
           {connections.map((c) => {
-            const chans = Array.isArray((c.config as { channels?: { name: string }[] }).channels) ? (c.config as { channels: { name: string }[] }).channels.map((x) => `#${x.name}`).join(", ") : "";
+            const list = (c.config as { channels?: { name: string }[] }).channels;
+            const chans = Array.isArray(list) ? list.map((x) => `#${x.name}`).join(", ") : "";
             return (
               <li key={c.id}>
                 <div>
@@ -298,8 +297,11 @@ function SettingsPanel({
         </form>
       </section>
 
-      {message ? <p className={message.ok ? "radar-ok" : "radar-err"} role="status">{message.text}</p> : null}
-      <span hidden>{locale}</span>
+      {message ? (
+        <p className={message.ok ? "radar-ok" : "radar-err"} role="status">
+          {message.text}
+        </p>
+      ) : null}
     </details>
   );
 }
