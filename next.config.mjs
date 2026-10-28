@@ -20,7 +20,7 @@ const nextConfig = {
     ];
     return [
       // Orbit selbst darf nirgends eingebettet werden
-      { source: "/((?!offerten|api/offerten|sales|api/sales|kunden|api/kunden|assistent|api/assistent|portfolio|api/portfolio|portfolio-app|messen|api/messen|scan|api/scan|m/).*)", headers: [{ key: "X-Frame-Options", value: "DENY" }, ...common] },
+      { source: "/((?!offerten|api/offerten|sales|api/sales|kunden|api/kunden|assistent|api/assistent|portfolio|api/portfolio|portfolio-app|messen|api/messen|scan|api/scan|radar|api/radar|m/).*)", headers: [{ key: "X-Frame-Options", value: "DENY" }, ...common] },
       // Die Offerten-App läuft als Tab in Orbit (gleiche Domain) und öffnet PDFs in diesem Tab
       { source: "/offerten", headers: [{ key: "X-Frame-Options", value: "SAMEORIGIN" }, ...common] },
       { source: "/offerten/:path*", headers: [{ key: "X-Frame-Options", value: "SAMEORIGIN" }, ...common] },
@@ -29,8 +29,8 @@ const nextConfig = {
       { source: "/sales", headers: [{ key: "X-Frame-Options", value: "SAMEORIGIN" }, ...common] },
       { source: "/sales/:path*", headers: [{ key: "X-Frame-Options", value: "SAMEORIGIN" }, ...common] },
       { source: "/api/sales/:path*", headers: [{ key: "X-Frame-Options", value: "SAMEORIGIN" }, ...common] },
-      // Kunden-360, der E-Mail-Assistent, das Portfolio-Modul, Messen und der Scanner laufen ebenfalls als Tabs in Orbit
-      ...["/kunden", "/kunden/:path*", "/api/kunden/:path*", "/assistent", "/assistent/:path*", "/api/assistent/:path*", "/portfolio", "/portfolio/:path*", "/api/portfolio/:path*", "/portfolio-app/:path*", "/messen", "/messen/:path*", "/api/messen/:path*", "/scan", "/scan/:path*", "/api/scan/:path*"].map((source) => ({
+      // Kunden-360, der E-Mail-Assistent, das Portfolio-Modul, Messen, der Scanner und das Radar laufen ebenfalls als Tabs in Orbit
+      ...["/kunden", "/kunden/:path*", "/api/kunden/:path*", "/assistent", "/assistent/:path*", "/api/assistent/:path*", "/portfolio", "/portfolio/:path*", "/api/portfolio/:path*", "/portfolio-app/:path*", "/messen", "/messen/:path*", "/api/messen/:path*", "/scan", "/scan/:path*", "/api/scan/:path*", "/radar", "/radar/:path*", "/api/radar/:path*"].map((source) => ({
         source,
         headers: [{ key: "X-Frame-Options", value: "SAMEORIGIN" }, ...common]
       })),
