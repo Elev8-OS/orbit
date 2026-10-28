@@ -6,15 +6,18 @@ import { CSS } from "@dnd-kit/utilities";
 import { ArrowUpRight, GripVertical } from "lucide-react";
 import type { TileData } from "./Dashboard";
 import { useShell } from "./OrbitShell";
+import "./tile-count.css";
 
 type Props = {
   tile: TileData;
   index: number;
   sortable: boolean;
   labels: { new: string; opensNewTab: string; dragHandle: string };
+  /** Anzahl Ungelesenes/Unbearbeitetes; 0 oder leer = kein Punkt */
+  badge?: number;
 };
 
-export function AppTile({ tile, index, sortable, labels }: Props) {
+export function AppTile({ tile, index, sortable, labels, badge }: Props) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
     id: tile.id,
     disabled: !sortable
@@ -45,7 +48,10 @@ export function AppTile({ tile, index, sortable, labels }: Props) {
           shell?.openApp(tile.id);
         }}
       >
-        <span className="tile-icon">{tile.icon}</span>
+        <span className="tile-icon">
+          {tile.icon}
+          {badge && badge > 0 ? <span className="tile-count">{badge > 99 ? "99+" : badge}</span> : null}
+        </span>
         <span className="tile-name">
           {tile.name}
           {newTab && (

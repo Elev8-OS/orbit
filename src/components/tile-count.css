@@ -1,0 +1,25 @@
+/* Gelber Punkt mit Zahl auf der Kachel: ungelesen oder unbearbeitet */
+.tile-icon {
+  position: relative;
+}
+.tile-count {
+  position: absolute;
+  top: -0.45rem;
+  right: -0.45rem;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  min-width: 1.35rem;
+  height: 1.35rem;
+  padding: 0 0.35rem;
+  box-sizing: border-box;
+  border-radius: 999px;
+  border: 2px solid var(--surface, #fff);
+  background: var(--yellow, #f6bb12);
+  color: #000;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}

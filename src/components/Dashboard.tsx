@@ -68,6 +68,7 @@ export function Dashboard({ tiles, categories, defaultOrder, supportEmail, reque
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [badges, setBadges] = useState<Record<string, number>>({});
   const searchRef = useRef<HTMLInputElement>(null);
   const saveSeq = useRef(0);
   const [revealed, setRevealed] = useState(!welcome);
@@ -83,6 +84,32 @@ export function Dashboard({ tiles, categories, defaultOrder, supportEmail, reque
       window.clearTimeout(fallback);
     };
   }, [revealed]);
+
+  // Gelbe Punkte mit Zahlen (ungelesen/unbearbeitet pro App): beim Laden, jede Minute und wenn man zurückkommt
+  useEffect(() => {
+    let alive = true;
+    const load = async () => {
+      try {
+        const res = await fetch("/api/badges", { cache: "no-store" });
+        if (res.ok && alive) setBadges((await res.json()) as Record<string, number>);
+      } catch {
+        /* ohne Zahlen bleibt die Startseite wie bisher */
+      }
+    };
+    void load();
+    const timer = window.setInterval(load, 60_000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void load();
+    };
+    window.addEventListener("focus", onVisible);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      alive = false;
+      window.clearInterval(timer);
+      window.removeEventListener("focus", onVisible);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, []);
 
   // Wenn der Server neue Tiles liefert (z.B. nach Sprachwechsel), Reihenfolge übernehmen
   useEffect(() => setOrder(tiles.map((tile) => tile.id)), [tiles]);
@@ -282,7 +309,7 @@ export function Dashboard({ tiles, categories, defaultOrder, supportEmail, reque
           <SortableContext items={shown.map((tile) => tile.id)} strategy={rectSortingStrategy} disabled={filtering}>
             <ul className={`tiles${welcome ? (revealed ? " is-revealing" : " is-waiting") : ""}`}>
               {shown.map((tile, index) => (
-                <AppTile key={tile.id} tile={tile} index={index} sortable={!filtering} labels={tileLabels(tile)} />
+                <AppTile key={tile.id} tile={tile} index={index} sortable={!filtering} labels={tileLabels(tile)} badge={badges[tile.id]} />
               ))}
             </ul>
           </SortableContext>
