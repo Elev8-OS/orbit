@@ -1,4 +1,4 @@
-# ─────────────────────────────────────────────────────────────
+# ───────────────────────────────────────────────────────────────
 # Orbit App-Registry
 #
 # Jede App erscheint als Kachel, wenn der User mindestens eine der
@@ -18,7 +18,7 @@
 # durch Orbit. "embed: false" öffnet im neuen Browser-Tab (z.B. Jira).
 #
 # Prüfen: npm run apps:check
-# ─────────────────────────────────────────────────────────────
+# ───────────────────────────────────────────────────────────────
 
 categories:
   - id: reporting
@@ -259,4 +259,19 @@ apps:
     category: sales
     roles: [App.Scan, App.Messen, App.Sales, App.Sales.Admin]
     requestableBy: [Orbit.Staff]
+    embed: true
+
+  # Radar – direkt in Orbit gebaut (/radar). Wertet Quellen (heute Slack, später z.B. WhatsApp) einmal täglich mit Claude
+  # auf Relevanz für Elev8 aus und zeigt Treffer mit Link zum Originalbeitrag in „Mein Tag“. Jede Person verbindet ihre
+  # eigenen Quellen. V1 nur für eine Person (Rolle App.Radar, RADAR_ROLES). Später für alle: requestableBy aktivieren und
+  # RADAR_ROLES=Orbit.Staff setzen. Hintergrundlauf und Karte erst mit RADAR_ENABLED=true. Siehe docs/RADAR.md.
+  - id: radar
+    name: { de: Radar, en: Radar }
+    description:
+      de: Was in deinen Slack-Channels und weiteren Quellen für Elev8 relevant ist, täglich ausgewertet und in Mein Tag.
+      en: What in your Slack channels and other sources matters for Elev8, evaluated daily and shown in My day.
+    url: https://myorbit.elev8-suite.com/radar
+    icon: Radar
+    category: internal
+    roles: [App.Radar]
     embed: true

@@ -1,0 +1,44 @@
+/* Radar – nutzt die Orbit-Variablen aus globals.css/theme.css */
+.radar { display: grid; gap: 1rem; max-width: 56rem; }
+.radar h1 { margin: 0; font-size: 1.5rem; }
+.radar h2 { margin: 0.25rem 0; font-size: 1.05rem; }
+.radar h3 { margin: 1rem 0 0.5rem; font-size: 1rem; }
+.radar h4 { margin: 0 0 0.5rem; font-size: 0.95rem; }
+.radar p { margin: 0.25rem 0; }
+.radar-muted { color: var(--muted); }
+.radar-small { font-size: 0.85rem; }
+.radar-err { color: var(--danger); }
+.radar-ok { color: var(--success); }
+.radar-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; }
+
+.radar-tabs { display: flex; gap: 0.25rem; border-bottom: 1px solid var(--line); }
+.radar-tabs a { padding: 0.5rem 0.9rem; color: var(--muted); text-decoration: none; border-bottom: 2px solid transparent; }
+.radar-tabs a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--yellow); font-weight: 600; }
+.radar-count { margin-left: 0.4rem; padding: 0 0.45rem; border-radius: 999px; background: var(--yellow); color: #000; font-size: 0.75rem; }
+
+.radar-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.75rem; }
+.radar-item { background: var(--surface); border: 1px solid var(--line); border-radius: 0.75rem; padding: 0.9rem 1rem; }
+.radar-item.radar-high { border-left: 4px solid var(--yellow); }
+.radar-focus { outline: 2px solid var(--yellow); }
+.radar-item-top { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+.radar-badge { display: inline-block; padding: 0.1rem 0.5rem; border-radius: 999px; font-size: 0.75rem; background: var(--surface-2); border: 1px solid var(--line); color: var(--ink-2); }
+.radar-badge-high { background: var(--yellow-soft); color: var(--yellow-ink); border-color: var(--yellow); }
+.radar-reco { background: var(--surface-2); border-radius: 0.5rem; padding: 0.5rem 0.7rem; }
+.radar-original summary { cursor: pointer; color: var(--muted); font-size: 0.85rem; margin-top: 0.4rem; }
+.radar-original blockquote { margin: 0.4rem 0 0; padding-left: 0.8rem; border-left: 3px solid var(--line-strong); color: var(--ink-2); white-space: pre-wrap; font-size: 0.9rem; }
+.radar-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.7rem; align-items: center; }
+.radar-empty { color: var(--muted); padding: 1.5rem 0; }
+
+.radar-btn { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.45rem 0.9rem; border-radius: 0.5rem; border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink); cursor: pointer; font: inherit; text-decoration: none; }
+.radar-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.radar-btn-primary { background: var(--yellow); border-color: var(--yellow); color: #000; font-weight: 600; }
+
+.radar-settings { background: var(--surface); border: 1px solid var(--line); border-radius: 0.75rem; padding: 0.75rem 1rem; }
+.radar-settings > summary { cursor: pointer; font-weight: 600; }
+.radar-conns { list-style: none; margin: 0 0 1rem; padding: 0; display: grid; gap: 0.5rem; }
+.radar-conns li { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; padding: 0.6rem 0.8rem; border: 1px solid var(--line); border-radius: 0.5rem; }
+.radar-form { display: grid; gap: 0.75rem; margin-bottom: 0.75rem; }
+.radar-form label { display: grid; gap: 0.25rem; font-size: 0.9rem; }
+.radar-form small { color: var(--muted); }
+.radar-form input[type="password"], .radar-form select, .radar-form textarea { padding: 0.5rem 0.6rem; border: 1px solid var(--line-strong); border-radius: 0.5rem; background: var(--surface-2); color: var(--ink); font: inherit; }
+.radar-inline { display: flex !important; grid-auto-flow: column; align-items: center; gap: 0.5rem; }
