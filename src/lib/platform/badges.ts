@@ -22,8 +22,10 @@ import { callIntegration } from "./integrations";
  * - sales: fällige Aufgaben und heutige Termine (wie in Mein Tag)
  * - jede App mit integrations.today (Lead Bot, Support Bot …): die Zahl, die sie selbst melden
  *
- * Jede Quelle hat ein Zeitlimit und fällt bei Fehlern einfach weg. Das Ergebnis wird 60 Sekunden pro Person
- * zwischengespeichert, damit häufiges Neuladen weder GHL noch die Apps belastet.
+ * Aus der eigenen Datenbank (Assistent, Radar, Offerten) wird immer live gezählt: Wer etwas erledigt, sieht die
+ * Zahl beim nächsten Laden sofort sinken. Nur die Quellen, die GHL oder andere Apps anfragen (Sales, Apps mit
+ * Mein-Tag-Schnittstelle), werden 60 Sekunden pro Person zwischengespeichert, damit häufiges Neuladen sie nicht belastet.
+ * Jede Quelle hat ein Zeitlimit und fällt bei Fehlern einfach weg.
  */
 export type Badges = Record<string, number>;
 
@@ -33,6 +35,13 @@ const cache = new Map<string, { at: number; badges: Badges }>();
 
 const withTimeout = <T,>(p: Promise<T>, ms = TIMEOUT_MS) =>
   Promise.race([p, new Promise<never>((_, reject) => setTimeout(() => reject(new Error("timeout")), ms))]);
+
+/** Eine Quelle mit Zeitlimit; bei Fehler oder Zeitüberschreitung kein Punkt statt einer kaputten Startseite. */
+const guarded = (p: Promise<Badges>): Promise<Badges> =>
+  withTimeout(p).catch((err) => {
+    console.warn("Kachel-Zähler: Quelle nicht geladen:", err instanceof Error ? err.message : err);
+    return {} as Badges;
+  });
 
 async function assistentCount(user: PlatformUser): Promise<Badges> {
   if (!hasAssistentAccess(user.roles)) return {};
@@ -79,20 +88,25 @@ async function appCounts(user: PlatformUser): Promise<Badges> {
   return out;
 }
 
-export async function loadBadges(user: PlatformUser): Promise<Badges> {
+/** Quellen außerhalb der eigenen Datenbank (GHL, andere Apps): 60 Sekunden pro Person zwischengespeichert. */
+async function externalCounts(user: PlatformUser, tz: string): Promise<Badges> {
   const hit = cache.get(user.id);
   if (hit && Date.now() - hit.at < TTL_MS) return hit.badges;
+  const parts = await Promise.all([guarded(salesCount(user, tz)), guarded(appCounts(user))]);
+  const badges: Badges = Object.assign({}, ...parts);
+  cache.set(user.id, { at: Date.now(), badges });
+  return badges;
+}
+
+export async function loadBadges(user: PlatformUser): Promise<Badges> {
   const tz = validTimeZone((await cookies()).get("SALES_TZ")?.value);
-  const parts = await Promise.all(
-    [assistentCount(user), radarCount(user), offertenCount(user, tz), salesCount(user, tz), appCounts(user)].map((p) =>
-      withTimeout(p).catch((err) => {
-        console.warn("Kachel-Zähler: Quelle nicht geladen:", err instanceof Error ? err.message : err);
-        return {} as Badges;
-      })
-    )
-  );
+  const parts = await Promise.all([
+    guarded(assistentCount(user)),
+    guarded(radarCount(user)),
+    guarded(offertenCount(user, tz)),
+    externalCounts(user, tz)
+  ]);
   const badges: Badges = {};
   for (const part of parts) for (const [id, n] of Object.entries(part)) if (n > 0) badges[id] = n;
-  cache.set(user.id, { at: Date.now(), badges });
   return badges;
 }
