@@ -8,6 +8,9 @@ import { loadToday, resolveViewer, validTimeZone } from "@/lib/sales/service";
 import { hasOffertenAccess } from "@/lib/offerten/access";
 import * as assistant from "@/lib/assistant/store";
 import { oauthConfigured } from "@/lib/assistant/oauth";
+import { hasRadarAccess, radarEnabled } from "@/lib/radar/access";
+import { radarStrings } from "@/lib/radar/i18n";
+import * as radar from "@/lib/radar/store";
 import { hasAssistentAccess, type PlatformUser } from "./access";
 import { callIntegration } from "./integrations";
 import { openIncidents } from "./status";
@@ -156,6 +159,39 @@ async function assistantCard(user: PlatformUser): Promise<TodayCard | null> {
   };
 }
 
+/**
+ * Radar: was die Quellen der Person (Slack, später mehr) an Relevantem für Elev8 gebracht haben.
+ * Ein Klick öffnet den Eintrag im Radar; dort steht der Link zum Originalbeitrag.
+ * Ohne Verbindung und ohne Lauf gibt es keine Karte.
+ */
+async function radarCard(user: PlatformUser, locale: "de" | "en", tz: string): Promise<TodayCard | null> {
+  if (!radarEnabled() || !hasRadarAccess(user.roles)) return null;
+  const s = radarStrings(locale);
+  const [today, run] = await Promise.all([radar.todayItems(user.id, 6), radar.lastRun(user.id)]);
+  if (!today.total && !run) return null;
+  const cut = (text: string, max: number) => (text.length > max ? `${text.slice(0, max - 1)}…` : text);
+  return {
+    id: "radar",
+    title: s.cardTitle,
+    icon: "Radar",
+    count: today.total,
+    countLabel: today.high ? s.cardCount(today.total, today.high) : undefined,
+    items: today.items.map((i) => {
+      const who = [i.channel, i.author].filter(Boolean).join(" · ");
+      return {
+        id: `r-${i.id}`,
+        title: i.title || cut(i.summary, 80),
+        meta: i.summary && i.title ? `${who} · ${cut(i.summary, 140)}` : who,
+        tone: i.relevance === "high" ? ("warning" as const) : ("default" as const),
+        target: { app: "radar", path: `/radar?id=${i.id}` }
+      };
+    }),
+    empty: s.cardEmpty(run ? timeIn(run.finishedAt ?? run.startedAt, tz, locale) : "–"),
+    action: { label: s.cardOpen, target: { app: "radar", path: "/radar" } },
+    error: run?.error ? s.runError : undefined
+  };
+}
+
 async function adminCard(user: PlatformUser, locale: "de" | "en"): Promise<TodayCard | null> {
   if (!user.admin) return null;
   const t = await getTranslations("platform.today.admin");
@@ -220,6 +256,7 @@ export async function loadMyDay(user: PlatformUser, locale: "de" | "en"): Promis
   const t = await getTranslations("platform.today");
   const sources: [string, () => Promise<TodayCard | TodayCard[] | null>][] = [
     ["assistant", () => assistantCard(user)],
+    ["radar", () => radarCard(user, locale, tz)],
     ["sales", () => salesCard(user, locale, tz)],
     ["offerten", () => offertenCard(user, locale, tz)],
     ["apps", () => integrationCards(user, locale)],
@@ -231,7 +268,8 @@ export async function loadMyDay(user: PlatformUser, locale: "de" | "en"): Promis
         return await withTimeout(load());
       } catch (err) {
         console.warn(`Mein Tag: Quelle ${id} nicht geladen:`, err instanceof Error ? err.message : err);
-        return id === "apps" || id === "admin" ? null : ({ id, title: t(`fallback.${id}`), icon: "CircleAlert", items: [], empty: t("unavailable"), error: t("unavailable") } as TodayCard);
+        // Radar, Apps und Admin zeigen bei einem Fehler einfach keine Karte (keine Übersetzung für den Ersatztext nötig)
+        return id === "apps" || id === "admin" || id === "radar" ? null : ({ id, title: t(`fallback.${id}`), icon: "CircleAlert", items: [], empty: t("unavailable"), error: t("unavailable") } as TodayCard);
       }
     })
   );

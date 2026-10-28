@@ -4,9 +4,10 @@ import { sql } from "@/lib/db";
  * Hintergrundaufgaben von Orbit, gestartet in instrumentation.ts:
  * - Statusprüfung aller Dienste (ORBIT_STATUS_INTERVAL_MIN, Standard 5 Minuten)
  * - E-Mail-Assistent für alle verbundenen Postfächer (ASSISTENT_INTERVAL_MIN, Standard 15 Minuten)
+ * - Radar: Quellen (Slack, später mehr) einmal täglich zur eingestellten Uhrzeit auswerten (alle 10 Minuten wird geprüft, wer fällig ist)
  * - Push-Mitteilungen: Mein Tag am Morgen, dringende App-Meldungen, geplante Mitteilungen (alle 5 Minuten)
  * Bei mehreren Orbit-Instanzen läuft jede Aufgabe dank Postgres-Sperre nur einmal.
- * Ausschalten mit ORBIT_BACKGROUND=false. Der E-Mail-Assistent läuft nur mit ASSISTENT_ENABLED=true.
+ * Ausschalten mit ORBIT_BACKGROUND=false. Der E-Mail-Assistent läuft nur mit ASSISTENT_ENABLED=true, das Radar nur mit RADAR_ENABLED=true.
  */
 const g = globalThis as unknown as { orbitScheduler?: boolean };
 
@@ -48,6 +49,9 @@ export function startScheduler() {
   if (process.env.ASSISTENT_ENABLED === "true") {
     const assistMin = Math.max(5, Number(process.env.ASSISTENT_INTERVAL_MIN) || 15);
     every(assistMin, "assistant", async () => (await import("@/lib/assistant/worker")).runAll(), 90_000);
+  }
+  if (process.env.RADAR_ENABLED === "true") {
+    every(10, "radar", async () => (await import("@/lib/radar/worker")).runDue(), 120_000);
   }
   if (process.env.ORBIT_PUSH !== "false") {
     every(5, "push", async () => (await import("@/lib/push/jobs")).runPushJobs(), 60_000);
