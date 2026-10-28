@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { hasAssistentAccess, requireUser } from "@/lib/platform/access";
 import { getItem, setItemStatus } from "@/lib/assistant/store";
-import { discardDraft, redraft } from "@/lib/assistant/worker";
+import { completeItem, discardDraft, redraft } from "@/lib/assistant/worker";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
@@ -25,8 +25,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       const updated = await redraft(r.user.id, id, parsed.data.action, parsed.data.instruction || undefined);
       return Response.json({ ok: true, item: updated });
     }
+    if (parsed.data.action === "done") {
+      // Erledigt löscht auch den ungesendeten Entwurf in Outlook
+      return Response.json({ ok: true, ...(await completeItem(r.user.id, id)) });
+    }
     if (parsed.data.action === "discard") await discardDraft(r.user.id, id);
-    else await setItemStatus(r.user.id, id, parsed.data.action === "done" ? "done" : "open");
+    else await setItemStatus(r.user.id, id, "open");
     return Response.json({ ok: true });
   } catch (err) {
     console.error("Assistent: Aktion fehlgeschlagen:", err);

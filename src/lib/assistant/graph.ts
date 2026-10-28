@@ -97,3 +97,17 @@ export async function deleteDraft(token: string, draftId: string): Promise<void>
     if (!(err instanceof GraphError && err.status === 404)) throw err;
   }
 }
+
+export type DraftState = { id: string; isDraft: boolean; webLink: string | null; body: { contentType: string; content: string } };
+
+/** Entwurf mit seinem aktuellen HTML-Text lesen (für die Bearbeitung in Orbit). */
+export const getDraft = (token: string, draftId: string) =>
+  graph<DraftState>(token, `/me/messages/${encodeURIComponent(draftId)}?$select=id,isDraft,webLink,body`);
+
+/** Nur den Text eines bestehenden Entwurfs ersetzen. Empfänger, Betreff und Anhänge bleiben. */
+export async function setDraftHtml(token: string, draftId: string, html: string): Promise<void> {
+  await graph(token, `/me/messages/${encodeURIComponent(draftId)}`, {
+    method: "PATCH",
+    body: JSON.stringify({ body: { contentType: "HTML", content: html } })
+  });
+}
