@@ -50,19 +50,35 @@ type ConnectionRow = {
   user_id: string;
   kind: string;
   label: string;
-  config: Record<string, unknown>;
+  config: unknown;
   secret: string | null;
   enabled: boolean;
   last_run_at: Date | null;
   last_error: string | null;
 };
 
+/**
+ * jsonb liest postgres.js als Objekt. Zwischenzeitlich wurde die Konfiguration doppelt kodiert gespeichert
+ * (als JSON-Text in jsonb); solche Zeilen werden hier mitgelesen, damit bestehende Verbindungen weiter funktionieren.
+ */
+function parseConfig(value: unknown): Record<string, unknown> {
+  if (typeof value === "string") {
+    try {
+      const parsed: unknown = JSON.parse(value);
+      return parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : {};
+    } catch {
+      return {};
+    }
+  }
+  return value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+}
+
 const toConnection = (r: ConnectionRow): Connection => ({
   id: Number(r.id),
   userId: r.user_id,
   kind: r.kind,
   label: r.label,
-  config: r.config ?? {},
+  config: parseConfig(r.config),
   enabled: r.enabled,
   lastRunAt: r.last_run_at?.toISOString() ?? null,
   lastError: r.last_error
@@ -80,9 +96,10 @@ export async function activeConnections(userId: string): Promise<ConnectionWithT
 }
 
 export async function createConnection(input: { userId: string; kind: string; label: string; config: Record<string, unknown>; token: string | null }): Promise<number> {
+  // sql.json statt JSON.stringify(...)::jsonb: sonst kodiert postgres.js den Text ein zweites Mal
   const [row] = await sql<{ id: string }[]>`
     INSERT INTO radar_connections (user_id, kind, label, config, secret)
-    VALUES (${input.userId}, ${input.kind}, ${input.label}, ${JSON.stringify(input.config)}::jsonb, ${input.token ? encrypt(input.token) : null})
+    VALUES (${input.userId}, ${input.kind}, ${input.label}, ${sql.json(input.config as Parameters<typeof sql.json>[0])}, ${input.token ? encrypt(input.token) : null})
     RETURNING id`;
   return Number(row.id);
 }
