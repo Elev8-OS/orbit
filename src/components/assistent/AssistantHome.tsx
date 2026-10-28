@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { AlertTriangle, Check, ExternalLink, Loader2, RefreshCw, Settings, Trash2, Undo2 } from "lucide-react";
 import type { Account, Item } from "@/lib/assistant/store";
+import { DraftEditor } from "./DraftEditor";
 import { RedraftActions } from "./RedraftActions";
 
 type View = "open" | "info" | "skip" | "done";
@@ -24,6 +25,7 @@ export function AssistantHome({
   justConnected: boolean;
 }) {
   const t = useTranslations("platform.assistent");
+  const locale = useLocale() === "en" ? "en" : "de";
   const router = useRouter();
   const [running, setRunning] = useState(false);
   const [runMsg, setRunMsg] = useState<string | null>(justConnected ? t("connectedNow") : null);
@@ -173,7 +175,19 @@ export function AssistantHome({
                   </button>
                 ) : (
                   <>
-                    <button type="button" className="button-secondary" onClick={() => act(item.id, "done")} disabled={busy === item.id}>
+                    <button
+                      type="button"
+                      className="button-secondary"
+                      onClick={() => act(item.id, "done")}
+                      disabled={busy === item.id}
+                      title={
+                        item.draftId
+                          ? locale === "en"
+                            ? "Marks as done and deletes the unsent draft in Outlook"
+                            : "Markiert als erledigt und löscht den ungesendeten Entwurf in Outlook"
+                          : undefined
+                      }
+                    >
                       <Check size={15} aria-hidden="true" />
                       {t("markDone")}
                     </button>
@@ -185,6 +199,7 @@ export function AssistantHome({
                     )}
                   </>
                 )}
+                {view === "open" && item.draftId && item.status === "open" && <DraftEditor item={item} />}
                 <RedraftActions item={item} view={view} />
               </div>
             </li>

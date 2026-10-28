@@ -1,8 +1,10 @@
 import { exclusive } from "@/lib/platform/scheduler";
+import { sql } from "@/lib/db";
 import * as store from "./store";
 import * as graph from "./graph";
 import { needsReconnect, refresh } from "./oauth";
 import { replyHtml, ruleSkip, triage, writeReply } from "./brain";
+import { blockToText, findReplyBlock, textToBlock } from "./draft-edit";
 import { notifySafe } from "@/lib/push/service";
 import { pushText } from "@/lib/push/texts";
 
@@ -163,11 +165,89 @@ export async function syncDrafts(userId: string): Promise<void> {
   }
 }
 
+/** Verknüpfung zum Outlook-Entwurf lösen (nach dem Löschen), damit sie nicht ins Leere zeigt. */
+async function clearDraft(userId: string, itemId: number): Promise<void> {
+  await sql`UPDATE assistant_items SET draft_id = NULL, draft_link = NULL, updated_at = now() WHERE user_id = ${userId} AND id = ${itemId}`;
+}
+
+/**
+ * Entwurf in Outlook löschen, aber nur, wenn es noch ein ungesendeter Entwurf ist. Eine gesendete Mail wird nie gelöscht.
+ * true = es gab einen Entwurf und er ist jetzt gelöscht.
+ */
+async function deleteDraftIfUnsent(token: string, draftId: string): Promise<boolean> {
+  if (!(await graph.draftExists(token, draftId))) return false;
+  await graph.deleteDraft(token, draftId);
+  return true;
+}
+
 export async function discardDraft(userId: string, itemId: number): Promise<void> {
   const item = await store.getItem(userId, itemId);
   if (!item) return;
-  if (item.draftId) await graph.deleteDraft(await accessToken(userId), item.draftId);
+  if (item.draftId) {
+    await deleteDraftIfUnsent(await accessToken(userId), item.draftId);
+    await clearDraft(userId, itemId);
+  }
   await store.setItemStatus(userId, itemId, "discarded");
+}
+
+/**
+ * „Erledigt“: Eintrag abschließen und den ungesendeten Entwurf in Outlook löschen.
+ * Wurde der Entwurf schon in Outlook gesendet oder gelöscht, bleibt dort alles wie es ist.
+ * Schlägt das Löschen fehl (z.B. Postfach nicht erreichbar), wird der Eintrag trotzdem erledigt; das steht im Ergebnis.
+ */
+export async function completeItem(userId: string, itemId: number): Promise<{ draftDeleted: boolean; draftError: boolean }> {
+  const item = await store.getItem(userId, itemId);
+  if (!item) return { draftDeleted: false, draftError: false };
+  let draftDeleted = false;
+  let draftError = false;
+  if (item.draftId) {
+    try {
+      draftDeleted = await deleteDraftIfUnsent(await accessToken(userId), item.draftId);
+      await clearDraft(userId, itemId);
+    } catch (err) {
+      draftError = true;
+      console.warn("Assistent: Entwurf beim Erledigen nicht gelöscht:", err);
+    }
+  }
+  await store.setItemStatus(userId, itemId, "done");
+  return { draftDeleted, draftError };
+}
+
+// ── Entwurf in Orbit bearbeiten ────────────────────────────────────────────────────
+
+async function loadDraft(userId: string, itemId: number) {
+  const item = await store.getItem(userId, itemId);
+  if (!item) throw new Error("not_found");
+  if (!item.draftId) throw new Error("no_draft");
+  const token = await accessToken(userId);
+  let draft: graph.DraftState;
+  try {
+    draft = await graph.getDraft(token, item.draftId);
+  } catch (err) {
+    if (err instanceof graph.GraphError && err.status === 404) throw new Error("draft_gone");
+    throw err;
+  }
+  if (!draft.isDraft) throw new Error("draft_gone"); // schon gesendet
+  return { item, token, draft };
+}
+
+/** Antworttext des Entwurfs, wie er jetzt in Outlook steht. Wirft draft_changed, wenn der Block nicht eindeutig zu finden ist. */
+export async function readDraftText(userId: string, itemId: number): Promise<string> {
+  const { draft } = await loadDraft(userId, itemId);
+  const block = findReplyBlock(draft.body.content);
+  if (!block) throw new Error("draft_changed");
+  return blockToText(block.inner);
+}
+
+/** Bearbeiteten Text in den Outlook-Entwurf zurückschreiben. Gesendet wird nichts. */
+export async function saveDraftText(userId: string, itemId: number, text: string): Promise<store.Item> {
+  const { item, token, draft } = await loadDraft(userId, itemId);
+  const html = draft.body.content;
+  const block = findReplyBlock(html);
+  if (!block) throw new Error("draft_changed");
+  await graph.setDraftHtml(token, item.draftId!, html.slice(0, block.start) + textToBlock(text) + html.slice(block.end));
+  await store.updateDraft(userId, itemId, { draftId: item.draftId!, draftLink: item.draftLink, preview: text });
+  return (await store.getItem(userId, itemId))!;
 }
 
 /**
