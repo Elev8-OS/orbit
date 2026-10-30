@@ -112,7 +112,8 @@
         "drafts": "Entwürfe",
         "sent": "Versendet",
         "calls": "Calls",
-        "follow": "Nachverfolgen"
+        "follow": "Nachverfolgen",
+        "onboarding": "Onboarding"
       },
       "empty": {
         "drafts": "Keine offenen Entwürfe. Neue erscheinen hier automatisch nach einem Democall mit Offertwunsch.",
@@ -300,7 +301,11 @@
         "outcome_won": "Als gewonnen markiert",
         "outcome_lost": "Als verloren markiert",
         "outcome_open": "Wieder geöffnet",
-        "follow_up_moved": "Nachfass-Termin geändert"
+        "follow_up_moved": "Nachfass-Termin geändert",
+        "accepted": "Vom Kunden online angenommen",
+        "accept_followups": "GHL und Mails nach der Annahme",
+        "onboarding_live": "Onboarding abgeschlossen: live",
+        "onboarding_reopened": "Onboarding wieder geöffnet"
       },
       "preview": {
         "pdf": "PDF",
@@ -322,6 +327,13 @@
         "contactField": "im Kontaktfeld",
         "media": "in der Mediathek",
         "stage": "auf „{stage}“ gesetzt"
+      },
+      "accept": {
+        "accepted": "Vom Kunden angenommen am {date} · {name}",
+        "openOnboarding": "Onboarding öffnen ({done}/{total})",
+        "copyLink": "Annahme-Link kopieren",
+        "copied": "Link kopiert",
+        "linkHint": "Annahmeseite ansehen"
       }
     },
     "sendDialog": {
@@ -352,7 +364,8 @@
         "send_failed": "Die Mail wurde nicht gesendet: {detail}",
         "no_lines": "Die Offerte hat keine Positionen.",
         "default": "Senden hat nicht geklappt. Versuche es erneut."
-      }
+      },
+      "acceptHint": "Der Knopf «Angebot annehmen» ist im PDF, und der Link wird automatisch in die Mail eingefügt."
     },
     "settings": {
       "title": "Preise & Einstellungen",
@@ -423,7 +436,38 @@
       "assistant": "Sales-Assistent",
       "assistantHint": "Erscheint auf jedem Angebot im Kasten „Fragen?“ und wird von Noah in der Begleit-Mail erwähnt.",
       "assistantName": "Name",
-      "assistantWhatsapp": "WhatsApp-Nummer"
+      "assistantWhatsapp": "WhatsApp-Nummer",
+      "onboarding": {
+        "title": "Onboarding nach der Annahme",
+        "hint": "Diese Checkliste entsteht, sobald ein Kunde ein Angebot online annimmt. Punkte mit Bedingung kommen nur dazu, wenn Paket oder Gespräch dafür sprechen. Änderungen gelten für neue Onboardings.",
+        "bookingUrl": "Link zur Terminbuchung (Kick-off)",
+        "bookingHint": "Z.B. Calendly oder Microsoft Bookings. Erscheint bei Punkten mit «Terminlink».",
+        "add": "Punkt hinzufügen",
+        "phase": "Phase",
+        "owner": "Wer",
+        "condition": "Wann",
+        "link": "Terminlink zeigen",
+        "itemTitle": "Titel",
+        "itemDetail": "Beschreibung",
+        "moveUp": "Nach oben",
+        "moveDown": "Nach unten",
+        "phases": {
+          "start": "Start",
+          "setup": "Einrichtung",
+          "golive": "Go-live"
+        },
+        "owners": {
+          "customer": "Kunde",
+          "elev8": "Elev8",
+          "both": "Gemeinsam"
+        },
+        "conditions": {
+          "always": "Immer",
+          "smart_lock": "Wenn Smart Locks Thema waren",
+          "channel_manager": "Mit Channel Manager",
+          "migration": "Wenn Daten übernommen werden"
+        }
+      }
     },
     "interval": {
       "once": "Einmalig",
@@ -474,6 +518,29 @@
       "draftFailed": "Kein Vorschlag möglich. Schreib die Nachricht selbst oder versuche es später.",
       "invalid": "Bitte gültige E-Mail-Adressen, Betreff und Nachricht angeben.",
       "sendFailed": "Nicht gesendet: {detail}"
+    },
+    "onboarding": {
+      "empty": "Noch keine angenommenen Offerten. Sobald ein Kunde online annimmt, erscheint sein Onboarding hier.",
+      "listLead": "Angenommene Offerten und der Stand ihres Onboardings. Kunde und Team arbeiten dieselbe Checkliste ab.",
+      "since": "angenommen {time}",
+      "progress": "{done} von {total} erledigt",
+      "live": "Live",
+      "open": "Läuft",
+      "back": "Onboarding",
+      "offer": "Offerte {number}",
+      "acceptedOn": "Angenommen am {date} von {name}",
+      "lead": "Der Kunde sieht diese Liste über seinen Link und kann eigene und gemeinsame Punkte abhaken. Ihr könnt hier alle Punkte abhaken.",
+      "copyLink": "Link für den Kunden kopieren",
+      "copied": "Kopiert",
+      "customerView": "Kundenansicht",
+      "markLive": "Als live markieren",
+      "reopen": "Wieder öffnen",
+      "failed": "Nicht gespeichert. Versuche es erneut.",
+      "owner": {
+        "customer": "Kunde",
+        "elev8": "Elev8",
+        "both": "Gemeinsam"
+      }
     }
   }
 }

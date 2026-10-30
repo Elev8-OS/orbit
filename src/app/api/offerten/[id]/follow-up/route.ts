@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { requireOffertenUser } from "@/lib/offerten/access";
 import { addNote, ghlConfigured } from "@/lib/offerten/ghl";
+import { acceptUrl, withAcceptLink } from "@/lib/offerten/links";
 import { sendQuoteMail } from "@/lib/offerten/mailer";
 import { personalizeConfigured, writeFollowUp } from "@/lib/offerten/personalize";
 import { documentFor, renderFile } from "@/lib/offerten/service";
@@ -60,7 +61,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     to: parsed.data.to,
     cc: parsed.data.cc,
     subject: parsed.data.subject,
-    text: parsed.data.body,
+    // Solange das Angebot offen ist, kommt der Link "Angebot annehmen" auch ins Nachfassen
+    text: quote.acceptedAt || quote.outcome !== "open" ? parsed.data.body : withAcceptLink(parsed.data.body, acceptUrl(quote.acceptToken), quote.language),
     attachments: attachments.map((f) => ({ filename: f.filename, contentType: f.type, data: f.data }))
   });
   if (!sent.ok) {

@@ -230,6 +230,11 @@ export function contactUrl(contactId: string): string {
   return `https://app.gohighlevel.com/v2/location/${locationId()}/contacts/detail/${contactId}`;
 }
 
+/** Setzt Tags am Kontakt (bestehende bleiben). Damit lassen sich GHL-Workflows auslösen, z.B. "onboarding-start". */
+export async function addTags(contactId: string, tags: string[]): Promise<void> {
+  await ghl(`/contacts/${encodeURIComponent(contactId)}/tags`, { method: "POST", body: JSON.stringify({ tags }) });
+}
+
 export async function updateOpportunityStatus(id: string, status: "won" | "lost" | "open"): Promise<void> {
   await ghl(`/opportunities/${encodeURIComponent(id)}/status`, { method: "PUT", body: JSON.stringify({ status }) });
 }

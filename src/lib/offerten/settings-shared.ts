@@ -38,6 +38,73 @@ export const addonSchema = z.object({
   interval: z.enum(["once", "monthly", "yearly"])
 });
 
+/** Punkt der Onboarding-Vorlage. condition steuert, ob er für einen Kunden übernommen wird. */
+export const onboardingTemplateItemSchema = z.object({
+  id: z.string().min(1).max(40),
+  phase: z.enum(["start", "setup", "golive"]),
+  title: localized,
+  detail: localized,
+  owner: z.enum(["customer", "elev8", "both"]),
+  /** always = immer; sonst nur, wenn es zum Kunden passt (aus Paket und Gespräch abgeleitet) */
+  condition: z.enum(["always", "smart_lock", "channel_manager", "migration"]).default("always"),
+  /** booking = Link zur Terminbuchung (onboarding.bookingUrl) anzeigen */
+  link: z.enum(["none", "booking"]).default("none")
+});
+export type OnboardingTemplateItem = z.infer<typeof onboardingTemplateItemSchema>;
+
+const t = (de: string, en: string) => ({ de, en });
+
+export const DEFAULT_ONBOARDING: { bookingUrl: string; items: OnboardingTemplateItem[] } = {
+  bookingUrl: "",
+  items: [
+    { id: "kickoff", phase: "start", owner: "customer", condition: "always", link: "booking",
+      title: t("Kick-off-Call buchen", "Book the kick-off call"),
+      detail: t("Termin für den ersten Onboarding-Call wählen. Darin planen wir gemeinsam die Einrichtung.", "Pick a time for the first onboarding call, where we plan the setup together.") },
+    { id: "tenant", phase: "start", owner: "elev8", condition: "always", link: "none",
+      title: t("Konto und Admin-Zugang in Elev8 anlegen", "Create account and admin access in Elev8"),
+      detail: t("Elev8 richtet den Tenant ein und sendet die Zugangsdaten.", "Elev8 sets up the tenant and sends the login details.") },
+    { id: "payment", phase: "start", owner: "customer", condition: "always", link: "none",
+      title: t("Zahlungsmethode hinterlegen", "Add a payment method"),
+      detail: t("In Elev8 unter Abrechnung eine Karte oder Zahlungsart hinterlegen.", "Add a card or payment method under billing in Elev8.") },
+    { id: "units", phase: "setup", owner: "elev8", condition: "always", link: "none",
+      title: t("Unterkünfte und Units importieren", "Import properties and units"),
+      detail: t("Struktur Property → Room → Listing in Elev8 anlegen.", "Set up the property → room → listing structure in Elev8.") },
+    { id: "channels", phase: "setup", owner: "both", condition: "channel_manager", link: "none",
+      title: t("Channel Manager verbinden", "Connect the channel manager"),
+      detail: t("Airbnb, Booking.com und weitere Kanäle mit Elev8 verbinden.", "Connect Airbnb, Booking.com and other channels to Elev8.") },
+    { id: "migration", phase: "setup", owner: "elev8", condition: "migration", link: "none",
+      title: t("Bestehende Buchungen übernehmen", "Migrate existing bookings"),
+      detail: t("Zukünftige Buchungen aus dem bisherigen System übernehmen.", "Move future bookings over from the current system.") },
+    { id: "team", phase: "setup", owner: "customer", condition: "always", link: "none",
+      title: t("Team und Rollen anlegen", "Add team members and roles"),
+      detail: t("Mitarbeitende einladen und Rollen zuweisen, z.B. Housekeeping oder Guest Experience.", "Invite staff and assign roles such as housekeeping or guest experience.") },
+    { id: "locks", phase: "setup", owner: "both", condition: "smart_lock", link: "none",
+      title: t("Smart Locks verbinden", "Connect smart locks"),
+      detail: t("Schlösser pro Unterkunft verbinden, damit Gäste ihren Code automatisch erhalten.", "Connect locks per property so guests receive their code automatically.") },
+    { id: "guide", phase: "setup", owner: "customer", condition: "always", link: "none",
+      title: t("Gästeguide ausfüllen", "Fill in the guest guide"),
+      detail: t("Good to Know sowie Check-in- und Check-out-Schritte pro Unterkunft erfassen.", "Add Good to Know and check-in/check-out steps for each property.") },
+    { id: "branding", phase: "setup", owner: "customer", condition: "always", link: "none",
+      title: t("Branding: Logo und Farben", "Branding: logo and colours"),
+      detail: t("Logo, Favicon und Farben für Gästeguide und Rechnungen hinterlegen.", "Upload logo, favicon and colours for the guest guide and invoices.") },
+    { id: "templates", phase: "setup", owner: "elev8", condition: "always", link: "none",
+      title: t("Automatische Nachrichten einrichten", "Set up automated messages"),
+      detail: t("Dynamic Templates für Buchungsbestätigung, Check-in-Infos und Bewertung.", "Dynamic templates for booking confirmation, check-in info and reviews.") },
+    { id: "cleaning", phase: "setup", owner: "both", condition: "always", link: "none",
+      title: t("Reinigungsplanung und Elev8 Go", "Cleaning schedule and Elev8 Go"),
+      detail: t("Reinigungsteam zuweisen, Checklisten anlegen und die App Elev8 Go installieren.", "Assign the cleaning team, create checklists and install the Elev8 Go app.") },
+    { id: "testbooking", phase: "golive", owner: "both", condition: "always", link: "none",
+      title: t("Testbuchung durchspielen", "Run a test booking"),
+      detail: t("Eine Buchung vom Eingang bis zum Check-out durchspielen.", "Walk through one booking from arrival of the request to check-out.") },
+    { id: "training", phase: "golive", owner: "elev8", condition: "always", link: "none",
+      title: t("Schulung Team", "Team training"),
+      detail: t("Kurze Schulung für alle, die täglich mit Elev8 arbeiten.", "A short training for everyone who works with Elev8 every day.") },
+    { id: "golive", phase: "golive", owner: "elev8", condition: "always", link: "none",
+      title: t("Go-live", "Go-live"),
+      detail: t("Elev8 übernimmt den Betrieb, die bisherigen Abläufe werden abgelöst.", "Elev8 takes over day-to-day operations and replaces the old workflows.") }
+  ]
+};
+
 export const settingsSchema = z.object({
   currency: z.string().regex(/^[A-Z]{3}$/),
   validityDays: z.number().int().min(1).max(365),
@@ -55,6 +122,13 @@ export const settingsSchema = z.object({
   reverseChargeCountries: z.array(z.string().regex(/^[A-Z]{2}$/)).default(["DE"]),
   /** Tage bis zum ersten Nachfassen nach dem Versand und zwischen weiteren Nachfass-Mails */
   followUpDays: z.number().int().min(1).max(60).default(4),
+  /** Onboarding nach der Annahme: Link zur Terminbuchung und Vorlage der Checkliste */
+  onboarding: z
+    .object({
+      bookingUrl: z.string().max(300),
+      items: z.array(onboardingTemplateItemSchema).min(1).max(60)
+    })
+    .default(DEFAULT_ONBOARDING),
   /** Noah, der Sales-Assistent: erscheint auf dem Angebot als Kontakt für Fragen (WhatsApp, 24/7) */
   assistant: z
     .object({
@@ -110,6 +184,7 @@ export const DEFAULT_SETTINGS: QuoteSettings = {
   reverseChargeCountries: ["DE"],
   followUpDays: 4,
   assistant: { name: "Noah", whatsapp: "+41585909971" },
+  onboarding: DEFAULT_ONBOARDING,
   issuer: {
     company: "Elev8 Software AG",
     addressLines: ["Hauptgasse 33", "CH-4600 Olten"],

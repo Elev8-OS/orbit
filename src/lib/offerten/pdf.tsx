@@ -77,13 +77,13 @@ const s = StyleSheet.create({
   cardText: { flex: 1, fontSize: 8.6, lineHeight: 1.45, color: INK2 },
   cardLead: { fontWeight: 600, color: INK },
   // Angebotsseite
-  offerHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", paddingTop: 40, marginBottom: 20 },
+  offerHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", paddingTop: 30, marginBottom: 16 },
   offerTitle: { fontSize: 22, fontWeight: 700, color: INK, letterSpacing: -0.5, lineHeight: 1.2 },
   offerSub: { fontSize: 9, color: MUTED, marginTop: 4 },
   table: { marginBottom: 14 },
   thead: { flexDirection: "row", backgroundColor: DARK, paddingVertical: 7, paddingHorizontal: 10 },
   th: { fontSize: 7, fontWeight: 600, color: "#FFFFFF", textTransform: "uppercase", letterSpacing: 0.6 },
-  row: { flexDirection: "row", paddingVertical: 12, paddingHorizontal: 10, borderBottomWidth: 0.6, borderBottomColor: LINE },
+  row: { flexDirection: "row", paddingVertical: 10, paddingHorizontal: 10, borderBottomWidth: 0.6, borderBottomColor: LINE },
   colItem: { flex: 1, paddingRight: 14 },
   colQty: { width: 50, textAlign: "right" },
   colPrice: { width: 70, textAlign: "right", paddingLeft: 6 },
@@ -94,7 +94,7 @@ const s = StyleSheet.create({
   itemTitle: { fontWeight: 600, color: INK, fontSize: 10.5 },
   itemDetail: { color: MUTED, fontSize: 8.5, marginTop: 3, lineHeight: 1.5 },
   num: { color: INK2, fontSize: 10 },
-  totals: { alignSelf: "flex-end", width: 300, marginBottom: 22 },
+  totals: { alignSelf: "flex-end", width: 300, marginBottom: 14 },
   totalRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 4, paddingHorizontal: 12 },
   totalStrong: { backgroundColor: SOFT, marginTop: 3, paddingVertical: 8 },
   totalHero: { backgroundColor: YELLOW, marginTop: 4, paddingVertical: 11 },
@@ -103,14 +103,19 @@ const s = StyleSheet.create({
   totalValue: { color: INK2, fontSize: 9.5 },
   totalValueStrong: { color: INK, fontWeight: 700, fontSize: 11 },
   totalValueHero: { color: INK, fontWeight: 700, fontSize: 14 },
+  // Angebot annehmen
+  acceptBox: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: DARK, paddingVertical: 11, paddingHorizontal: 18, marginBottom: 14, textDecoration: "none" },
+  acceptTitle: { fontSize: 13, fontWeight: 700, color: YELLOW },
+  acceptSub: { fontSize: 8.5, color: DARK_MUTED, marginTop: 2 },
+  acceptArrow: { width: 30, height: 30, borderRadius: 15, backgroundColor: YELLOW, alignItems: "center", justifyContent: "center" },
   // Nächste Schritte
-  steps: { flexDirection: "row", gap: 10, marginBottom: 18 },
+  steps: { flexDirection: "row", gap: 10, marginBottom: 12 },
   step: { flex: 1, borderTopWidth: 2, borderTopColor: INK, paddingTop: 9 },
-  stepNum: { fontSize: 18, fontWeight: 700, color: YELLOW, lineHeight: 1, marginBottom: 6 },
+  stepNum: { fontSize: 16, fontWeight: 700, color: YELLOW, lineHeight: 1, marginBottom: 4 },
   stepTitle: { fontSize: 10, fontWeight: 700, color: INK, marginBottom: 3 },
   stepText: { fontSize: 8.5, color: MUTED, lineHeight: 1.45 },
   // Fragen
-  questions: { backgroundColor: DARK, paddingVertical: 18, paddingHorizontal: 20, marginBottom: 18, flexDirection: "row", alignItems: "center" },
+  questions: { backgroundColor: DARK, paddingVertical: 14, paddingHorizontal: 20, marginBottom: 12, flexDirection: "row", alignItems: "center" },
   questionsMain: { flex: 1, paddingRight: 16 },
   questionsTitle: { fontSize: 13, fontWeight: 700, color: "#FFFFFF", marginBottom: 5 },
   questionsText: { fontSize: 9.5, color: DARK_MUTED, lineHeight: 1.5 },
@@ -333,6 +338,21 @@ function QuotePdf({ doc }: { doc: QuoteDocument }) {
               );
             })}
           </View>
+
+          {doc.accept ? (
+            <Link src={doc.accept.url} style={s.acceptBox} wrap={false}>
+              <View>
+                <Text style={s.acceptTitle}>{doc.accept.label}</Text>
+                <Text style={s.acceptSub}>{doc.accept.sub}</Text>
+              </View>
+              <View style={s.acceptArrow}>
+                {/* Pfeil als Grafik: das Zeichen → ist in der eingebetteten Schrift nicht enthalten */}
+                <Svg width={14} height={14} viewBox="0 0 14 14">
+                  <Path d="M1 7h11M7.5 2.5L12 7l-4.5 4.5" stroke={INK} strokeWidth={1.8} fill="none" />
+                </Svg>
+              </View>
+            </Link>
+          ) : null}
 
           {doc.closing
             .split(/\n{2,}/)

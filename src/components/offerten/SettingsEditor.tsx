@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { Plus, RotateCcw, Save, Trash2 } from "lucide-react";
-import type { Addon, BookingPackage, QuoteSettings, UnitTier } from "@/lib/offerten/settings-shared";
+import { ArrowDown, ArrowUp, Plus, RotateCcw, Save, Trash2 } from "lucide-react";
+import type { Addon, BookingPackage, OnboardingTemplateItem, QuoteSettings, UnitTier } from "@/lib/offerten/settings-shared";
+import { DEFAULT_ONBOARDING } from "@/lib/offerten/settings-shared";
 import { ConnectionStatus } from "./ConnectionStatus";
 import { NumberField } from "./NumberField";
 
@@ -34,6 +35,17 @@ export function SettingsEditor({ initial, defaults, canEdit }: Props) {
   const setPkg = (i: number, patch: Partial<BookingPackage>) =>
     set({ perBooking: { packages: s.perBooking.packages.map((x, j) => (j === i ? { ...x, ...patch } : x)) } });
   const setAddon = (i: number, patch: Partial<Addon>) => set({ addons: s.addons.map((x, j) => (j === i ? { ...x, ...patch } : x)) });
+  const ob = s.onboarding ?? DEFAULT_ONBOARDING;
+  const setOb = (patch: Partial<typeof ob>) => set({ onboarding: { ...ob, ...patch } });
+  const setObItem = (i: number, patch: Partial<OnboardingTemplateItem>) =>
+    setOb({ items: ob.items.map((x, j) => (j === i ? { ...x, ...patch } : x)) });
+  const moveObItem = (i: number, dir: -1 | 1) => {
+    const items = [...ob.items];
+    const target = i + dir;
+    if (target < 0 || target >= items.length) return;
+    [items[i], items[target]] = [items[target], items[i]];
+    setOb({ items });
+  };
 
   const save = async () => {
     setState("saving");
@@ -287,6 +299,100 @@ export function SettingsEditor({ initial, defaults, canEdit }: Props) {
               />
             </label>
           </div>
+        </section>
+
+        <section className="of-card">
+          <div className="of-card-head">
+            <h2 className="of-h2">{t("onboarding.title")}</h2>
+            <button
+              type="button"
+              className="button-ghost"
+              onClick={() =>
+                setOb({
+                  items: [
+                    ...ob.items,
+                    {
+                      id: `item${Date.now().toString(36)}`,
+                      phase: "setup",
+                      owner: "customer",
+                      condition: "always",
+                      link: "none",
+                      title: { de: "", en: "" },
+                      detail: { de: "", en: "" }
+                    }
+                  ]
+                })
+              }
+            >
+              <Plus size={16} aria-hidden="true" /> {t("onboarding.add")}
+            </button>
+          </div>
+          <p className="of-hint">{t("onboarding.hint")}</p>
+          <label className="of-field">
+            <span className="field-label">{t("onboarding.bookingUrl")}</span>
+            <input value={ob.bookingUrl} placeholder="https://calendly.com/…" onChange={(e) => setOb({ bookingUrl: e.target.value })} />
+            <span className="of-hint">{t("onboarding.bookingHint")}</span>
+          </label>
+          {ob.items.map((item, i) => (
+            <div key={item.id} className="of-addon-edit">
+              <div className="of-grid-4">
+                <label className="of-field">
+                  <span className="field-label">{t("onboarding.phase")}</span>
+                  <select value={item.phase} onChange={(e) => setObItem(i, { phase: e.target.value as OnboardingTemplateItem["phase"] })}>
+                    {(["start", "setup", "golive"] as const).map((x) => (
+                      <option key={x} value={x}>{t(`onboarding.phases.${x}`)}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="of-field">
+                  <span className="field-label">{t("onboarding.owner")}</span>
+                  <select value={item.owner} onChange={(e) => setObItem(i, { owner: e.target.value as OnboardingTemplateItem["owner"] })}>
+                    {(["customer", "elev8", "both"] as const).map((x) => (
+                      <option key={x} value={x}>{t(`onboarding.owners.${x}`)}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="of-field">
+                  <span className="field-label">{t("onboarding.condition")}</span>
+                  <select value={item.condition} onChange={(e) => setObItem(i, { condition: e.target.value as OnboardingTemplateItem["condition"] })}>
+                    {(["always", "smart_lock", "channel_manager", "migration"] as const).map((x) => (
+                      <option key={x} value={x}>{t(`onboarding.conditions.${x}`)}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="of-check">
+                  <input type="checkbox" checked={item.link === "booking"} onChange={(e) => setObItem(i, { link: e.target.checked ? "booking" : "none" })} />
+                  {t("onboarding.link")}
+                </label>
+              </div>
+              <div className="of-grid-2">
+                {(["de", "en"] as const).map((l) => (
+                  <div key={l} className="of-lang-block">
+                    <span className="of-lang-tag">{l === "de" ? t("german") : t("english")}</span>
+                    <label className="of-field">
+                      <span className="field-label">{t("onboarding.itemTitle")}</span>
+                      <input value={item.title[l]} onChange={(e) => setObItem(i, { title: { ...item.title, [l]: e.target.value } })} />
+                    </label>
+                    <label className="of-field">
+                      <span className="field-label">{t("onboarding.itemDetail")}</span>
+                      <textarea rows={2} value={item.detail[l]} onChange={(e) => setObItem(i, { detail: { ...item.detail, [l]: e.target.value } })} />
+                    </label>
+                  </div>
+                ))}
+              </div>
+              <div className="of-editor-actions">
+                <button type="button" className="icon-button" aria-label={t("onboarding.moveUp")} disabled={i === 0} onClick={() => moveObItem(i, -1)}>
+                  <ArrowUp size={16} />
+                </button>
+                <button type="button" className="icon-button" aria-label={t("onboarding.moveDown")} disabled={i === ob.items.length - 1} onClick={() => moveObItem(i, 1)}>
+                  <ArrowDown size={16} />
+                </button>
+                <button type="button" className="button-ghost of-danger" onClick={() => setOb({ items: ob.items.filter((_, j) => j !== i) })}>
+                  <Trash2 size={16} aria-hidden="true" /> {t("remove")}
+                </button>
+              </div>
+            </div>
+          ))}
         </section>
 
         <section className="of-card">

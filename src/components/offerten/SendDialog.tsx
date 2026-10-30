@@ -158,6 +158,7 @@ export function SendDialog({ open, onClose, quote, settings, user, provider, onS
               </label>
             ))}
           </fieldset>
+          <p className="of-muted of-small">{t("acceptHint")}</p>
           <p className="of-muted of-small">{quote.ghlContactId ? t("ghlHint") : t("ghlNoContact")}</p>
           {error && (
             <p className="form-error" role="alert">

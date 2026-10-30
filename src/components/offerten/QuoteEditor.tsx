@@ -62,6 +62,8 @@ type Props = {
   ghlContactBase: string | null;
   uiLocale: "de" | "en";
   aiEnabled: boolean;
+  /** Onboarding nach der Annahme (Fortschritt), sonst null */
+  onboarding: { id: string; done: number; total: number; status: "open" | "live" } | null;
 };
 
 type SaveState = "idle" | "saving" | "saved" | "error";
@@ -81,7 +83,7 @@ const pick = (q: Quote): Draft => ({
 
 const newId = () => `c${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 
-export function QuoteEditor({ initial, events, settings, user, mailProvider, ghlEnabled, ghlContactBase, uiLocale, aiEnabled }: Props) {
+export function QuoteEditor({ initial, events, settings, user, mailProvider, ghlEnabled, ghlContactBase, uiLocale, aiEnabled, onboarding }: Props) {
   const t = useTranslations("offerten.editor");
   const tIntervals = useTranslations("offerten.interval");
   const tLang = useTranslations("offerten.lang");
@@ -223,7 +225,9 @@ export function QuoteEditor({ initial, events, settings, user, mailProvider, ghl
         draft.contactPerson ??
         (readOnly
           ? { name: quote.sentByName ?? "", email: quote.sentByEmail ?? "", phone: "" }
-          : { name: user.name, email: user.email, phone: "" })
+          : { name: user.name, email: user.email, phone: "" }),
+      // Vorschau zeigt den Knopf "Angebot annehmen", solange die Offerte offen ist
+      acceptUrl: quote.acceptToken && !quote.acceptedAt && quote.outcome === "open" ? `/angebot/${quote.acceptToken}` : null
     }),
     [draft, quote, readOnly, user]
   );
@@ -356,6 +360,25 @@ export function QuoteEditor({ initial, events, settings, user, mailProvider, ghl
             })}
           </p>
           <p className="of-muted">{t("sentHint")}</p>
+          {quote.acceptedAt ? (
+            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: "0.5rem 1rem", marginTop: "0.25rem" }}>
+              <p>
+                <strong>
+                  {t("accept.accepted", {
+                    date: formatDate(quote.acceptedAt, uiLocale),
+                    name: [quote.acceptance?.name, quote.acceptance?.company].filter(Boolean).join(", ")
+                  })}
+                </strong>
+              </p>
+              {onboarding && (
+                <a className="button-yellow" href={`/offerten/onboarding/${onboarding.id}`}>
+                  {t("accept.openOnboarding", { done: onboarding.done, total: onboarding.total })}
+                </a>
+              )}
+            </div>
+          ) : (
+            quote.outcome === "open" && <AcceptLink token={quote.acceptToken} label={t("accept.copyLink")} copied={t("accept.copied")} hint={t("accept.linkHint")} />
+          )}
           <GhlStatus quote={quote} ghlEnabled={ghlEnabled} onUpdated={(q) => setQuote(q)} />
         </div>
       )}
@@ -876,6 +899,30 @@ function Segmented<T extends string>({
           {label}
         </button>
       ))}
+    </div>
+  );
+}
+
+/** Annahme-Link der Offerte kopieren, z.B. um ihn per WhatsApp nochmals zu schicken */
+function AcceptLink({ token, label, copied, hint }: { token: string; label: string; copied: string; hint: string }) {
+  const [done, setDone] = useState(false);
+  const url = typeof window === "undefined" ? `/angebot/${token}` : `${window.location.origin}/angebot/${token}`;
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.5rem 1rem", marginTop: "0.25rem" }}>
+      <button
+        type="button"
+        className="button-secondary"
+        onClick={async () => {
+          await navigator.clipboard?.writeText(url).catch(() => null);
+          setDone(true);
+          setTimeout(() => setDone(false), 2000);
+        }}
+      >
+        {done ? copied : label}
+      </button>
+      <a className="of-link" href={`/angebot/${token}`} target="_blank" rel="noreferrer">
+        {hint}
+      </a>
     </div>
   );
 }
