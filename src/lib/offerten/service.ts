@@ -4,6 +4,7 @@ import { analyzeCall, analysisConfigured, type CallAnalysis } from "./analysis";
 import { buildDocument, type QuoteDocument } from "./document";
 import { getTranscript, internalDomains, isInternalEmail, type Transcript } from "./fireflies";
 import * as ghl from "./ghl";
+import { acceptUrl } from "./links";
 import { renderQuotePdf } from "./pdf";
 import { personalizeConfigured, writeQuoteTexts } from "./personalize";
 import {
@@ -398,7 +399,15 @@ export function documentFor(quote: Quote, settings: QuoteSettings, viewer?: { na
       : viewer
         ? { name: viewer.name, email: viewer.email, phone: "" }
         : { name: quote.ownerName ?? "", email: quote.ownerEmail ?? "", phone: "" };
-  return buildDocument({ ...quote, contactPerson: quote.contactPerson ?? fallback }, settings);
+  return buildDocument(
+    {
+      ...quote,
+      contactPerson: quote.contactPerson ?? fallback,
+      // Angenommene oder abgeschlossene Offerten brauchen keinen Knopf mehr
+      acceptUrl: quote.acceptToken && !quote.acceptedAt && quote.outcome === "open" ? acceptUrl(quote.acceptToken) : null
+    },
+    settings
+  );
 }
 
 export async function renderFile(doc: QuoteDocument, format: Format): Promise<{ filename: string; data: Buffer; type: string }> {
