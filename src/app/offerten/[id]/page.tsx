@@ -6,6 +6,7 @@ import { mailProvider } from "@/lib/offerten/mailer";
 import { getSettings } from "@/lib/offerten/settings";
 import { refreshLines } from "@/lib/offerten/service";
 import { getQuote, listEvents, updateDraft } from "@/lib/offerten/store";
+import { getOnboardingByQuote, progress } from "@/lib/offerten/onboarding";
 import { personalizeConfigured } from "@/lib/offerten/personalize";
 import { QuoteEditor } from "@/components/offerten/QuoteEditor";
 
@@ -16,7 +17,12 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
   if (!user) return null;
   let quote = await getQuote((await params).id);
   if (!quote || quote.status === "discarded") notFound();
-  const [settings, events, locale] = await Promise.all([getSettings(), listEvents(quote.id), getLocale()]);
+  const [settings, events, locale, onboarding] = await Promise.all([
+    getSettings(),
+    listEvents(quote.id),
+    getLocale(),
+    quote.acceptedAt ? getOnboardingByQuote(quote.id) : Promise.resolve(null)
+  ]);
   // Entwürfe beim Öffnen auf die aktuelle Preisliste bringen
   if (quote.status === "draft") {
     const lines = refreshLines(quote, settings);
@@ -33,6 +39,7 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
       ghlContactBase={ghlConfigured() ? contactUrl("__ID__") : null}
       uiLocale={locale === "en" ? "en" : "de"}
       aiEnabled={personalizeConfigured()}
+      onboarding={onboarding ? { id: onboarding.id, status: onboarding.status, ...progress(onboarding.items) } : null}
     />
   );
 }

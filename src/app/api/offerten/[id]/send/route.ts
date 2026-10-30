@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { requireOffertenUser } from "@/lib/offerten/access";
+import { acceptUrl, withAcceptLink } from "@/lib/offerten/links";
 import { sendQuoteMail } from "@/lib/offerten/mailer";
 import { documentFor, refreshLines, renderFile, syncToGhl } from "@/lib/offerten/service";
 import { getSettings } from "@/lib/offerten/settings";
@@ -33,10 +34,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   // Immer mit den aktuellen Preisen versenden; Mailtext so festhalten, wie er rausgeht
   const settings = await getSettings();
+  // Link "Angebot annehmen" immer in der Mail, auch wenn der Text frei geschrieben wurde
+  const body = withAcceptLink(input.body, acceptUrl(stored.acceptToken), stored.language);
   const quote = {
     ...stored,
     lines: refreshLines(stored, settings),
-    texts: { ...stored.texts, emailSubject: input.subject, emailBody: input.body }
+    texts: { ...stored.texts, emailSubject: input.subject, emailBody: body }
   };
   if (!quote.lines.length) return Response.json({ error: "no_lines" }, { status: 400 });
 
@@ -54,7 +57,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     to: input.to,
     cc: input.cc,
     subject: input.subject,
-    text: input.body,
+    text: body,
     attachments: files.map((f) => ({ filename: f.filename, contentType: f.type, data: f.data }))
   });
   if (!sent.ok) {

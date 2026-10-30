@@ -4,6 +4,7 @@ import { ghlConfigured } from "@/lib/offerten/ghl";
 import { computeTotals } from "@/lib/offerten/quote";
 import { getSettings } from "@/lib/offerten/settings";
 import { listQuotes } from "@/lib/offerten/store";
+import { listOnboardings, progress } from "@/lib/offerten/onboarding";
 import { OffertenOverview, type QuoteRow } from "@/components/offerten/OffertenOverview";
 
 export const dynamic = "force-dynamic";
@@ -11,7 +12,7 @@ export const dynamic = "force-dynamic";
 export default async function OffertenPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const user = await currentOffertenUser();
   if (!user) return null; // Layout zeigt den Hinweis
-  const [quotes, settings, locale] = await Promise.all([listQuotes("all"), getSettings(), getLocale()]);
+  const [quotes, settings, locale, onboardings] = await Promise.all([listQuotes("all"), getSettings(), getLocale(), listOnboardings()]);
   const rows: QuoteRow[] = quotes.map((q) => ({
     id: q.id,
     number: q.number,
@@ -37,7 +38,16 @@ export default async function OffertenPage({ searchParams }: { searchParams: Pro
   return (
     <OffertenOverview
       quotes={rows}
-      initialTab={tab === "sent" || tab === "calls" || tab === "follow" ? tab : "drafts"}
+      initialTab={tab === "sent" || tab === "calls" || tab === "follow" || tab === "onboarding" ? tab : "drafts"}
+      onboardings={onboardings.map((o) => ({
+        id: o.id,
+        company: o.company || o.contactName,
+        contact: o.contactName,
+        owner: o.ownerName,
+        status: o.status,
+        createdAt: o.createdAt,
+        ...progress(o.items)
+      }))}
       ghlEnabled={ghlConfigured()}
       locale={locale === "en" ? "en" : "de"}
     />
