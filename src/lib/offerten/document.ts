@@ -37,6 +37,8 @@ export type QuoteForDocument = {
   ownerEmail?: string | null;
   /** Ansprechperson (Owner in GHL); hat Vorrang vor ownerName/ownerEmail */
   contactPerson?: ContactPerson | null;
+  /** Link zur Annahme-Seite; ohne Link erscheint kein Knopf "Angebot annehmen" */
+  acceptUrl?: string | null;
 };
 
 export type DocLine = QuoteLine & {
@@ -90,6 +92,8 @@ export type QuoteDocument = {
   steps: { title: string; text: string }[];
   /** Name des Sales-Assistenten (für "WhatsApp an Noah") */
   assistantName: string;
+  /** Knopf "Angebot annehmen" mit Link zur Annahme-Seite, sonst null */
+  accept: { url: string; label: string; sub: string } | null;
   lines: DocLine[];
   hasDiscount: boolean;
   totals: DocTotalRow[];
@@ -199,6 +203,7 @@ export function buildDocument(q: QuoteForDocument, settings: QuoteSettings): Quo
       { title: labels.step3Title, text: du ? labels.step3Du : labels.step3 }
     ],
     assistantName: settings.assistant?.name || "Noah",
+    accept: q.acceptUrl ? { url: q.acceptUrl, label: labels.acceptCta, sub: du ? labels.acceptSubDu : labels.acceptSub } : null,
     notes: q.texts.notes,
     terms: fillTemplate(settings.texts.terms[lang], {
       currency: q.currency,
