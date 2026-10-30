@@ -56,8 +56,28 @@ export type Quote = {
   outcome: Outcome;
   outcomeAt: string | null;
   outcomeNote: string | null;
+  /** Geheimer Teil des Links, über den der Kunde das Angebot annimmt (/angebot/<token>) */
+  acceptToken: string;
+  acceptedAt: string | null;
+  acceptance: Acceptance | null;
   createdAt: string;
   updatedAt: string;
+};
+
+/** Angaben des Kunden bei der Annahme, zugleich Nachweis (Zeitpunkt, IP, Browser) */
+export type Acceptance = {
+  name: string;
+  email: string;
+  company: string;
+  addressLines: string[];
+  country: string;
+  vatId: string;
+  role: string;
+  note: string;
+  termsAccepted: true;
+  ip: string | null;
+  userAgent: string | null;
+  at: string;
 };
 
 export type Outcome = "open" | "won" | "lost";
@@ -103,6 +123,9 @@ function toQuote(r: Row): Quote {
     outcome: ((r.outcome as Outcome) ?? "open") as Outcome,
     outcomeAt: iso(r.outcome_at),
     outcomeNote: (r.outcome_note as string) ?? null,
+    acceptToken: (r.accept_token as string) ?? "",
+    acceptedAt: iso(r.accepted_at),
+    acceptance: (r.acceptance as Acceptance) ?? null,
     createdAt: iso(r.created_at)!,
     updatedAt: iso(r.updated_at)!
   };
@@ -167,6 +190,7 @@ export type QuoteListItem = Pick<
   Quote,
   | "id" | "number" | "status" | "recipient" | "source" | "meetingTitle" | "ownerName" | "sentAt" | "updatedAt" | "createdAt"
   | "currency" | "language" | "lines" | "ghlSync" | "followUpAt" | "followUpCount" | "lastFollowUpAt" | "outcome" | "validUntil"
+  | "acceptedAt"
 >;
 
 export async function listQuotes(status: QuoteStatus | "all", limit = 200): Promise<QuoteListItem[]> {
@@ -398,4 +422,31 @@ export async function openQuoteForMeeting(meetingId: string): Promise<string | n
   const rows = await sql<{ id: string }[]>`
     SELECT id FROM quotes WHERE meeting_id = ${meetingId} AND status <> 'discarded' LIMIT 1`;
   return rows[0]?.id ?? null;
+}
+
+// ── Annahme durch den Kunden ──────────────────────────────────────────────
+
+export async function getQuoteByAcceptToken(token: string): Promise<Quote | null> {
+  if (!/^[0-9a-f]{64}$/.test(token)) return null;
+  const rows = await sql<Row[]>`SELECT * FROM quotes WHERE accept_token = ${token}`;
+  return rows.length ? toQuote(rows[0]) : null;
+}
+
+/**
+ * Setzt die Offerte genau einmal auf angenommen (gewonnen). Gibt null zurück, wenn sie nicht mehr offen ist
+ * (bereits angenommen, verloren, verworfen) – so kann ein Doppelklick nichts doppelt auslösen.
+ */
+export async function markAccepted(token: string, acceptance: Acceptance): Promise<Quote | null> {
+  const [row] = await sql<Row[]>`
+    UPDATE quotes SET
+      accepted_at = now(),
+      acceptance = ${sql.json(acceptance as never)},
+      outcome = 'won',
+      outcome_at = now(),
+      outcome_note = ${"Online angenommen von " + acceptance.name},
+      follow_up_at = NULL,
+      updated_at = now()
+    WHERE accept_token = ${token} AND status = 'sent' AND outcome = 'open' AND accepted_at IS NULL
+    RETURNING *`;
+  return row ? toQuote(row) : null;
 }
