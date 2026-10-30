@@ -197,6 +197,34 @@ export function PaperPreview({ doc }: { doc: QuoteDocument }) {
                   ))}
                 </dl>
               )}
+              {doc.accept && (
+                <a
+                  href={doc.accept.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 16,
+                    marginBottom: 27,
+                    padding: "17px 24px",
+                    background: "#0e0e0e",
+                    textDecoration: "none"
+                  }}
+                >
+                  <span style={{ display: "grid", gap: 3 }}>
+                    <strong style={{ color: "#f6bb12", fontSize: 17.3 }}>{doc.accept.label}</strong>
+                    <span style={{ color: "#a3a3a3", fontSize: 11.3 }}>{doc.accept.sub}</span>
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    style={{ display: "grid", placeItems: "center", width: 40, height: 40, borderRadius: 20, background: "#f6bb12", color: "#000", fontSize: 20, fontWeight: 700 }}
+                  >
+                    →
+                  </span>
+                </a>
+              )}
               <div className="of-paper-letter">{paragraphs(doc.closing)}</div>
               <section className="of-paper-steps">
                 <h3>{L.nextSteps}</h3>
