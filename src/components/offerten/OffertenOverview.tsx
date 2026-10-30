@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
-import { AlertTriangle, Ban, Check, FileText, Mail, Mic, Plus, RotateCcw, Search, X } from "lucide-react";
+import { AlertTriangle, Ban, Check, FileText, Mail, Mic, Plus, Rocket, RotateCcw, Search, X } from "lucide-react";
 import { formatMoney } from "@/lib/offerten/quote";
 import { FollowUpDialog } from "./FollowUpDialog";
 import { useGhlSearch } from "./useGhlSearch";
@@ -29,7 +29,19 @@ export type QuoteRow = {
   validUntil: string;
 };
 
-type Tab = "drafts" | "follow" | "sent" | "calls";
+type Tab = "drafts" | "follow" | "sent" | "calls" | "onboarding";
+
+export type OnboardingRow = {
+  id: string;
+  company: string;
+  contact: string;
+  owner: string;
+  status: "open" | "live";
+  createdAt: string;
+  done: number;
+  total: number;
+  percent: number;
+};
 
 type Meeting = {
   id: string;
@@ -43,11 +55,11 @@ type Meeting = {
   dismissedBy: string | null;
 };
 
-type Props = { quotes: QuoteRow[]; initialTab: Tab; ghlEnabled: boolean; locale: "de" | "en" };
+type Props = { quotes: QuoteRow[]; initialTab: Tab; ghlEnabled: boolean; locale: "de" | "en"; onboardings: OnboardingRow[] };
 
 const today = () => new Date().toISOString().slice(0, 10);
 
-export function OffertenOverview({ quotes: initialQuotes, initialTab, ghlEnabled, locale }: Props) {
+export function OffertenOverview({ quotes: initialQuotes, initialTab, ghlEnabled, locale, onboardings }: Props) {
   const t = useTranslations("offerten");
   const [quotes, setQuotes] = useState(initialQuotes);
   const [tab, setTab] = useState<Tab>(initialTab);
@@ -83,6 +95,7 @@ export function OffertenOverview({ quotes: initialQuotes, initialTab, ghlEnabled
             ["drafts", t("overview.tabs.drafts"), drafts.length, false],
             ["follow", t("overview.tabs.follow"), due.length, due.length > 0],
             ["sent", t("overview.tabs.sent"), sent.length, false],
+            ["onboarding", t("overview.tabs.onboarding"), onboardings.filter((o) => o.status === "open").length, false],
             ["calls", t("overview.tabs.calls"), null, false]
           ] as [Tab, string, number | null, boolean][]
         ).map(([id, label, count, alert]) => (
@@ -102,6 +115,7 @@ export function OffertenOverview({ quotes: initialQuotes, initialTab, ghlEnabled
         />
       )}
       {tab === "sent" && <QuoteList rows={sent} empty={t("overview.empty.sent")} locale={locale} />}
+      {tab === "onboarding" && <OnboardingList rows={onboardings} locale={locale} />}
       {tab === "calls" && <CallList locale={locale} />}
 
       <NewQuoteDialog
@@ -304,6 +318,46 @@ function FollowUpList({
         onClose={() => setWriting(null)}
         onSent={afterSent}
       />
+    </div>
+  );
+}
+
+// ── Onboarding ───────────────────────────────────────────────────────
+
+function OnboardingList({ rows, locale }: { rows: OnboardingRow[]; locale: "de" | "en" }) {
+  const t = useTranslations("offerten.onboarding");
+  if (!rows.length) return <p className="of-empty">{t("empty")}</p>;
+  return (
+    <div className="of-calls">
+      <p className="of-muted">{t("listLead")}</p>
+      <ul className="of-list">
+        {rows.map((o) => (
+          <li key={o.id}>
+            <a href={`/offerten/onboarding/${o.id}`} className="of-row">
+              <span className="of-row-icon" aria-hidden="true">
+                <Rocket size={18} />
+              </span>
+              <span className="of-row-main">
+                <span className="of-row-title">
+                  {o.company || o.contact}
+                  <span className={`of-chip ${o.status === "live" ? "of-chip-won" : ""}`}>{t(o.status === "live" ? "live" : "open")}</span>
+                </span>
+                <span className="of-row-sub" suppressHydrationWarning>
+                  {t("since", { time: relativeTime(o.createdAt, locale) })}
+                  {o.owner ? ` · ${o.owner}` : ""}
+                </span>
+              </span>
+              <span className="of-row-side" style={{ minWidth: "9rem" }}>
+                <span className="of-row-amount">{o.percent} %</span>
+                <span style={{ display: "block", width: "100%", height: 6, borderRadius: 999, background: "var(--line)", overflow: "hidden" }}>
+                  <span style={{ display: "block", width: `${o.percent}%`, height: "100%", background: "var(--yellow)" }} />
+                </span>
+                <span className="of-row-sub">{t("progress", { done: o.done, total: o.total })}</span>
+              </span>
+            </a>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
