@@ -1,4 +1,4 @@
-# ──────────────────────────────────────────────────────────────────────
+# ───────────────────────────────────────────────────────────────
 # Orbit App-Registry
 #
 # Jede App erscheint als Kachel, wenn der User mindestens eine der
@@ -18,7 +18,7 @@
 # durch Orbit. "embed: false" öffnet im neuen Browser-Tab (z.B. Jira).
 #
 # Prüfen: npm run apps:check
-# ──────────────────────────────────────────────────────────────────────
+# ───────────────────────────────────────────────────────────────
 
 categories:
   - id: reporting
