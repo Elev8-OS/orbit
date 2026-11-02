@@ -1,4 +1,4 @@
-# ───────────────────────────────────────────────────────────────
+# ──────────────────────────────────────────────────────────────────────
 # Orbit App-Registry
 #
 # Jede App erscheint als Kachel, wenn der User mindestens eine der
@@ -18,7 +18,7 @@
 # durch Orbit. "embed: false" öffnet im neuen Browser-Tab (z.B. Jira).
 #
 # Prüfen: npm run apps:check
-# ───────────────────────────────────────────────────────────────
+# ──────────────────────────────────────────────────────────────────────
 
 categories:
   - id: reporting
@@ -274,4 +274,18 @@ apps:
     icon: Radar
     category: internal
     roles: [App.Radar]
+    embed: true
+
+  # SM Manager – direkt in Orbit gebaut (/sm-manager). Beiträge für Instagram, Facebook und TikTok der R Villas Bali
+  # prüfen und freigeben, Objekte in der Rotation steuern. Daten und Rendering kommen aus dem Dienst SM_engine
+  # (SM_ENGINE_URL, SM_ENGINE_API_KEY). Rolle: App.SMManager (SM_MANAGER_ROLES). Siehe docs/SM_MANAGER.md.
+  - id: sm-manager
+    name: { de: SM Manager, en: SM Manager }
+    description:
+      de: Social-Media-Beiträge der R Villas Bali prüfen, freigeben und terminieren – mit Vorschau, Objekten und Fotokatalog.
+      en: Review, approve and schedule social media posts for The R Villas Bali – with preview, properties and photo catalogue.
+    url: https://myorbit.elev8-suite.com/sm-manager
+    icon: Megaphone
+    category: internal
+    roles: [App.SMManager]
     embed: true
