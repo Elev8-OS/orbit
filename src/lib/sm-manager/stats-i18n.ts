@@ -1,0 +1,66 @@
+type Locale = "de" | "en";
+
+const de = {
+  tabStats: "Kennzahlen",
+  statsIntro: "Instagram der letzten 7 Tage im Vergleich zu den 7 Tagen davor, plus Klicks auf den getrackten Link.",
+  socialTitle: "Social Media",
+  socialUnavailable: "GHL liefert gerade keine Statistik",
+  kpiPosts: "Beiträge",
+  kpiLikes: "Likes",
+  kpiFollowers: "Follower",
+  kpiImpressions: "Impressionen",
+  kpiReach: "Reichweite",
+  kpiComments: "Kommentare",
+  kpiShares: "Teilungen",
+  vsPrevious: "gegenüber den 7 Tagen davor",
+  perDay: "Impressionen pro Wochentag",
+  likesPerDay: "Likes pro Wochentag",
+  days: { Mon: "Mo", Tue: "Di", Wed: "Mi", Thu: "Do", Fri: "Fr", Sat: "Sa", Sun: "So" } as Record<string, string>,
+  clicksTitle: "Klicks auf den Link",
+  clicksIntro: "Jeder Klick über den getrackten Link wird einem Beitrag zugeordnet. Bots sind herausgerechnet.",
+  clicksTotal: "Klicks (30 Tage)",
+  clicksNoPost: "ohne Beitrag",
+  bioLink: "Link für die Instagram-Bio",
+  bioHint: "Führt immer zum zuletzt veröffentlichten Beitrag und zählt den Klick.",
+  colPost: "Beitrag",
+  colDate: "Datum",
+  colFormat: "Format",
+  colVilla: "Villa",
+  colClicks: "Klicks",
+  noClicks: "Noch keine Klicks erfasst. Setze den Bio-Link auf die Adresse oben.",
+  formats: { reel: "Reel", carousel: "Karussell", single: "Einzelbild", story: "Story" } as Record<string, string>
+};
+
+const en: typeof de = {
+  tabStats: "Insights",
+  statsIntro: "Instagram for the last 7 days against the 7 days before, plus clicks on the tracked link.",
+  socialTitle: "Social media",
+  socialUnavailable: "GHL is not returning statistics right now",
+  kpiPosts: "Posts",
+  kpiLikes: "Likes",
+  kpiFollowers: "Followers",
+  kpiImpressions: "Impressions",
+  kpiReach: "Reach",
+  kpiComments: "Comments",
+  kpiShares: "Shares",
+  vsPrevious: "against the 7 days before",
+  perDay: "Impressions by weekday",
+  likesPerDay: "Likes by weekday",
+  days: { Mon: "Mon", Tue: "Tue", Wed: "Wed", Thu: "Thu", Fri: "Fri", Sat: "Sat", Sun: "Sun" },
+  clicksTitle: "Link clicks",
+  clicksIntro: "Every click on the tracked link is matched to a post. Bots are excluded.",
+  clicksTotal: "Clicks (30 days)",
+  clicksNoPost: "without a post",
+  bioLink: "Link for the Instagram bio",
+  bioHint: "Always leads to the most recently published post and counts the click.",
+  colPost: "Post",
+  colDate: "Date",
+  colFormat: "Format",
+  colVilla: "Villa",
+  colClicks: "Clicks",
+  noClicks: "No clicks recorded yet. Set the bio link to the address above.",
+  formats: { reel: "Reel", carousel: "Carousel", single: "Single image", story: "Story" }
+};
+
+export const statsStrings = (locale: Locale) => (locale === "en" ? en : de);
+export type StatsStrings = ReturnType<typeof statsStrings>;
