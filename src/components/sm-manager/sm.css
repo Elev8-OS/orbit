@@ -1,0 +1,44 @@
+/* SM Manager – nutzt die Orbit-Variablen aus globals.css/theme.css */
+.sm { display: grid; gap: 1rem; max-width: 64rem; }
+.sm h1 { margin: 0; font-size: 1.5rem; }
+.sm h2 { margin: 0.5rem 0 0.25rem; font-size: 1.1rem; }
+.sm h3 { margin: 0.75rem 0 0.25rem; font-size: 0.85rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
+.sm p { margin: 0.25rem 0; }
+.sm-muted { color: var(--muted); }
+.sm-small { font-size: 0.85rem; }
+.sm-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; }
+
+.sm-tabs { display: flex; gap: 0.25rem; border-bottom: 1px solid var(--line); }
+.sm-tabs a { padding: 0.5rem 0.9rem; color: var(--muted); text-decoration: none; border-bottom: 2px solid transparent; }
+.sm-tabs a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--yellow); font-weight: 600; }
+.sm-count { margin-left: 0.4rem; padding: 0 0.45rem; border-radius: 999px; background: var(--yellow); color: #000; font-size: 0.75rem; }
+
+.sm-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 1rem; }
+.sm-card { display: grid; grid-template-columns: minmax(0, 15rem) minmax(0, 1fr); gap: 1rem; background: var(--surface); border: 1px solid var(--line); border-radius: 0.75rem; padding: 0.9rem; }
+@media (max-width: 40rem) { .sm-card { grid-template-columns: minmax(0, 1fr); } }
+.sm-media video { width: 100%; border-radius: 0.5rem; background: #000; max-height: 26rem; }
+.sm-strip { display: flex; gap: 0.5rem; overflow-x: auto; scroll-snap-type: x mandatory; }
+.sm-strip img { height: 15rem; width: auto; border-radius: 0.5rem; scroll-snap-align: start; flex: none; }
+.sm-top { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+.sm-badge { display: inline-block; padding: 0.1rem 0.5rem; border-radius: 999px; font-size: 0.75rem; background: var(--surface-2); border: 1px solid var(--line); color: var(--ink-2); }
+.sm-badge-ok, .sm-status-scheduled, .sm-status-published, .sm-status-approved { background: var(--yellow-soft); color: var(--yellow-ink); border-color: var(--yellow); }
+.sm-status-rejected, .sm-status-failed { color: var(--danger); }
+.sm-caption { white-space: pre-wrap; }
+.sm-warn { background: var(--surface-2); border-left: 3px solid var(--yellow); border-radius: 0.4rem; padding: 0.4rem 0.7rem; font-size: 0.9rem; }
+.sm-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.8rem; align-items: center; }
+.sm-when { display: grid; gap: 0.2rem; font-size: 0.85rem; }
+.sm-when input, .sm-reject textarea { padding: 0.4rem 0.6rem; border: 1px solid var(--line-strong); border-radius: 0.5rem; background: var(--surface-2); color: var(--ink); font: inherit; }
+.sm-reject { display: flex; gap: 0.5rem; width: 100%; align-items: flex-start; }
+.sm-reject textarea { flex: 1; }
+.sm-empty { color: var(--muted); padding: 1.5rem 0; }
+
+.sm-btn { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.45rem 0.9rem; border-radius: 0.5rem; border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink); cursor: pointer; font: inherit; }
+.sm-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.sm-btn-primary { background: var(--yellow); border-color: var(--yellow); color: #000; font-weight: 600; }
+
+.sm-table-wrap { overflow-x: auto; }
+.sm-table { width: 100%; border-collapse: collapse; }
+.sm-table th, .sm-table td { text-align: left; padding: 0.55rem 0.6rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+.sm-table th { font-size: 0.8rem; color: var(--muted); font-weight: 600; }
+.sm-low { color: var(--danger); font-weight: 600; }
+.sm-switch input { width: 1.1rem; height: 1.1rem; accent-color: var(--yellow); }
