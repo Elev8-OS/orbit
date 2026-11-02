@@ -10,6 +10,7 @@ import { SmHome } from "@/components/sm-manager/SmHome";
 import type { ClickStats, SocialStats } from "@/components/sm-manager/SmStats";
 import type { Inquiry } from "@/components/sm-manager/SmInquiries";
 import { SmPostInsights, type PostInsights } from "@/components/sm-manager/SmPostInsights";
+import { SmAudience, type AudiencePlan } from "@/components/sm-manager/SmAudience";
 import "@/components/sm-manager/responsive.css";
 
 export const dynamic = "force-dynamic";
@@ -28,9 +29,19 @@ export default async function SmManagerPage({ searchParams }: { searchParams: Pr
   if (!smConfigured()) return <Notice title={s.notConfiguredTitle} text={s.notConfiguredBody} />;
 
   const view =
-    params.ansicht === "done" ? "done" : params.ansicht === "objekte" ? "properties" : params.ansicht === "kennzahlen" ? "stats" : params.ansicht === "anfragen" ? "inquiries" : "review";
+    params.ansicht === "done"
+      ? "done"
+      : params.ansicht === "objekte"
+        ? "properties"
+        : params.ansicht === "kennzahlen"
+          ? "stats"
+          : params.ansicht === "anfragen"
+            ? "inquiries"
+            : params.ansicht === "zielgruppen"
+              ? "audience"
+              : "review";
   try {
-    const [health, list, props, social, clicks, inq, agent, insights] = await Promise.all([
+    const [health, list, props, social, clicks, inq, agent, insights, audiencePlan] = await Promise.all([
       engineHealth(),
       engine<{ posts: Post[] }>("/posts?limit=80"),
       view === "properties" ? engine<{ properties: Property[] }>("/properties") : Promise.resolve({ properties: [] as Property[] }),
@@ -38,7 +49,8 @@ export default async function SmManagerPage({ searchParams }: { searchParams: Pr
       view === "stats" ? engine<ClickStats>("/stats/clicks?days=30").catch(() => null) : Promise.resolve(null),
       engine<{ inquiries: Inquiry[] }>("/agent/inquiries?limit=60").catch(() => ({ inquiries: [] as Inquiry[] })),
       view === "inquiries" ? engine<{ enabled: boolean }>("/agent/status").catch(() => null) : Promise.resolve(null),
-      view === "stats" ? engine<PostInsights>("/stats/posts").catch(() => null) : Promise.resolve(null)
+      view === "stats" ? engine<PostInsights>("/stats/posts").catch(() => null) : Promise.resolve(null),
+      view === "audience" ? engine<AudiencePlan>("/audience/plan?days=60").catch(() => null) : Promise.resolve(null)
     ]);
     const reviewCount = list.posts.filter((p) => REVIEW.includes(p.status)).length;
     const inquiryCount = inq.inquiries.filter((i) => INQUIRY_OPEN.includes(i.status)).length;
@@ -64,6 +76,7 @@ export default async function SmManagerPage({ searchParams }: { searchParams: Pr
           inquiries={inq.inquiries}
           inquiryCount={inquiryCount}
           agentEnabled={Boolean(agent?.enabled)}
+          audience={view === "audience" ? <SmAudience locale={locale} plan={audiencePlan} /> : null}
         />
         {view === "stats" ? (
           <div className="p-page sm" style={{ paddingTop: 0 }}>
