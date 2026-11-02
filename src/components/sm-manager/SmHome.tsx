@@ -4,15 +4,20 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Post, Property } from "@/lib/sm-manager/types";
 import { smStrings, type SmStrings } from "@/lib/sm-manager/i18n";
+import { statsStrings } from "@/lib/sm-manager/stats-i18n";
+import { SmStats, type ClickStats, type SocialStats } from "./SmStats";
 import "./sm.css";
 
 type Props = {
   locale: "de" | "en";
-  view: "review" | "done" | "properties";
+  view: "review" | "done" | "properties" | "stats";
   posts: Post[];
   properties: Property[];
   reviewCount: number;
   ghlReady: boolean;
+  social?: SocialStats | null;
+  clicks?: ClickStats | null;
+  bioLink?: string;
 };
 
 async function send(method: string, url: string, body?: unknown): Promise<{ ok: boolean; error?: string }> {
@@ -34,7 +39,7 @@ function defaultWhen() {
   return toLocalInput(d);
 }
 
-export function SmHome({ locale, view, posts, properties, reviewCount, ghlReady }: Props) {
+export function SmHome({ locale, view, posts, properties, reviewCount, ghlReady, social = null, clicks = null, bioLink = "" }: Props) {
   const s = smStrings(locale);
   return (
     <div className="p-page sm" lang={locale}>
@@ -56,12 +61,17 @@ export function SmHome({ locale, view, posts, properties, reviewCount, ghlReady 
         <a href="/sm-manager?ansicht=done" aria-current={view === "done" ? "page" : undefined}>
           {s.tabDone}
         </a>
+        <a href="/sm-manager?ansicht=kennzahlen" aria-current={view === "stats" ? "page" : undefined}>
+          {statsStrings(locale).tabStats}
+        </a>
         <a href="/sm-manager?ansicht=objekte" aria-current={view === "properties" ? "page" : undefined}>
           {s.tabProperties}
         </a>
       </nav>
 
-      {view === "properties" ? (
+      {view === "stats" ? (
+        <SmStats locale={locale} social={social} clicks={clicks} bioLink={bioLink} />
+      ) : view === "properties" ? (
         <Properties s={s} locale={locale} properties={properties} />
       ) : posts.length === 0 ? (
         <p className="sm-empty">{view === "review" ? s.emptyReview : s.emptyDone}</p>
