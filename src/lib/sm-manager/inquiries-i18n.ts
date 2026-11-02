@@ -2,11 +2,11 @@ type Locale = "de" | "en";
 
 const de = {
   tabInquiries: "Anfragen",
-  inquiriesIntro: "Instagram-Nachrichten von Interessenten. Der Assistent schreibt einen Antwortvorschlag mit Verfügbarkeit und Preis. Gesendet wird erst, wenn du es freigibst.",
-  agentOff: "Der Assistent ist noch nicht aktiviert. Neue Nachrichten werden erst beantwortet, wenn er in Railway eingeschaltet ist.",
+  inquiriesIntro: "Instagram-Nachrichten von Interessenten. Lea, die Sales Assistant, schreibt einen Antwortvorschlag mit Verfügbarkeit und Preis. Gesendet wird erst, wenn du es freigibst.",
+  agentOff: "Lea ist noch nicht aktiviert. Neue Nachrichten werden erst beantwortet, wenn sie in Railway eingeschaltet ist.",
   empty: "Keine Anfragen. Neue Instagram-Nachrichten erscheinen hier automatisch.",
   guestSaid: "Nachricht des Gasts",
-  draftLabel: "Antwortvorschlag (du kannst ihn bearbeiten)",
+  draftLabel: "Antwortvorschlag von Lea (du kannst ihn bearbeiten)",
   sentLabel: "Gesendete Antwort",
   needsHuman: "Bitte prüfen",
   send: "Senden",
@@ -16,7 +16,7 @@ const de = {
   working: "Moment …",
   saved: "Gespeichert",
   failed: "Hat nicht geklappt",
-  noDraft: "Noch kein Entwurf.",
+  noDraft: "Lea schreibt gerade den Entwurf.",
   statuses: { new: "Wird entworfen", draft_ready: "Entwurf bereit", sent: "Gesendet", dismissed: "Verworfen", ignored: "Ignoriert", failed: "Fehlgeschlagen" } as Record<string, string>,
   intents: { availability: "Verfügbarkeit", price: "Preis", info: "Info", booking: "Buchung", complaint: "Beschwerde", other: "Sonstiges" } as Record<string, string>,
   anonymous: "Unbekannt"
@@ -24,11 +24,11 @@ const de = {
 
 const en: typeof de = {
   tabInquiries: "Inquiries",
-  inquiriesIntro: "Instagram messages from prospects. The assistant drafts a reply with availability and price. Nothing is sent until you approve it.",
-  agentOff: "The assistant is not switched on yet. New messages are only answered once it is enabled in Railway.",
+  inquiriesIntro: "Instagram messages from prospects. Lea, the Sales Assistant, drafts a reply with availability and price. Nothing is sent until you approve it.",
+  agentOff: "Lea is not switched on yet. New messages are only answered once she is enabled in Railway.",
   empty: "No inquiries. New Instagram messages show up here automatically.",
   guestSaid: "Guest message",
-  draftLabel: "Suggested reply (you can edit it)",
+  draftLabel: "Lea's suggested reply (you can edit it)",
   sentLabel: "Reply sent",
   needsHuman: "Please check",
   send: "Send",
@@ -38,7 +38,7 @@ const en: typeof de = {
   working: "One moment …",
   saved: "Saved",
   failed: "That did not work",
-  noDraft: "No draft yet.",
+  noDraft: "Lea is writing the draft.",
   statuses: { new: "Drafting", draft_ready: "Draft ready", sent: "Sent", dismissed: "Dismissed", ignored: "Ignored", failed: "Failed" },
   intents: { availability: "Availability", price: "Price", info: "Info", booking: "Booking", complaint: "Complaint", other: "Other" },
   anonymous: "Unknown"
