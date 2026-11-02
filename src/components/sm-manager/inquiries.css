@@ -1,0 +1,5 @@
+/* Anfragen im SM Manager – nutzt die Orbit-Variablen */
+.inq-guest { margin: 0; padding: 0.6rem 0.8rem; background: var(--surface-2); border-left: 3px solid var(--line-strong); border-radius: 0.4rem; white-space: pre-wrap; }
+.inq-draft { width: 100%; min-height: 7rem; padding: 0.5rem 0.7rem; border: 1px solid var(--line-strong); border-radius: 0.5rem; background: var(--surface-2); color: var(--ink); font: inherit; resize: vertical; box-sizing: border-box; }
+.inq-card { display: grid; gap: 0.5rem; background: var(--surface); border: 1px solid var(--line); border-radius: 0.75rem; padding: 0.9rem; }
+.inq-flag { background: var(--yellow); color: #000; border-color: var(--yellow); font-weight: 600; }
