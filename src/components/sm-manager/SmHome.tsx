@@ -115,7 +115,8 @@ function PostCard({ s, locale, post, ghlReady, actionable }: { s: SmStrings; loc
         {urls.length === 0 ? (
           <p className="sm-muted sm-small">{s.notRendered}</p>
         ) : post.media?.type === "video" ? (
-          <video src={urls[0]} controls playsInline preload="metadata" />
+          // #t=0.5 makes the browser show a real frame as the poster instead of a black box
+          <video src={`${urls[0]}#t=0.5`} controls playsInline preload="metadata" />
         ) : (
           <div className="sm-strip">
             {urls.map((u, i) => (
