@@ -1,0 +1,62 @@
+/* SM Manager – responsive Anpassungen (mobil zuerst). Wird nach den anderen SM-Styles geladen. */
+.sm, .sm * { box-sizing: border-box; }
+.sm { width: 100%; min-width: 0; overflow-wrap: anywhere; }
+.sm img, .sm video, .sm textarea, .sm input { max-width: 100%; }
+.p-page.sm { padding-bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px)); }
+
+/* Eingabefelder mit 16px, damit iOS beim Antippen nicht zoomt */
+.sm input, .sm textarea, .sm select { font-size: 16px; }
+
+/* Kopfzeile */
+@media (max-width: 40rem) {
+  .sm-head { flex-direction: column; gap: 0.5rem; }
+  .sm h1 { font-size: 1.3rem; }
+}
+
+/* Tabs: eine Zeile, seitlich wischbar, grosse Tippflächen */
+.sm-tabs { overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; scrollbar-width: none; scroll-snap-type: x proximity; }
+.sm-tabs::-webkit-scrollbar { display: none; }
+.sm-tabs a { flex: none; white-space: nowrap; display: inline-flex; align-items: center; min-height: 44px; scroll-snap-align: start; }
+
+/* Beitragskarten */
+@media (max-width: 48rem) {
+  .sm-card { grid-template-columns: minmax(0, 1fr); }
+  .sm-media video { max-height: 70vh; }
+  .sm-strip img { height: min(15rem, 62vw); }
+}
+
+/* Aktionen: auf dem Handy untereinander, volle Breite */
+@media (max-width: 40rem) {
+  .sm-actions { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.6rem; }
+  .sm-actions .sm-btn { width: 100%; justify-content: center; min-height: 44px; }
+  .sm-when input { width: 100%; min-height: 44px; }
+  .sm-reject { flex-direction: column; }
+  .sm-reject textarea { width: 100%; }
+  .inq-draft { min-height: 9rem; }
+}
+.sm-btn { min-height: 40px; }
+
+/* Kennzahlen */
+.sm-kpis { grid-template-columns: repeat(auto-fit, minmax(min(9.5rem, 100%), 1fr)); }
+.sm-kpi { align-content: start; min-width: 0; }
+.sm-kpi-value { font-size: clamp(1.35rem, 6vw, 1.7rem); }
+@media (max-width: 30rem) {
+  .sm-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; }
+  .sm-kpi { padding: 0.65rem 0.7rem; }
+  .sm-bars { gap: 0.2rem; height: 8rem; }
+  .sm-bar-value { font-size: 0.62rem; }
+  .sm-bar-day { font-size: 0.68rem; }
+}
+
+/* Tabellen: auf dem Handy als Karten statt seitlich scrollen */
+@media (max-width: 40rem) {
+  .sm-table-wrap { overflow-x: visible; }
+  .sm-table thead { display: none; }
+  .sm-table, .sm-table tbody, .sm-table tr, .sm-table td { display: block; width: 100%; }
+  .sm-table tr { border: 1px solid var(--line); border-radius: 0.6rem; padding: 0.5rem 0.75rem; margin-bottom: 0.6rem; background: var(--surface); }
+  .sm-table td { border: 0; padding: 0.3rem 0; display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; text-align: right; }
+  .sm-table td::before { content: attr(data-label); color: var(--muted); font-size: 0.8rem; text-align: left; flex: none; }
+  .sm-table td.sm-cell-title { display: block; text-align: left; font-weight: 600; padding-bottom: 0.4rem; }
+  .sm-table td.sm-cell-title::before { content: none; }
+  .sm-switch input { width: 1.5rem; height: 1.5rem; }
+}

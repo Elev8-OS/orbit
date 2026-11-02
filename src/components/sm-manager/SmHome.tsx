@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Post, Property } from "@/lib/sm-manager/types";
 import { smStrings, type SmStrings } from "@/lib/sm-manager/i18n";
@@ -46,6 +46,13 @@ function defaultWhen() {
 
 export function SmHome({ locale, view, posts, properties, reviewCount, ghlReady, social = null, clicks = null, bioLink = "", inquiries = [], inquiryCount = 0, agentEnabled = false }: Props) {
   const s = smStrings(locale);
+  const navRef = useRef<HTMLElement>(null);
+
+  // Auf dem Handy den aktiven Tab ins Bild scrollen, damit er nicht hinter dem Rand verschwindet.
+  useEffect(() => {
+    navRef.current?.querySelector('[aria-current="page"]')?.scrollIntoView({ inline: "center", block: "nearest" });
+  }, [view]);
+
   return (
     <div className="p-page sm" lang={locale}>
       <header className="sm-head">
@@ -58,7 +65,7 @@ export function SmHome({ locale, view, posts, properties, reviewCount, ghlReady,
         </span>
       </header>
 
-      <nav className="sm-tabs" aria-label={s.title}>
+      <nav ref={navRef} className="sm-tabs" aria-label={s.title}>
         <a href="/sm-manager" aria-current={view === "review" ? "page" : undefined}>
           {s.tabReview}
           {reviewCount ? <span className="sm-count">{reviewCount}</span> : null}
@@ -244,16 +251,16 @@ function Properties({ s, locale, properties }: { s: SmStrings; locale: "de" | "e
           <tbody>
             {properties.map((p) => (
               <tr key={p.key}>
-                <td>
+                <td className="sm-cell-title">
                   {p.name}
                   {p.open_questions ? <div className="sm-muted sm-small">{s.openQuestions}: {p.open_questions}</div> : null}
                 </td>
-                <td>{p.area ?? "–"}</td>
-                <td className={p.good_photos < 5 ? "sm-low" : undefined}>
+                <td data-label={s.colArea}>{p.area ?? "–"}</td>
+                <td data-label={s.colPhotos} className={p.good_photos < 5 ? "sm-low" : undefined}>
                   {p.good_photos} / {p.photos}
                 </td>
-                <td>{fmt(p.last_posted_at)}</td>
-                <td>
+                <td data-label={s.colLast}>{fmt(p.last_posted_at)}</td>
+                <td data-label={s.colActive}>
                   <label className="sm-switch">
                     <input type="checkbox" checked={p.active} disabled={busy === p.key} onChange={() => toggle(p)} aria-label={`${p.name}: ${s.colActive}`} />
                   </label>

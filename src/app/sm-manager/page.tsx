@@ -9,6 +9,7 @@ import type { Post, Property } from "@/lib/sm-manager/types";
 import { SmHome } from "@/components/sm-manager/SmHome";
 import type { ClickStats, SocialStats } from "@/components/sm-manager/SmStats";
 import type { Inquiry } from "@/components/sm-manager/SmInquiries";
+import "@/components/sm-manager/responsive.css";
 
 export const dynamic = "force-dynamic";
 

@@ -160,11 +160,11 @@ export function SmStats({ locale, social, clicks, bioLink }: Props) {
                       .slice(0, 10)
                       .map((p) => (
                         <tr key={p.id}>
-                          <td>#{p.id}</td>
-                          <td>{new Intl.DateTimeFormat(locale === "en" ? "en-GB" : "de-CH", { day: "numeric", month: "short" }).format(new Date(p.plan_date))}</td>
-                          <td>{s.formats[p.format ?? ""] ?? p.format ?? "–"}</td>
-                          <td>{p.property_key ?? "–"}</td>
-                          <td>{p.clicks}</td>
+                          <td className="sm-cell-title">#{p.id}</td>
+                          <td data-label={s.colDate}>{new Intl.DateTimeFormat(locale === "en" ? "en-GB" : "de-CH", { day: "numeric", month: "short" }).format(new Date(p.plan_date))}</td>
+                          <td data-label={s.colFormat}>{s.formats[p.format ?? ""] ?? p.format ?? "–"}</td>
+                          <td data-label={s.colVilla}>{p.property_key ?? "–"}</td>
+                          <td data-label={s.colClicks}>{p.clicks}</td>
                         </tr>
                       ))}
                   </tbody>
