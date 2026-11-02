@@ -5,12 +5,14 @@ import { useRouter } from "next/navigation";
 import type { Post, Property } from "@/lib/sm-manager/types";
 import { smStrings, type SmStrings } from "@/lib/sm-manager/i18n";
 import { statsStrings } from "@/lib/sm-manager/stats-i18n";
+import { inquiryStrings } from "@/lib/sm-manager/inquiries-i18n";
 import { SmStats, type ClickStats, type SocialStats } from "./SmStats";
+import { SmInquiries, type Inquiry } from "./SmInquiries";
 import "./sm.css";
 
 type Props = {
   locale: "de" | "en";
-  view: "review" | "done" | "properties" | "stats";
+  view: "review" | "done" | "properties" | "stats" | "inquiries";
   posts: Post[];
   properties: Property[];
   reviewCount: number;
@@ -18,6 +20,9 @@ type Props = {
   social?: SocialStats | null;
   clicks?: ClickStats | null;
   bioLink?: string;
+  inquiries?: Inquiry[];
+  inquiryCount?: number;
+  agentEnabled?: boolean;
 };
 
 async function send(method: string, url: string, body?: unknown): Promise<{ ok: boolean; error?: string }> {
@@ -39,7 +44,7 @@ function defaultWhen() {
   return toLocalInput(d);
 }
 
-export function SmHome({ locale, view, posts, properties, reviewCount, ghlReady, social = null, clicks = null, bioLink = "" }: Props) {
+export function SmHome({ locale, view, posts, properties, reviewCount, ghlReady, social = null, clicks = null, bioLink = "", inquiries = [], inquiryCount = 0, agentEnabled = false }: Props) {
   const s = smStrings(locale);
   return (
     <div className="p-page sm" lang={locale}>
@@ -58,6 +63,10 @@ export function SmHome({ locale, view, posts, properties, reviewCount, ghlReady,
           {s.tabReview}
           {reviewCount ? <span className="sm-count">{reviewCount}</span> : null}
         </a>
+        <a href="/sm-manager?ansicht=anfragen" aria-current={view === "inquiries" ? "page" : undefined}>
+          {inquiryStrings(locale).tabInquiries}
+          {inquiryCount ? <span className="sm-count">{inquiryCount}</span> : null}
+        </a>
         <a href="/sm-manager?ansicht=done" aria-current={view === "done" ? "page" : undefined}>
           {s.tabDone}
         </a>
@@ -69,7 +78,9 @@ export function SmHome({ locale, view, posts, properties, reviewCount, ghlReady,
         </a>
       </nav>
 
-      {view === "stats" ? (
+      {view === "inquiries" ? (
+        <SmInquiries locale={locale} inquiries={inquiries} agentEnabled={agentEnabled} />
+      ) : view === "stats" ? (
         <SmStats locale={locale} social={social} clicks={clicks} bioLink={bioLink} />
       ) : view === "properties" ? (
         <Properties s={s} locale={locale} properties={properties} />
