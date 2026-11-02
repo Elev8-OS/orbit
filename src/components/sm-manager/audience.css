@@ -1,0 +1,20 @@
+/* Zielgruppen-Empfehlung im SM Manager */
+.aud { display: grid; gap: 1.25rem; }
+.aud-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(11rem, 100%), 1fr)); gap: 0.75rem; }
+.aud-kpi { background: var(--surface, #fff); border: 1px solid var(--line, #e5e5e5); border-radius: 0.75rem; padding: 0.7rem 0.9rem; display: grid; gap: 0.1rem; }
+.aud-kpi-label { font-size: 0.8rem; color: var(--muted, #666); }
+.aud-kpi strong { font-size: 1.4rem; font-variant-numeric: tabular-nums; }
+.aud-villas { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(22rem, 100%), 1fr)); gap: 0.9rem; }
+.aud-villa { background: var(--surface, #fff); border: 1px solid var(--line, #e5e5e5); border-radius: 0.75rem; padding: 0.9rem 1rem; display: grid; gap: 0.6rem; align-content: start; }
+.aud-villa header { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; justify-content: space-between; }
+.aud-villa h3 { margin: 0; font-size: 1.05rem; }
+.aud-chip { display: inline-block; font-size: 0.75rem; padding: 0.15rem 0.55rem; border-radius: 999px; border: 1px solid var(--line, #e5e5e5); white-space: nowrap; }
+.aud-chip-high { background: #fde8e6; border-color: #f1b3ad; }
+.aud-chip-medium { background: #fff4d6; border-color: #ecd187; }
+.aud-chip-now { background: #e3f4e6; border-color: #a6d3ad; }
+.aud-chip-running { background: #fff4d6; border-color: #ecd187; }
+.aud-mk { border-top: 1px solid var(--line, #e5e5e5); padding-top: 0.55rem; display: grid; gap: 0.25rem; }
+.aud-mk-head { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; }
+.aud-mk ul { margin: 0; padding-left: 1.1rem; color: var(--muted, #666); font-size: 0.85rem; display: grid; gap: 0.1rem; }
+.aud-num { font-variant-numeric: tabular-nums; }
+.aud-notes { margin: 0; padding-left: 1.1rem; display: grid; gap: 0.35rem; }
