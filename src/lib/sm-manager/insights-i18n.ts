@@ -1,0 +1,64 @@
+type Locale = "de" | "en";
+
+const de = {
+  title: "Einzelne Beiträge",
+  intro: "Wie jeder Beitrag auf Instagram lief, direkt von Meta. Zugeordnet zu unseren Beiträgen, mit den Klicks auf den getrackten Link.",
+  notConfiguredTitle: "Noch nicht mit Instagram verbunden",
+  notConfigured: "Für Zahlen pro Beitrag braucht die Engine einen Zugang zur Instagram-Schnittstelle von Meta. Die Schritte stehen in docs/INSTAGRAM_INSIGHTS.md im Repository SM_engine.",
+  tokenExpired: "Der Zugang zu Instagram ist abgelaufen oder wurde widerrufen. Bitte ein neues Token in Railway eintragen (META_ACCESS_TOKEN). Angezeigt werden die zuletzt gespeicherten Zahlen.",
+  metaError: "Meta hat die Zahlen gerade nicht geliefert",
+  syncedAt: "Stand",
+  empty: "Noch keine Beiträge gefunden.",
+  best: "Bester Beitrag (Reichweite)",
+  byFormat: "Durchschnitt pro Format",
+  avgReach: "Ø Reichweite",
+  avgRate: "Ø Interaktionsrate",
+  posts: "Beiträge",
+  open: "Auf Instagram öffnen",
+  colPost: "Beitrag",
+  colViews: "Aufrufe",
+  colReach: "Reichweite",
+  colLikes: "Likes",
+  colComments: "Kommentare",
+  colSaved: "Gespeichert",
+  colShares: "Geteilt",
+  colRate: "Interaktionsrate",
+  colClicks: "Klicks",
+  rateHelp: "Interaktionsrate: Likes, Kommentare, Gespeichert und Geteilt im Verhältnis zur Reichweite.",
+  watch: "Ø Sehdauer",
+  types: { reel: "Reel", carousel: "Karussell", single: "Einzelbild", REELS: "Reel", FEED: "Beitrag", STORY: "Story" } as Record<string, string>,
+  manual: "Nicht aus der Engine"
+};
+
+const en: typeof de = {
+  title: "Individual posts",
+  intro: "How each post did on Instagram, straight from Meta. Matched to our posts, with clicks on the tracked link.",
+  notConfiguredTitle: "Not connected to Instagram yet",
+  notConfigured: "For numbers per post the engine needs access to Meta's Instagram API. The steps are in docs/INSTAGRAM_INSIGHTS.md in the SM_engine repository.",
+  tokenExpired: "Access to Instagram has expired or was revoked. Please enter a new token in Railway (META_ACCESS_TOKEN). The last saved numbers are shown.",
+  metaError: "Meta did not return the numbers right now",
+  syncedAt: "As of",
+  empty: "No posts found yet.",
+  best: "Best post (reach)",
+  byFormat: "Average per format",
+  avgReach: "Avg. reach",
+  avgRate: "Avg. engagement rate",
+  posts: "posts",
+  open: "Open on Instagram",
+  colPost: "Post",
+  colViews: "Views",
+  colReach: "Reach",
+  colLikes: "Likes",
+  colComments: "Comments",
+  colSaved: "Saved",
+  colShares: "Shared",
+  colRate: "Engagement rate",
+  colClicks: "Clicks",
+  rateHelp: "Engagement rate: likes, comments, saves and shares relative to reach.",
+  watch: "Avg. watch time",
+  types: { reel: "Reel", carousel: "Carousel", single: "Single image", REELS: "Reel", FEED: "Post", STORY: "Story" },
+  manual: "Not from the engine"
+};
+
+export const insightStrings = (locale: Locale) => (locale === "en" ? en : de);
+export type InsightStrings = ReturnType<typeof insightStrings>;
