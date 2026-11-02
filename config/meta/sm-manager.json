@@ -2,6 +2,26 @@
   "app": "sm-manager",
   "changelog": [
     {
+      "version": "1.5",
+      "date": "2026-11-02",
+      "title": { "de": "Zielgruppen für Anzeigen", "en": "Audiences for ads" },
+      "changes": [
+        { "de": "Neuer Tab „Zielgruppen“: Aus deinen Elev8-Daten empfiehlt das Tool, in welche Länder, wann und mit welchem Motiv sich Anzeigen für Villen mit freien Nächten lohnen.", "en": "New tab \"Audiences\": from your Elev8 data the tool recommends which countries, when and with which angle ads are worth it for villas with free nights." },
+        { "de": "Grundlage sind Herkunft der Gäste, Vorlauf der Buchungen, freie Nächte und typische Ferienfenster der Herkunftsländer. Das Budget wird in Prozent auf die stärksten Märkte verteilt.", "en": "It is based on guest origin, booking lead time, free nights and typical holiday windows of the source countries. The budget is split in percent across the strongest markets." },
+        { "de": "Es ist nur eine Empfehlung: Es wird nichts geschaltet und kein Geld ausgegeben. Die Ferienfenster sind Richtwerte.", "en": "This is a recommendation only: nothing is published and no money is spent. The holiday windows are guide values." }
+      ]
+    },
+    {
+      "version": "1.4",
+      "date": "2026-11-02",
+      "title": { "de": "Zahlen pro Beitrag", "en": "Numbers per post" },
+      "changes": [
+        { "de": "Unter „Kennzahlen“ steht jetzt „Einzelne Beiträge“: Aufrufe, Reichweite, Likes, Kommentare, Gespeichert, Geteilt und Interaktionsrate je Beitrag, dazu der beste Beitrag und der Durchschnitt pro Format.", "en": "Under \"Insights\" there is now \"Individual posts\": views, reach, likes, comments, saves, shares and engagement rate per post, plus the best post and the average per format." },
+        { "de": "Jeder Beitrag wird unseren Beiträgen zugeordnet und zeigt die Klicks auf den getrackten Link. Die Zahlen kommen direkt von Meta.", "en": "Each post is matched to our posts and shows the clicks on the tracked link. The numbers come straight from Meta." },
+        { "de": "Der Bereich zeigt Daten, sobald die Verbindung zu Meta eingerichtet ist. Bis dahin steht dort ein Hinweis.", "en": "The section shows data once the connection to Meta is set up. Until then it shows a notice." }
+      ]
+    },
+    {
       "version": "1.3",
       "date": "2026-11-02",
       "title": { "de": "Auch auf dem Handy", "en": "Works on your phone too" },
@@ -47,8 +67,12 @@
     { "term": "Freigeben", "name": { "de": "Freigeben", "en": "Approve" }, "definition": { "de": "Du gibst den Beitrag frei und legst fest, wann er erscheint. Ab dann ist er in GoHighLevel terminiert.", "en": "You approve the post and choose when it goes out. From then on it is scheduled in GoHighLevel." } },
     { "term": "Impressionen", "name": { "de": "Impressions", "en": "Impressions" }, "definition": { "de": "Wie oft Inhalte angezeigt wurden. Dieselbe Person kann sie mehrmals sehen.", "en": "How often content was shown. The same person can see it more than once." } },
     { "term": "Reichweite", "name": { "de": "Reach", "en": "Reach" }, "definition": { "de": "Wie viele verschiedene Konten die Inhalte gesehen haben. Jedes Konto wird nur einmal gezählt.", "en": "How many different accounts saw the content. Each account is counted once." } },
+    { "term": "Interaktionsrate", "name": { "de": "Interaktionsrate", "en": "Engagement rate" }, "definition": { "de": "Likes, Kommentare, Gespeichert und Geteilt im Verhältnis zur Reichweite eines Beitrags. So lassen sich Beiträge mit unterschiedlicher Reichweite vergleichen.", "en": "Likes, comments, saves and shares relative to the reach of a post. It lets you compare posts with different reach." } },
     { "term": "Bio-Link", "name": { "de": "Link in bio", "en": "Link in bio" }, "definition": { "de": "Der Link im Instagram-Profil. Der getrackte Link zählt jeden Klick und führt zum zuletzt veröffentlichten Beitrag auf der Website.", "en": "The link in the Instagram profile. The tracked link counts every click and leads to the most recently published post on the website." } },
     { "term": "UTM", "definition": { "de": "Zusatz am Link, der verrät, von welchem Beitrag ein Besucher kam. So lässt sich später sehen, welcher Beitrag Buchungen bringt.", "en": "An addition to a link that shows which post a visitor came from. It lets you see later which post brings bookings." } },
+    { "term": "Vorlauf", "name": { "de": "Lead time", "en": "Lead time" }, "definition": { "de": "Wie viele Tage zwischen Buchung und Anreise liegen. Der Median heisst: Die Hälfte der Gäste bucht früher, die Hälfte später. Er bestimmt, wann Anzeigen starten sollten.", "en": "How many days lie between booking and arrival. The median means half of the guests book earlier and half later. It decides when ads should start." } },
+    { "term": "Ferienfenster", "name": { "de": "Holiday window", "en": "Holiday window" }, "definition": { "de": "Typische Schulferien eines Herkunftslandes, zum Beispiel Weihnachten oder Sommer. Es sind Richtwerte, die je nach Region und Jahr abweichen.", "en": "Typical school holidays of a source country, for example Christmas or summer. They are guide values that differ by region and year." } },
+    { "term": "Budgetanteil", "name": { "de": "Budget share", "en": "Budget share" }, "definition": { "de": "Der Anteil am Werbebudget, den das Tool einem Markt empfiehlt, in Prozent. Es sind keine Geldbeträge.", "en": "The share of the ad budget the tool recommends for a market, in percent. These are not money amounts." } },
     { "term": "Lea", "definition": { "de": "Unsere virtuelle Sales Assistant. Sie schreibt Antwortvorschläge auf Instagram-Nachrichten und prüft dafür Verfügbarkeit und Preise.", "en": "Our virtual Sales Assistant. She drafts replies to Instagram messages and checks availability and prices for them." } },
     { "term": "Bitte prüfen", "name": { "de": "Bitte prüfen", "en": "Please check" }, "definition": { "de": "Lea ist unsicher oder das Thema braucht einen Menschen, zum Beispiel bei Beschwerden, Rückerstattungen oder Preisverhandlungen. Das Team bekommt zusätzlich eine E-Mail.", "en": "Lea is unsure or the topic needs a person, for example complaints, refunds or price negotiations. The team also gets an email." } },
     { "term": "24-Stunden-Regel", "name": { "de": "24-hour rule", "en": "24-hour rule" }, "definition": { "de": "Instagram erlaubt Antworten auf eine Nachricht nur innerhalb von 24 Stunden. Danach kann nicht mehr geantwortet werden.", "en": "Instagram only allows replies to a message within 24 hours. After that you can no longer reply." } },
