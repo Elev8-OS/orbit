@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { learningStrings } from "@/lib/sm-manager/learnings-i18n";
+import { tipStrings } from "@/lib/sm-manager/tips-i18n";
+import { Tip } from "./Tip";
 import "./learnings.css";
 
 export type Learning = {
@@ -36,6 +38,7 @@ async function post(url: string): Promise<{ ok: boolean; error?: string }> {
 
 export function SmLearnings({ locale, data }: { locale: "de" | "en"; data: LearningsData | null }) {
   const s = learningStrings(locale);
+  const tp = tipStrings(locale);
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
@@ -53,8 +56,9 @@ export function SmLearnings({ locale, data }: { locale: "de" | "en"; data: Learn
   const run = data?.run ?? null;
   const card = (l: Learning, kind: "proposed" | "accepted" | "dismissed") => (
     <li className="lrn-card" key={l.id}>
-      <span className={`lrn-chip lrn-chip-${l.confidence}`} title={l.confidence === "solid" ? s.solidHelp : s.tentativeHelp}>
-        {l.confidence === "solid" ? s.solid : s.tentative}
+      <span style={{ display: "inline-flex", alignItems: "center" }}>
+        <span className={`lrn-chip lrn-chip-${l.confidence}`}>{l.confidence === "solid" ? s.solid : s.tentative}</span>
+        <Tip text={l.confidence === "solid" ? s.solidHelp : s.tentativeHelp} label={tp.label} />
       </span>
       <p>{s.describe(l)}</p>
       <p className="sm-muted sm-small">{s.effect(l.action) || (l.action.type === "info" ? s.info : "")}</p>
@@ -65,9 +69,11 @@ export function SmLearnings({ locale, data }: { locale: "de" | "en"; data: Learn
             <button type="button" className="sm-btn sm-btn-primary" disabled={busy !== null} onClick={() => act(`a${l.id}`, `/api/sm-manager/learnings/${l.id}/accept`)}>
               {s.accept}
             </button>
+            <Tip text={tp.accept} label={tp.label} />
             <button type="button" className="sm-btn" disabled={busy !== null} onClick={() => act(`d${l.id}`, `/api/sm-manager/learnings/${l.id}/dismiss`)}>
               {s.dismiss}
             </button>
+            <Tip text={tp.dismiss} label={tp.label} />
           </>
         ) : kind === "accepted" ? (
           <button type="button" className="sm-btn" disabled={busy !== null} onClick={() => act(`d${l.id}`, `/api/sm-manager/learnings/${l.id}/dismiss`)}>
@@ -93,6 +99,7 @@ export function SmLearnings({ locale, data }: { locale: "de" | "en"; data: Learn
         <button type="button" className="sm-btn" disabled={busy !== null} onClick={() => act("run", "/api/sm-manager/learnings/run")}>
           {busy === "run" ? s.running : s.runNow}
         </button>
+        <Tip text={tp.runNow} label={tp.label} />
         {run ? <span className="sm-muted sm-small">{s.lastRun(new Intl.DateTimeFormat(loc, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(run.ranAt)), run.eligible, run.tested)}</span> : null}
       </div>
       {msg ? <p className="sm-warn" role="status">{msg}</p> : null}

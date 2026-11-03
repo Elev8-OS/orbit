@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { inquiryStrings, type InquiryStrings } from "@/lib/sm-manager/inquiries-i18n";
+import { tipStrings } from "@/lib/sm-manager/tips-i18n";
+import { Tip } from "./Tip";
 import "./inquiries.css";
 
 export type Inquiry = {
@@ -76,6 +78,7 @@ export function SmInquiries({ locale, inquiries, agentEnabled }: Props) {
 
 function InquiryCard({ s, locale, item }: { s: InquiryStrings; locale: "de" | "en"; item: Inquiry }) {
   const router = useRouter();
+  const tp = tipStrings(locale);
   const isOpen = OPEN.includes(item.status);
   const [text, setText] = useState(item.draft ?? "");
   const [busy, setBusy] = useState(false);
@@ -102,7 +105,12 @@ function InquiryCard({ s, locale, item }: { s: InquiryStrings; locale: "de" | "e
         <strong>{item.contact_name || s.anonymous}</strong>
         <span className={`sm-badge sm-status-${item.status === "sent" ? "published" : item.status}`}>{s.statuses[item.status] ?? item.status}</span>
         {item.intent ? <span className="sm-badge">{s.intents[item.intent] ?? item.intent}</span> : null}
-        {item.needs_human ? <span className="sm-badge inq-flag">{s.needsHuman}</span> : null}
+        {item.needs_human ? (
+          <span>
+            <span className="sm-badge inq-flag">{s.needsHuman}</span>
+            <Tip text={tp.needsHuman} label={tp.label} />
+          </span>
+        ) : null}
         <span className="sm-muted sm-small">{when}</span>
       </div>
 
@@ -114,18 +122,24 @@ function InquiryCard({ s, locale, item }: { s: InquiryStrings; locale: "de" | "e
 
       {isOpen && item.status !== "new" ? (
         <>
-          <h3>{s.draftLabel}</h3>
+          <h3>
+            {s.draftLabel}
+            <Tip text={tp.draft} label={tp.label} />
+          </h3>
           <textarea className="inq-draft" value={text} onChange={(e) => setText(e.target.value)} maxLength={2000} aria-label={s.draftLabel} />
           <div className="sm-actions">
             <button type="button" className="sm-btn sm-btn-primary" onClick={send} disabled={busy || !text.trim()}>
               {s.send}
             </button>
+            <Tip text={tp.send} label={tp.label} />
             <button type="button" className="sm-btn" onClick={() => void act(`${base}/redraft`)} disabled={busy}>
               {s.redraft}
             </button>
+            <Tip text={tp.redraft} label={tp.label} />
             <button type="button" className="sm-btn" onClick={() => void act(`${base}/dismiss`)} disabled={busy}>
               {s.dismiss}
             </button>
+            <Tip text={tp.inqDismiss} label={tp.label} />
           </div>
         </>
       ) : item.status === "sent" ? (

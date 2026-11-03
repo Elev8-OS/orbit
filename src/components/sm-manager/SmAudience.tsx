@@ -1,4 +1,6 @@
 import { audienceStrings } from "@/lib/sm-manager/audience-i18n";
+import { tipStrings } from "@/lib/sm-manager/tips-i18n";
+import { Tip } from "./Tip";
 import "./audience.css";
 
 export type AudienceWindow = { name: string; start: string; end: string; adsStart: string; daysUntil: number; status: "now" | "soon" | "running" | "later"; inHorizon: boolean };
@@ -29,6 +31,7 @@ export type AudiencePlan = {
 
 export function SmAudience({ locale, plan }: { locale: "de" | "en"; plan: AudiencePlan | null }) {
   const s = audienceStrings(locale);
+  const tp = tipStrings(locale);
   const loc = locale === "en" ? "en-GB" : "de-CH";
   const region = new Intl.DisplayNames([loc], { type: "region" });
   const language = new Intl.DisplayNames([loc], { type: "language" });
@@ -83,20 +86,32 @@ export function SmAudience({ locale, plan }: { locale: "de" | "en"; plan: Audien
         <h3>{s.basisTitle}</h3>
         <div className="aud-kpis">
           <div className="aud-kpi">
-            <span className="aud-kpi-label">{s.kBookings}</span>
+            <span className="aud-kpi-label">
+              {s.kBookings}
+              <Tip text={tp.kBookings} label={tp.label} />
+            </span>
             <strong>{b.bookings}</strong>
           </div>
           <div className="aud-kpi">
-            <span className="aud-kpi-label">{s.kLead}</span>
+            <span className="aud-kpi-label">
+              {s.kLead}
+              <Tip text={tp.kLead} label={tp.label} />
+            </span>
             <strong>{b.leadMedian ?? "–"} {s.days}</strong>
             {b.leadP25 != null && b.leadP75 != null ? <span className="sm-muted sm-small">{s.kLeadSub(b.leadP25, b.leadP75)}</span> : null}
           </div>
           <div className="aud-kpi">
-            <span className="aud-kpi-label">{s.kFamily}</span>
+            <span className="aud-kpi-label">
+              {s.kFamily}
+              <Tip text={tp.kFamily} label={tp.label} />
+            </span>
             <strong>{b.familyShare} %</strong>
           </div>
           <div className="aud-kpi">
-            <span className="aud-kpi-label">{s.kStay}</span>
+            <span className="aud-kpi-label">
+              {s.kStay}
+              <Tip text={tp.kStay} label={tp.label} />
+            </span>
             <strong>{b.medianNights ?? "–"} {s.nights}</strong>
           </div>
         </div>
@@ -110,13 +125,34 @@ export function SmAudience({ locale, plan }: { locale: "de" | "en"; plan: Audien
             <thead>
               <tr>
                 <th>{s.colMarket}</th>
-                <th>{s.colShare}</th>
-                <th>{s.colNights}</th>
-                <th>{s.colStay}</th>
-                <th>{s.colGroup}</th>
-                <th>{s.colWindow}</th>
-                <th>{s.colAds}</th>
-                <th>{s.colBudget}</th>
+                <th>
+                  {s.colShare}
+                  <Tip text={tp.colShare} label={tp.label} />
+                </th>
+                <th>
+                  {s.colNights}
+                  <Tip text={tp.colNights} label={tp.label} />
+                </th>
+                <th>
+                  {s.colStay}
+                  <Tip text={tp.colStay} label={tp.label} />
+                </th>
+                <th>
+                  {s.colGroup}
+                  <Tip text={tp.colGroup} label={tp.label} />
+                </th>
+                <th>
+                  {s.colWindow}
+                  <Tip text={tp.colWindow} label={tp.label} />
+                </th>
+                <th>
+                  {s.colAds}
+                  <Tip text={tp.colAds} label={tp.label} />
+                </th>
+                <th>
+                  {s.colBudget}
+                  <Tip text={tp.colBudget} label={tp.label} />
+                </th>
               </tr>
             </thead>
             <tbody>
