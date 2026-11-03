@@ -2,6 +2,17 @@
   "app": "sm-manager",
   "changelog": [
     {
+      "version": "1.7",
+      "date": "2026-11-03",
+      "title": { "de": "Learnings: das System lernt aus den Beiträgen", "en": "Learnings: the system learns from your posts" },
+      "changes": [
+        { "de": "Neuer Tab „Learnings“: Das System vergleicht deine Beiträge nach Format, Textlänge, Fragen am Anfang, Uhrzeit, Wochentag und mehr und schlägt vor, was du öfter oder seltener machen solltest.", "en": "New tab \"Learnings\": the system compares your posts by format, caption length, opening questions, time of day, weekday and more, and suggests what to do more or less." },
+        { "de": "Nichts wird ohne dein „Übernehmen“ angewendet. Übernommen wirken zwei Dinge automatisch: Regeln im Textauftrag an Claude (zum Beispiel Texte mit einer Frage beginnen) und die vorausgewählte Uhrzeit beim Freigeben. Alles andere sind Hinweise für dich.", "en": "Nothing is applied without your \"Accept\". Two things take effect automatically once accepted: rules in the writing brief to Claude (for example opening captions with a question) and the preselected time when approving. Everything else is guidance for you." },
+        { "de": "Erst ab 12 Beiträgen, die älter als 7 Tage sind, gibt es Vorschläge. Die Vorschläge sind als „belastbar“ oder „vorsichtig“ gekennzeichnet, weil bei vielen Vergleichen auch Zufallstreffer vorkommen.", "en": "Suggestions only appear from 12 posts older than 7 days. They are marked \"solid\" or \"tentative\", because chance findings also occur when many comparisons are made." },
+        { "de": "Der Erfolgswert gewichtet Klicks, neue Follower, Profilbesuche, Gespeichert und Geteilt höher als Reichweite und Likes. Klicks zählen mit, sobald der Bio-Link mindestens 20 Klicks gesammelt hat.", "en": "The success score weights clicks, new followers, profile visits, saves and shares above reach and likes. Clicks count once the bio link has collected at least 20 clicks." }
+      ]
+    },
+    {
       "version": "1.6",
       "date": "2026-11-03",
       "title": { "de": "Zahlen pro Beitrag, mit Zeitraum", "en": "Numbers per post, with a time range" },
@@ -80,6 +91,8 @@
     { "term": "Impressionen", "name": { "de": "Impressions", "en": "Impressions" }, "definition": { "de": "Wie oft Inhalte angezeigt wurden. Dieselbe Person kann sie mehrmals sehen.", "en": "How often content was shown. The same person can see it more than once." } },
     { "term": "Reichweite", "name": { "de": "Reach", "en": "Reach" }, "definition": { "de": "Wie viele verschiedene Konten die Inhalte gesehen haben. Jedes Konto wird nur einmal gezählt.", "en": "How many different accounts saw the content. Each account is counted once." } },
     { "term": "Interaktionsrate", "name": { "de": "Interaktionsrate", "en": "Engagement rate" }, "definition": { "de": "Likes, Kommentare, Gespeichert und Geteilt im Verhältnis zur Reichweite eines Beitrags. So lassen sich Beiträge mit unterschiedlicher Reichweite vergleichen.", "en": "Likes, comments, saves and shares relative to the reach of a post. It lets you compare posts with different reach." } },
+    { "term": "Erfolgswert", "name": { "de": "Erfolgswert", "en": "Success score" }, "definition": { "de": "Eine Zahl pro Beitrag für den Vergleich in den Learnings. Klicks, neue Follower, Profilbesuche, Gespeichert und Geteilt zählen mehr als Reichweite und Likes. Es ist eine Gewichtung, kein Messwert von Instagram.", "en": "One number per post for the comparison in Learnings. Clicks, new followers, profile visits, saves and shares count more than reach and likes. It is a weighting, not a number measured by Instagram." } },
+    { "term": "Learnings", "name": { "de": "Learnings", "en": "Learnings" }, "definition": { "de": "Vorschläge des Systems, was du öfter oder seltener machen solltest, abgeleitet aus dem Vergleich deiner Beiträge. Sie wirken erst, wenn du sie übernimmst. „Belastbar“ heisst deutlicher Unterschied, „vorsichtig“ heisst schwächer belegt.", "en": "Suggestions from the system on what to do more or less, derived from comparing your posts. They only take effect once you accept them. \"Solid\" means a clear difference, \"tentative\" means weaker evidence." } },
     { "term": "Bio-Link", "name": { "de": "Link in bio", "en": "Link in bio" }, "definition": { "de": "Der Link im Instagram-Profil. Der getrackte Link zählt jeden Klick und führt zum zuletzt veröffentlichten Beitrag auf der Website.", "en": "The link in the Instagram profile. The tracked link counts every click and leads to the most recently published post on the website." } },
     { "term": "UTM", "definition": { "de": "Zusatz am Link, der verrät, von welchem Beitrag ein Besucher kam. So lässt sich später sehen, welcher Beitrag Buchungen bringt.", "en": "An addition to a link that shows which post a visitor came from. It lets you see later which post brings bookings." } },
     { "term": "Vorlauf", "name": { "de": "Lead time", "en": "Lead time" }, "definition": { "de": "Wie viele Tage zwischen Buchung und Anreise liegen. Der Median heisst: Die Hälfte der Gäste bucht früher, die Hälfte später. Er bestimmt, wann Anzeigen starten sollten.", "en": "How many days lie between booking and arrival. The median means half of the guests book earlier and half later. It decides when ads should start." } },
