@@ -115,7 +115,7 @@ function InquiryCard({ s, locale, item }: { s: InquiryStrings; locale: "de" | "e
       </div>
 
       <h3>{s.guestSaid}</h3>
-      <blockquote className="inq-guest">{item.guest_message}</blockquote>
+      <blockquote className="inq-guest">{item.guest_message || "–"}</blockquote>
 
       {item.needs_human && item.reason ? <p className="sm-warn">{item.reason}</p> : null}
       {item.error ? <p className="sm-warn">{item.error}</p> : null}
@@ -149,6 +149,14 @@ function InquiryCard({ s, locale, item }: { s: InquiryStrings; locale: "de" | "e
         </>
       ) : item.status === "new" ? (
         <p className="sm-muted sm-small">{s.noDraft}</p>
+      ) : item.status === "ignored" ? (
+        // Ignorierte Anfragen können erneut gelesen werden, zum Beispiel wenn der Text beim ersten Mal noch nicht da war.
+        <div className="sm-actions">
+          <button type="button" className="sm-btn" onClick={() => void act(`${base}/redraft`)} disabled={busy}>
+            {s.redraft}
+          </button>
+          <Tip text={tp.redraft} label={tp.label} />
+        </div>
       ) : null}
       {msg ? (
         <p className="sm-muted sm-small" role="status">
