@@ -12,3 +12,14 @@
 .ins-range { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; }
 .ins-range a { display: inline-block; padding: 0.3rem 0.75rem; border: 1px solid var(--line, #e5e5e5); border-radius: 999px; font-size: 0.85rem; color: inherit; text-decoration: none; min-height: 2rem; line-height: 1.4; }
 .ins-range a[aria-current="true"] { background: var(--ink, #111); color: var(--surface, #fff); border-color: var(--ink, #111); }
+
+/* Sortieren */
+.ins-sort { all: unset; box-sizing: border-box; display: inline-flex; align-items: center; gap: 0.3rem; cursor: pointer; font: inherit; font-weight: inherit; color: inherit; padding: 0.25rem 0.1rem; min-height: 2rem; }
+.ins-sort:hover { text-decoration: underline; text-underline-offset: 0.15rem; }
+.ins-sort:focus-visible { outline: 2px solid var(--ink, #111); outline-offset: 2px; border-radius: 0.25rem; }
+.ins-arrow { font-size: 0.7rem; color: var(--muted, #999); }
+.ins-arrow-on { color: var(--ink, inherit); }
+.ins-sortbar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; }
+.ins-sortbar select { font-size: 16px; padding: 0.4rem 0.6rem; min-height: 2.5rem; border: 1px solid var(--line, #e5e5e5); border-radius: 0.5rem; background: var(--surface, #fff); color: inherit; }
+/* Auf großen Bildschirmen reichen die Spaltenüberschriften, die Auswahl ist für das Handy */
+@media (min-width: 900px) { .ins-sortbar { display: none; } }

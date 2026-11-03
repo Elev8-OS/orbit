@@ -1,4 +1,6 @@
 import { insightStrings } from "@/lib/sm-manager/insights-i18n";
+import { dateFormatter, nf, pct, postLabel } from "@/lib/sm-manager/insights-format";
+import { InsightsTable } from "./InsightsTable";
 import "./insights.css";
 
 export type PostInsight = {
@@ -32,14 +34,9 @@ export type PostInsights = {
 
 const RANGES = ["30", "90", "365", "alle"] as const;
 
-const nf = (n: number | null | undefined, locale: string) => (typeof n === "number" ? new Intl.NumberFormat(locale === "en" ? "en-GB" : "de-CH").format(n) : "–");
-const pct = (n: number | null | undefined, locale: string) => (typeof n === "number" ? `${new Intl.NumberFormat(locale === "en" ? "en-GB" : "de-CH", { maximumFractionDigits: 1 }).format(n)} %` : "–");
-
 export function SmPostInsights({ locale, data, range = "90" }: { locale: "de" | "en"; data: PostInsights | null; range?: string }) {
   const s = insightStrings(locale);
-  const dateFmt = new Intl.DateTimeFormat(locale === "en" ? "en-GB" : "de-CH", { day: "numeric", month: "short", year: range === "365" || range === "alle" ? "2-digit" : undefined });
-  const when = (iso: string | null) => (iso ? dateFmt.format(new Date(iso)) : "");
-  const label = (p: PostInsight) => s.types[p.format ?? ""] ?? s.types[p.type ?? ""] ?? p.type ?? "";
+  const when = dateFormatter(locale, range === "365" || range === "alle");
 
   if (!data || !data.configured) {
     return (
@@ -59,7 +56,7 @@ export function SmPostInsights({ locale, data, range = "90" }: { locale: "de" | 
   // Durchschnitt je Format (Reel, Karussell, ...)
   const groups = new Map<string, PostInsight[]>();
   for (const p of withReach) {
-    const key = label(p) || "–";
+    const key = postLabel(s, p) || "–";
     groups.set(key, [...(groups.get(key) ?? []), p]);
   }
   const avg = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
@@ -96,7 +93,7 @@ export function SmPostInsights({ locale, data, range = "90" }: { locale: "de" | 
         <div className="ins-best">
           <span className="sm-kpi-label">{s.best}</span>
           <strong>
-            {label(best)} · {when(best.postedAt)} · {nf(best.reach, locale)}
+            {postLabel(s, best)} · {best.postedAt ? when.format(new Date(best.postedAt)) : ""} · {nf(best.reach, locale)}
           </strong>
           {best.caption ? <span className="ins-caption">{best.caption.slice(0, 110)}</span> : null}
           {best.permalink ? (
@@ -128,52 +125,7 @@ export function SmPostInsights({ locale, data, range = "90" }: { locale: "de" | 
         </div>
       ) : null}
 
-      {posts.length ? (
-        <div className="sm-table-wrap">
-          <table className="sm-table ins-table">
-            <thead>
-              <tr>
-                <th>{s.colPost}</th>
-                <th>{s.colViews}</th>
-                <th>{s.colReach}</th>
-                <th>{s.colLikes}</th>
-                <th>{s.colComments}</th>
-                <th>{s.colSaved}</th>
-                <th>{s.colShares}</th>
-                <th>{s.colRate}</th>
-                <th>{s.colClicks}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {posts.map((p) => (
-                <tr key={p.mediaId}>
-                  <td className="sm-cell-title">
-                    {p.permalink ? (
-                      <a className="ins-link" href={p.permalink} target="_blank" rel="noopener noreferrer">
-                        {label(p)} · {when(p.postedAt)}
-                      </a>
-                    ) : (
-                      <>
-                        {label(p)} · {when(p.postedAt)}
-                      </>
-                    )}
-                    {p.villa ? <span className="sm-muted sm-small"> · {p.villa}</span> : null}
-                    {p.caption ? <span className="ins-caption">{p.caption.slice(0, 80)}</span> : null}
-                  </td>
-                  <td className="ins-num" data-label={s.colViews}>{nf(p.views, locale)}</td>
-                  <td className="ins-num" data-label={s.colReach}>{nf(p.reach, locale)}</td>
-                  <td className="ins-num" data-label={s.colLikes}>{nf(p.likes, locale)}</td>
-                  <td className="ins-num" data-label={s.colComments}>{nf(p.comments, locale)}</td>
-                  <td className="ins-num" data-label={s.colSaved}>{nf(p.saved, locale)}</td>
-                  <td className="ins-num" data-label={s.colShares}>{nf(p.shares, locale)}</td>
-                  <td className="ins-num" data-label={s.colRate}>{pct(p.engagementRate, locale)}</td>
-                  <td className="ins-num" data-label={s.colClicks}>{p.postId ? nf(p.clicks, locale) : "–"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : null}
+      {posts.length ? <InsightsTable locale={locale} posts={posts} range={range} /> : null}
       <p className="sm-muted sm-small">{s.rateHelp}</p>
     </section>
   );
