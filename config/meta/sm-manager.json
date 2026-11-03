@@ -2,6 +2,15 @@
   "app": "sm-manager",
   "changelog": [
     {
+      "version": "1.10",
+      "date": "2026-11-03",
+      "title": { "de": "Erklärungen per (i)", "en": "Explanations with (i)" },
+      "changes": [
+        { "de": "Neben Kennzahlen, Spalten und Buttons steht jetzt ein kleines (i). Am Rechner erscheint die Erklärung beim Darüberfahren, am Handy beim Antippen. Ein Tipp daneben schliesst sie wieder.", "en": "A small (i) now sits next to figures, columns and buttons. On a computer the explanation appears on hover, on a phone when you tap it. A tap elsewhere closes it again." },
+        { "de": "Erklärt werden unter anderem Impressionen, Reichweite, Interaktionsrate, Klicks, die Textprüfung (Warnungen), Freigeben und Ablehnen, die Learnings, die Spalten der Zielgruppen und Leas Entwürfe.", "en": "Among other things it explains impressions, reach, engagement rate, clicks, the text check (warnings), approve and reject, the Learnings, the Audiences columns and Lea's drafts." }
+      ]
+    },
+    {
       "version": "1.9",
       "date": "2026-11-03",
       "title": { "de": "Bio-Link auf die Hauptseite, klarere Fehlermeldung", "en": "Bio link to the main page, clearer error message" },
