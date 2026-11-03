@@ -2,6 +2,18 @@
   "app": "sm-manager",
   "changelog": [
     {
+      "version": "1.6",
+      "date": "2026-11-03",
+      "title": { "de": "Zahlen pro Beitrag, mit Zeitraum", "en": "Numbers per post, with a time range" },
+      "changes": [
+        { "de": "Die Zahlen pro Beitrag sind jetzt mit Instagram verbunden. Unter „Kennzahlen“ steht „Einzelne Beiträge“ mit bestem Beitrag, Durchschnitt pro Format und allen Werten je Beitrag.", "en": "The numbers per post are now connected to Instagram. Under \"Insights\" you find \"Individual posts\" with the best post, the average per format and all values per post." },
+        { "de": "Neuer Zeitraum-Schalter: 30 Tage, 90 Tage, 12 Monate oder alles. Es werden bis zu 150 Beiträge geladen.", "en": "New time range switch: 30 days, 90 days, 12 months or all. Up to 150 posts are loaded." },
+        { "de": "Die Zahlen werden stündlich im Hintergrund aktualisiert, die Seite wartet nicht mehr auf Meta. Zusätzlich werden Profilbesuche und neue Follower pro Beitrag gesammelt.", "en": "The numbers are refreshed hourly in the background, and the page no longer waits for Meta. Profile visits and new followers per post are collected as well." },
+        { "de": "Ab jetzt wird der Stand jedes Beitrags nach etwa 1, 3 und 7 Tagen gespeichert. So lassen sich später Beiträge fair vergleichen, auch wenn sie unterschiedlich alt sind. Für frühere Beiträge lässt sich das nicht nachholen.", "en": "From now on the state of each post is saved after about 1, 3 and 7 days. This lets you compare posts fairly later, even when they have different ages. It cannot be added for earlier posts." },
+        { "de": "Die Spaltenköpfe der Tabelle brechen nicht mehr mitten im Wort um.", "en": "The table column headers no longer break in the middle of a word." }
+      ]
+    },
+    {
       "version": "1.5",
       "date": "2026-11-02",
       "title": { "de": "Zielgruppen für Anzeigen", "en": "Audiences for ads" },
