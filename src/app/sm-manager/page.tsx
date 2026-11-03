@@ -18,8 +18,9 @@ export const dynamic = "force-dynamic";
 const REVIEW = ["rendered", "draft_created"];
 const DONE = ["approved", "scheduled", "published", "rejected", "failed"];
 const INQUIRY_OPEN = ["draft_ready", "failed"];
+const RANGES = ["30", "90", "365", "alle"];
 
-export default async function SmManagerPage({ searchParams }: { searchParams: Promise<{ ansicht?: string }> }) {
+export default async function SmManagerPage({ searchParams }: { searchParams: Promise<{ ansicht?: string; zeitraum?: string }> }) {
   const params = await searchParams;
   await ensureEmbedded("sm-manager", "/sm-manager");
   const user = await currentUser();
@@ -40,6 +41,7 @@ export default async function SmManagerPage({ searchParams }: { searchParams: Pr
             : params.ansicht === "zielgruppen"
               ? "audience"
               : "review";
+  const range = RANGES.includes(params.zeitraum ?? "") ? (params.zeitraum as string) : "90";
   try {
     const [health, list, props, social, clicks, inq, agent, insights, audiencePlan] = await Promise.all([
       engineHealth(),
@@ -49,7 +51,7 @@ export default async function SmManagerPage({ searchParams }: { searchParams: Pr
       view === "stats" ? engine<ClickStats>("/stats/clicks?days=30").catch(() => null) : Promise.resolve(null),
       engine<{ inquiries: Inquiry[] }>("/agent/inquiries?limit=60").catch(() => ({ inquiries: [] as Inquiry[] })),
       view === "inquiries" ? engine<{ enabled: boolean }>("/agent/status").catch(() => null) : Promise.resolve(null),
-      view === "stats" ? engine<PostInsights>("/stats/posts").catch(() => null) : Promise.resolve(null),
+      view === "stats" ? engine<PostInsights>(`/stats/posts?days=${range}&limit=100`).catch(() => null) : Promise.resolve(null),
       view === "audience" ? engine<AudiencePlan>("/audience/plan?days=60").catch(() => null) : Promise.resolve(null)
     ]);
     const reviewCount = list.posts.filter((p) => REVIEW.includes(p.status)).length;
@@ -80,7 +82,7 @@ export default async function SmManagerPage({ searchParams }: { searchParams: Pr
         />
         {view === "stats" ? (
           <div className="p-page sm" style={{ paddingTop: 0 }}>
-            <SmPostInsights locale={locale} data={insights} />
+            <SmPostInsights locale={locale} data={insights} range={range} />
           </div>
         ) : null}
       </>

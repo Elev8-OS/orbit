@@ -1,9 +1,14 @@
 /* Einzelne Beiträge im SM Manager */
-.ins-best { display: grid; gap: 0.15rem; background: var(--surface); border: 1px solid var(--yellow); border-radius: 0.75rem; padding: 0.8rem 0.9rem; }
-.ins-best a { color: var(--ink); }
+.ins-best { display: grid; gap: 0.15rem; background: var(--surface, #fff); border: 1px solid var(--yellow, #e6c200); border-radius: 0.75rem; padding: 0.8rem 0.9rem; }
+.ins-best a { color: var(--ink, inherit); }
 .ins-formats { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(11rem, 100%), 1fr)); gap: 0.75rem; }
-.ins-format { background: var(--surface); border: 1px solid var(--line); border-radius: 0.75rem; padding: 0.7rem 0.9rem; display: grid; gap: 0.1rem; }
+.ins-format { background: var(--surface, #fff); border: 1px solid var(--line, #e5e5e5); border-radius: 0.75rem; padding: 0.7rem 0.9rem; display: grid; gap: 0.1rem; }
 .ins-format strong { font-size: 1rem; }
-.ins-link { color: var(--ink); text-decoration: underline; text-underline-offset: 0.15rem; }
-.ins-caption { color: var(--muted); font-size: 0.85rem; font-weight: 400; display: block; }
+.ins-link { color: var(--ink, inherit); text-decoration: underline; text-underline-offset: 0.15rem; }
+.ins-caption { color: var(--muted, #666); font-size: 0.85rem; font-weight: 400; display: block; }
 .ins-num { font-variant-numeric: tabular-nums; }
+/* Spaltenköpfe nicht mitten im Wort umbrechen */
+.ins-table th { white-space: nowrap; word-break: normal; overflow-wrap: normal; hyphens: none; }
+.ins-range { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; }
+.ins-range a { display: inline-block; padding: 0.3rem 0.75rem; border: 1px solid var(--line, #e5e5e5); border-radius: 999px; font-size: 0.85rem; color: inherit; text-decoration: none; min-height: 2rem; line-height: 1.4; }
+.ins-range a[aria-current="true"] { background: var(--ink, #111); color: var(--surface, #fff); border-color: var(--ink, #111); }

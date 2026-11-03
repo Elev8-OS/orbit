@@ -24,16 +24,20 @@ export type PostInsight = {
 export type PostInsights = {
   configured: boolean;
   syncedAt?: string | null;
+  refreshing?: boolean;
+  total?: number;
   error?: { message: string; code: number | null; tokenExpired: boolean } | null;
   posts: PostInsight[];
 };
 
+const RANGES = ["30", "90", "365", "alle"] as const;
+
 const nf = (n: number | null | undefined, locale: string) => (typeof n === "number" ? new Intl.NumberFormat(locale === "en" ? "en-GB" : "de-CH").format(n) : "–");
 const pct = (n: number | null | undefined, locale: string) => (typeof n === "number" ? `${new Intl.NumberFormat(locale === "en" ? "en-GB" : "de-CH", { maximumFractionDigits: 1 }).format(n)} %` : "–");
 
-export function SmPostInsights({ locale, data }: { locale: "de" | "en"; data: PostInsights | null }) {
+export function SmPostInsights({ locale, data, range = "90" }: { locale: "de" | "en"; data: PostInsights | null; range?: string }) {
   const s = insightStrings(locale);
-  const dateFmt = new Intl.DateTimeFormat(locale === "en" ? "en-GB" : "de-CH", { day: "numeric", month: "short" });
+  const dateFmt = new Intl.DateTimeFormat(locale === "en" ? "en-GB" : "de-CH", { day: "numeric", month: "short", year: range === "365" || range === "alle" ? "2-digit" : undefined });
   const when = (iso: string | null) => (iso ? dateFmt.format(new Date(iso)) : "");
   const label = (p: PostInsight) => s.types[p.format ?? ""] ?? s.types[p.type ?? ""] ?? p.type ?? "";
 
@@ -48,7 +52,7 @@ export function SmPostInsights({ locale, data }: { locale: "de" | "en"; data: Po
     );
   }
 
-  const posts = data.posts.slice(0, 20);
+  const posts = data.posts;
   const withReach = posts.filter((p) => typeof p.reach === "number");
   const best = [...withReach].sort((a, b) => (b.reach ?? 0) - (a.reach ?? 0))[0];
 
@@ -72,9 +76,19 @@ export function SmPostInsights({ locale, data }: { locale: "de" | "en"; data: Po
         ) : null}
       </div>
 
+      <nav className="ins-range" aria-label={s.rangeTitle}>
+        {RANGES.map((r) => (
+          <a key={r} href={`/sm-manager?ansicht=kennzahlen&zeitraum=${r}`} aria-current={r === range ? "true" : undefined}>
+            {s.ranges[r]}
+          </a>
+        ))}
+        {typeof data.total === "number" ? <span className="sm-muted sm-small">{s.total(data.total)}</span> : null}
+      </nav>
+
       {data.error ? (
         <p className="sm-warn">{data.error.tokenExpired ? s.tokenExpired : `${s.metaError}: ${data.error.message}`}</p>
       ) : null}
+      {data.refreshing ? <p className="sm-muted sm-small">{s.refreshing}</p> : null}
 
       {posts.length === 0 ? <p className="sm-empty">{s.empty}</p> : null}
 
@@ -116,7 +130,7 @@ export function SmPostInsights({ locale, data }: { locale: "de" | "en"; data: Po
 
       {posts.length ? (
         <div className="sm-table-wrap">
-          <table className="sm-table">
+          <table className="sm-table ins-table">
             <thead>
               <tr>
                 <th>{s.colPost}</th>
