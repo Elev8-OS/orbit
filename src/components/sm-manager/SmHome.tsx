@@ -7,13 +7,14 @@ import { smStrings, type SmStrings } from "@/lib/sm-manager/i18n";
 import { statsStrings } from "@/lib/sm-manager/stats-i18n";
 import { inquiryStrings } from "@/lib/sm-manager/inquiries-i18n";
 import { audienceStrings } from "@/lib/sm-manager/audience-i18n";
+import { learningStrings } from "@/lib/sm-manager/learnings-i18n";
 import { SmStats, type ClickStats, type SocialStats } from "./SmStats";
 import { SmInquiries, type Inquiry } from "./SmInquiries";
 import "./sm.css";
 
 type Props = {
   locale: "de" | "en";
-  view: "review" | "done" | "properties" | "stats" | "inquiries" | "audience";
+  view: "review" | "done" | "properties" | "stats" | "inquiries" | "audience" | "learnings";
   posts: Post[];
   properties: Property[];
   reviewCount: number;
@@ -25,6 +26,9 @@ type Props = {
   inquiryCount?: number;
   agentEnabled?: boolean;
   audience?: ReactNode;
+  learnings?: ReactNode;
+  learningCount?: number;
+  postHour?: number | null;
 };
 
 async function send(method: string, url: string, body?: unknown): Promise<{ ok: boolean; error?: string }> {
@@ -39,14 +43,20 @@ async function send(method: string, url: string, body?: unknown): Promise<{ ok: 
 
 const pad = (n: number) => String(n).padStart(2, "0");
 const toLocalInput = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-function defaultWhen() {
+// baliHour: preferred posting hour in Bali time (UTC+8), set by an accepted learning. Without it 18:00 local time.
+function defaultWhen(baliHour?: number | null) {
   const d = new Date();
+  if (typeof baliHour === "number") {
+    d.setUTCHours(baliHour - 8, 0, 0, 0);
+    if (d.getTime() < Date.now()) d.setUTCDate(d.getUTCDate() + 1);
+    return toLocalInput(d);
+  }
   d.setHours(18, 0, 0, 0);
   if (d.getTime() < Date.now()) d.setDate(d.getDate() + 1);
   return toLocalInput(d);
 }
 
-export function SmHome({ locale, view, posts, properties, reviewCount, ghlReady, social = null, clicks = null, bioLink = "", inquiries = [], inquiryCount = 0, agentEnabled = false, audience = null }: Props) {
+export function SmHome({ locale, view, posts, properties, reviewCount, ghlReady, social = null, clicks = null, bioLink = "", inquiries = [], inquiryCount = 0, agentEnabled = false, audience = null, learnings = null, learningCount = 0, postHour = null }: Props) {
   const s = smStrings(locale);
   const navRef = useRef<HTMLElement>(null);
 
@@ -82,6 +92,10 @@ export function SmHome({ locale, view, posts, properties, reviewCount, ghlReady,
         <a href="/sm-manager?ansicht=kennzahlen" aria-current={view === "stats" ? "page" : undefined}>
           {statsStrings(locale).tabStats}
         </a>
+        <a href="/sm-manager?ansicht=learnings" aria-current={view === "learnings" ? "page" : undefined}>
+          {learningStrings(locale).tabLearnings}
+          {learningCount ? <span className="sm-count">{learningCount}</span> : null}
+        </a>
         <a href="/sm-manager?ansicht=zielgruppen" aria-current={view === "audience" ? "page" : undefined}>
           {audienceStrings(locale).tabAudience}
         </a>
@@ -94,6 +108,8 @@ export function SmHome({ locale, view, posts, properties, reviewCount, ghlReady,
         <SmInquiries locale={locale} inquiries={inquiries} agentEnabled={agentEnabled} />
       ) : view === "audience" ? (
         audience
+      ) : view === "learnings" ? (
+        learnings
       ) : view === "stats" ? (
         <SmStats locale={locale} social={social} clicks={clicks} bioLink={bioLink} />
       ) : view === "properties" ? (
@@ -104,7 +120,7 @@ export function SmHome({ locale, view, posts, properties, reviewCount, ghlReady,
         <ul className="sm-list">
           {posts.map((p) => (
             <li key={p.id}>
-              <PostCard s={s} locale={locale} post={p} ghlReady={ghlReady} actionable={view === "review"} />
+              <PostCard s={s} locale={locale} post={p} ghlReady={ghlReady} actionable={view === "review"} postHour={postHour} />
             </li>
           ))}
         </ul>
@@ -113,11 +129,11 @@ export function SmHome({ locale, view, posts, properties, reviewCount, ghlReady,
   );
 }
 
-function PostCard({ s, locale, post, ghlReady, actionable }: { s: SmStrings; locale: "de" | "en"; post: Post; ghlReady: boolean; actionable: boolean }) {
+function PostCard({ s, locale, post, ghlReady, actionable, postHour }: { s: SmStrings; locale: "de" | "en"; post: Post; ghlReady: boolean; actionable: boolean; postHour: number | null }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
-  const [when, setWhen] = useState(defaultWhen);
+  const [when, setWhen] = useState(() => defaultWhen(postHour));
   const [comment, setComment] = useState("");
   const [rejecting, setRejecting] = useState(false);
 
