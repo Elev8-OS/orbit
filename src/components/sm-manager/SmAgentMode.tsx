@@ -13,6 +13,12 @@ type Settings = { mode: Mode; from: number; to: number; tz: string; zones: Recor
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 const hh = (n: number) => `${String(n).padStart(2, "0")}:00`;
 
+// Uhrzeit in einer Zeitzone, direkt im Browser berechnet (gilt für die gewählte Zone, nicht nur für die gespeicherte)
+const clock = (tz: string) => new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone: tz }).format(new Date());
+const hourOf = (tz: string) => Number(new Intl.DateTimeFormat("en-GB", { hour: "numeric", hourCycle: "h23", timeZone: tz }).format(new Date()));
+// Gleiche Regel wie in der Engine: [von, bis), über Mitternacht möglich
+const inWindow = (h: number, from: number, to: number) => (from === to ? false : from < to ? h >= from && h < to : h >= from || h < to);
+
 /** Schalter für Lea: immer freigeben, immer automatisch oder automatisch in einem Zeitfenster. */
 export function SmAgentMode({ locale }: { locale: "de" | "en" }) {
   const s = leaStrings(locale);
@@ -25,6 +31,7 @@ export function SmAgentMode({ locale }: { locale: "de" | "en" }) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
+  const [, setTick] = useState(0);
 
   const load = useCallback(async (intoForm: boolean) => {
     try {
@@ -48,7 +55,12 @@ export function SmAgentMode({ locale }: { locale: "de" | "en" }) {
     void load(true);
     // Ob Lea gerade automatisch antwortet, ändert sich mit der Uhrzeit
     const t = setInterval(() => void load(false), 60_000);
-    return () => clearInterval(t);
+    // Die angezeigte Uhrzeit läuft mit
+    const c = setInterval(() => setTick((n) => n + 1), 20_000);
+    return () => {
+      clearInterval(t);
+      clearInterval(c);
+    };
   }, [load]);
 
   if (loadFailed && !data) {
@@ -64,6 +76,8 @@ export function SmAgentMode({ locale }: { locale: "de" | "en" }) {
   const zones = data.zones;
   const sameHours = mode === "window" && from === to;
   const dirty = mode !== data.mode || (mode === "window" && (from !== data.from || to !== data.to || tz !== data.tz));
+  // Was die aktuelle Auswahl (noch nicht gespeichert) jetzt bewirken würde
+  const previewAuto = mode === "auto" || (mode === "window" && inWindow(hourOf(tz), from, to));
 
   async function save() {
     if (mode === "auto" && !window.confirm(s.confirmAuto)) return;
@@ -141,9 +155,11 @@ export function SmAgentMode({ locale }: { locale: "de" | "en" }) {
             </label>
             <Tip text={s.windowTip} label={tp.label} />
           </div>
-          {sameHours ? <p className="sm-warn">{s.sameHours}</p> : <p className="sm-muted sm-small">{s.windowSummary(from, to, zones[tz] ?? tz, data.hourNow)}</p>}
+          {sameHours ? <p className="sm-warn">{s.sameHours}</p> : <p className="sm-muted sm-small">{s.windowSummary(from, to, zones[tz] ?? tz, clock(tz))}</p>}
         </>
       ) : null}
+
+      {dirty && !sameHours ? <p className="sm-muted sm-small">{previewAuto ? s.previewAuto : s.previewReview}</p> : null}
 
       {mode !== "review" ? <p className="sm-muted sm-small">{s.safety}</p> : null}
 
