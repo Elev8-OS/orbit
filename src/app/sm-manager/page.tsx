@@ -11,6 +11,7 @@ import type { ClickStats, SocialStats } from "@/components/sm-manager/SmStats";
 import type { Inquiry } from "@/components/sm-manager/SmInquiries";
 import { SmPostInsights, type PostInsights } from "@/components/sm-manager/SmPostInsights";
 import { SmAudience, type AudiencePlan } from "@/components/sm-manager/SmAudience";
+import { SmLearnings, type LearningsData } from "@/components/sm-manager/SmLearnings";
 import "@/components/sm-manager/responsive.css";
 
 export const dynamic = "force-dynamic";
@@ -40,10 +41,12 @@ export default async function SmManagerPage({ searchParams }: { searchParams: Pr
             ? "inquiries"
             : params.ansicht === "zielgruppen"
               ? "audience"
-              : "review";
+              : params.ansicht === "learnings"
+                ? "learnings"
+                : "review";
   const range = RANGES.includes(params.zeitraum ?? "") ? (params.zeitraum as string) : "90";
   try {
-    const [health, list, props, social, clicks, inq, agent, insights, audiencePlan] = await Promise.all([
+    const [health, list, props, social, clicks, inq, agent, insights, audiencePlan, learningsData] = await Promise.all([
       engineHealth(),
       engine<{ posts: Post[] }>("/posts?limit=80"),
       view === "properties" ? engine<{ properties: Property[] }>("/properties") : Promise.resolve({ properties: [] as Property[] }),
@@ -52,10 +55,14 @@ export default async function SmManagerPage({ searchParams }: { searchParams: Pr
       engine<{ inquiries: Inquiry[] }>("/agent/inquiries?limit=60").catch(() => ({ inquiries: [] as Inquiry[] })),
       view === "inquiries" ? engine<{ enabled: boolean }>("/agent/status").catch(() => null) : Promise.resolve(null),
       view === "stats" ? engine<PostInsights>(`/stats/posts?days=${range}&limit=100`).catch(() => null) : Promise.resolve(null),
-      view === "audience" ? engine<AudiencePlan>("/audience/plan?days=60").catch(() => null) : Promise.resolve(null)
+      view === "audience" ? engine<AudiencePlan>("/audience/plan?days=60").catch(() => null) : Promise.resolve(null),
+      engine<LearningsData>("/learnings").catch(() => null)
     ]);
     const reviewCount = list.posts.filter((p) => REVIEW.includes(p.status)).length;
     const inquiryCount = inq.inquiries.filter((i) => INQUIRY_OPEN.includes(i.status)).length;
+    const learningCount = learningsData?.proposed.length ?? 0;
+    // Uhrzeit aus einem übernommenen Learning (Bali-Zeit), sonst gilt 18 Uhr
+    const postHour = learningsData?.accepted.find((l) => l.action.type === "post_hour")?.action.hour ?? null;
     let posts: Post[] = [];
     if (view === "review" || view === "done") {
       const wanted = list.posts.filter((p) => (view === "review" ? REVIEW : DONE).includes(p.status)).slice(0, view === "review" ? 20 : 30);
@@ -79,6 +86,9 @@ export default async function SmManagerPage({ searchParams }: { searchParams: Pr
           inquiryCount={inquiryCount}
           agentEnabled={Boolean(agent?.enabled)}
           audience={view === "audience" ? <SmAudience locale={locale} plan={audiencePlan} /> : null}
+          learnings={view === "learnings" ? <SmLearnings locale={locale} data={learningsData} /> : null}
+          learningCount={learningCount}
+          postHour={typeof postHour === "number" ? postHour : null}
         />
         {view === "stats" ? (
           <div className="p-page sm" style={{ paddingTop: 0 }}>
