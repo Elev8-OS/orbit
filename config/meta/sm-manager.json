@@ -2,6 +2,15 @@
   "app": "sm-manager",
   "changelog": [
     {
+      "version": "1.8",
+      "date": "2026-11-03",
+      "title": { "de": "Beiträge sortieren", "en": "Sort your posts" },
+      "changes": [
+        { "de": "In der Tabelle „Einzelne Beiträge“ sind die Spaltenüberschriften anklickbar: nach Reichweite, Aufrufen, Likes, Kommentaren, Gespeichert, Geteilt, Interaktionsrate, Klicks oder Datum sortieren. Ein zweiter Klick dreht die Richtung um.", "en": "In the \"Individual posts\" table the column headings are clickable: sort by reach, views, likes, comments, saves, shares, engagement rate, clicks or date. A second click reverses the direction." },
+        { "de": "Auf dem Handy gibt es dafür die Auswahl „Sortieren nach“ über der Liste. Beiträge ohne Wert (zum Beispiel Klicks bei von Hand gepostetem) stehen immer am Ende.", "en": "On the phone there is a \"Sort by\" menu above the list. Posts without a value (for example clicks for posts made by hand) always come last." }
+      ]
+    },
+    {
       "version": "1.7",
       "date": "2026-11-03",
       "title": { "de": "Learnings: das System lernt aus den Beiträgen", "en": "Learnings: the system learns from your posts" },
