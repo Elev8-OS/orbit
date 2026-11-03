@@ -61,6 +61,7 @@ export function InsightsTable({ locale, posts, range }: { locale: "de" | "en"; p
     }
   }
 
+  // Die erste Spalte (Beitrag) sortiert nach Datum.
   const head = (c: { key: SortKey; label: string }) => (
     <th key={c.key} aria-sort={c.key === key ? (dir === "asc" ? "ascending" : "descending") : "none"}>
       <button type="button" className="ins-sort" onClick={() => choose(c.key)}>
@@ -94,8 +95,8 @@ export function InsightsTable({ locale, posts, range }: { locale: "de" | "en"; p
         <table className="sm-table ins-table">
           <thead>
             <tr>
-              <th>{s.colPost}</th>
-              {columns.slice(1).map(head)}
+              {head({ key: "date", label: s.colPost })}
+              {columns.slice(1).map((c) => head(c))}
             </tr>
           </thead>
           <tbody>
