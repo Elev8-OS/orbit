@@ -1,0 +1,58 @@
+.tip {
+  display: inline-flex;
+  vertical-align: middle;
+  margin-left: 0.3rem;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.tip-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.05rem;
+  height: 1.05rem;
+  min-width: 1.05rem;
+  min-height: 0;
+  padding: 0;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  font: 600 0.68rem/1 inherit;
+  opacity: 0.5;
+  cursor: help;
+  touch-action: manipulation;
+}
+
+/* Grössere Tipp-Fläche am Handy, ohne das Symbol zu vergrössern */
+.tip-btn::after {
+  content: "";
+  position: absolute;
+  inset: -0.5rem;
+}
+
+.tip-btn:hover,
+.tip-btn:focus-visible,
+.tip-btn[aria-expanded="true"] {
+  opacity: 1;
+}
+
+.tip-box {
+  position: fixed;
+  z-index: 1000;
+  box-sizing: border-box;
+  padding: 0.55rem 0.7rem;
+  border-radius: 0.5rem;
+  background: #1b1b1b;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 400;
+  line-height: 1.4;
+  text-align: left;
+  text-transform: none;
+  letter-spacing: normal;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+}
