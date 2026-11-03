@@ -69,7 +69,8 @@ export default async function SmManagerPage({ searchParams }: { searchParams: Pr
       // Die Liste kennt die Vorschau-Adressen nicht; jede wird frisch signiert nachgeladen.
       posts = await Promise.all(wanted.map((p) => engine<Post>(`/posts/${p.id}`).catch(() => p)));
     }
-    const bioLink = `${(process.env.SM_ENGINE_URL ?? "").replace(/\/+$/, "")}/go/latest`;
+    // Der Bio-Link ist die kurze Adresse auf der eigenen Domain. Sie leitet (Cloudflare) über die Engine auf die Hauptseite und zählt den Klick.
+    const bioLink = process.env.SM_BIO_LINK || "https://elevate-villas.com/IG";
     return (
       <>
         <SmHome

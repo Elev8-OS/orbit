@@ -5,6 +5,9 @@ import "./stats.css";
 export type SocialStats = {
   ok: boolean;
   status?: number;
+  // Wo es hakt (accounts, no_accounts, statistics) und was GHL gemeldet hat
+  where?: string;
+  message?: string | null;
   data?: {
     results?: {
       dayRange?: string[];
@@ -63,6 +66,14 @@ function Bars({ labels, values, s, title }: { labels: string[]; values: number[]
   );
 }
 
+// Technischer Hinweis hinter der Meldung: Statuscode, Stelle und die Antwort von GHL
+function reason(social: SocialStats | null): string {
+  if (!social) return "";
+  const parts = [social.status ? String(social.status) : "", social.where ?? ""].filter(Boolean).join(", ");
+  const msg = social.message ? `${parts ? ": " : ""}${social.message}` : "";
+  return parts || msg ? ` (${parts}${msg})` : "";
+}
+
 export function SmStats({ locale, social, clicks, bioLink }: Props) {
   const s = statsStrings(locale);
   const r = social?.ok ? social.data?.results : undefined;
@@ -77,7 +88,7 @@ export function SmStats({ locale, social, clicks, bioLink }: Props) {
         {!r ? (
           <p className="sm-warn">
             {s.socialUnavailable}
-            {social?.status ? ` (${social.status})` : ""}.
+            {reason(social)}.
           </p>
         ) : (
           <>
