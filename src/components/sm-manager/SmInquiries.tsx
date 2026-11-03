@@ -3,7 +3,9 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { inquiryStrings, type InquiryStrings } from "@/lib/sm-manager/inquiries-i18n";
+import { leaStrings } from "@/lib/sm-manager/lea-i18n";
 import { tipStrings } from "@/lib/sm-manager/tips-i18n";
+import { SmAgentMode } from "./SmAgentMode";
 import { Tip } from "./Tip";
 import "./inquiries.css";
 
@@ -20,6 +22,7 @@ export type Inquiry = {
   language: string | null;
   status: string;
   error: string | null;
+  auto_sent?: boolean;
 };
 
 type Props = { locale: "de" | "en"; inquiries: Inquiry[]; agentEnabled: boolean };
@@ -53,6 +56,7 @@ export function SmInquiries({ locale, inquiries, agentEnabled }: Props) {
     <section className="sm" style={{ gap: "1rem" }}>
       <p className="sm-muted">{s.inquiriesIntro}</p>
       {!agentEnabled ? <p className="sm-warn">{s.agentOff}</p> : null}
+      <SmAgentMode locale={locale} />
       {inquiries.length === 0 ? <p className="sm-empty">{s.empty}</p> : null}
       {open.length ? (
         <ul className="sm-list">
@@ -79,6 +83,7 @@ export function SmInquiries({ locale, inquiries, agentEnabled }: Props) {
 function InquiryCard({ s, locale, item }: { s: InquiryStrings; locale: "de" | "en"; item: Inquiry }) {
   const router = useRouter();
   const tp = tipStrings(locale);
+  const lea = leaStrings(locale);
   const isOpen = OPEN.includes(item.status);
   const [text, setText] = useState(item.draft ?? "");
   const [busy, setBusy] = useState(false);
@@ -104,6 +109,12 @@ function InquiryCard({ s, locale, item }: { s: InquiryStrings; locale: "de" | "e
       <div className="sm-top">
         <strong>{item.contact_name || s.anonymous}</strong>
         <span className={`sm-badge sm-status-${item.status === "sent" ? "published" : item.status}`}>{s.statuses[item.status] ?? item.status}</span>
+        {item.auto_sent ? (
+          <span>
+            <span className="sm-badge">{lea.autoSent}</span>
+            <Tip text={lea.autoSentTip} label={tp.label} />
+          </span>
+        ) : null}
         {item.intent ? <span className="sm-badge">{s.intents[item.intent] ?? item.intent}</span> : null}
         {item.needs_human ? (
           <span>

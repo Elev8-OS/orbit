@@ -1,0 +1,70 @@
+.agm {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.agm h3 {
+  margin: 0;
+}
+
+.agm-state {
+  margin: 0;
+  font-weight: 600;
+}
+
+.agm-state-on {
+  color: #1a7f37;
+}
+
+.agm-opts {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.agm-opt {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid rgba(0, 0, 0, 0.14);
+  border-radius: 0.6rem;
+  cursor: pointer;
+}
+
+.agm-opt[data-on="true"] {
+  border-color: #f5b800;
+  background: rgba(245, 184, 0, 0.1);
+}
+
+.agm-opt input {
+  margin-top: 0.25rem;
+}
+
+.agm-opt strong {
+  display: block;
+}
+
+.agm-window {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem;
+  margin-left: 1.7rem;
+}
+
+.agm-window label {
+  display: grid;
+  gap: 0.2rem;
+  font-size: 0.85rem;
+}
+
+.agm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
