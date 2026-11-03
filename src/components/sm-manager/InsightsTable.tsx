@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 import { insightStrings } from "@/lib/sm-manager/insights-i18n";
 import { dateFormatter, nf, pct, postLabel } from "@/lib/sm-manager/insights-format";
+import { tipStrings } from "@/lib/sm-manager/tips-i18n";
+import { Tip } from "./Tip";
 import type { PostInsight } from "./SmPostInsights";
 
 type SortKey = "date" | "views" | "reach" | "likes" | "comments" | "saved" | "shares" | "rate" | "clicks";
@@ -23,6 +25,7 @@ const VALUE: Record<SortKey, (p: PostInsight) => number | null> = {
 
 export function InsightsTable({ locale, posts, range }: { locale: "de" | "en"; posts: PostInsight[]; range: string }) {
   const s = insightStrings(locale);
+  const tp = tipStrings(locale);
   const [key, setKey] = useState<SortKey>("date");
   const [dir, setDir] = useState<Dir>("desc");
   const when = dateFormatter(locale, range === "365" || range === "alle");
@@ -38,6 +41,9 @@ export function InsightsTable({ locale, posts, range }: { locale: "de" | "en"; p
     { key: "rate", label: s.colRate },
     { key: "clicks", label: s.colClicks }
   ];
+
+  // Erklärungen für die Spalten, die nicht selbsterklärend sind
+  const tips: Partial<Record<SortKey, string>> = { views: tp.colViews, reach: tp.colReach, saved: tp.colSaved, shares: tp.colShares, rate: tp.colRate, clicks: tp.colClicks };
 
   const sorted = useMemo(
     () =>
@@ -70,6 +76,7 @@ export function InsightsTable({ locale, posts, range }: { locale: "de" | "en"; p
           {c.key === key ? (dir === "asc" ? "▲" : "▼") : "↕"}
         </span>
       </button>
+      {tips[c.key] ? <Tip text={tips[c.key] as string} label={tp.label} /> : null}
     </th>
   );
 

@@ -1,6 +1,8 @@
 import { insightStrings } from "@/lib/sm-manager/insights-i18n";
 import { dateFormatter, nf, pct, postLabel } from "@/lib/sm-manager/insights-format";
+import { tipStrings } from "@/lib/sm-manager/tips-i18n";
 import { InsightsTable } from "./InsightsTable";
+import { Tip } from "./Tip";
 import "./insights.css";
 
 export type PostInsight = {
@@ -36,6 +38,7 @@ const RANGES = ["30", "90", "365", "alle"] as const;
 
 export function SmPostInsights({ locale, data, range = "90" }: { locale: "de" | "en"; data: PostInsights | null; range?: string }) {
   const s = insightStrings(locale);
+  const tp = tipStrings(locale);
   const when = dateFormatter(locale, range === "365" || range === "alle");
 
   if (!data || !data.configured) {
@@ -91,7 +94,10 @@ export function SmPostInsights({ locale, data, range = "90" }: { locale: "de" | 
 
       {best ? (
         <div className="ins-best">
-          <span className="sm-kpi-label">{s.best}</span>
+          <span className="sm-kpi-label">
+            {s.best}
+            <Tip text={tp.best} label={tp.label} />
+          </span>
           <strong>
             {postLabel(s, best)} · {best.postedAt ? when.format(new Date(best.postedAt)) : ""} · {nf(best.reach, locale)}
           </strong>
@@ -106,7 +112,10 @@ export function SmPostInsights({ locale, data, range = "90" }: { locale: "de" | 
 
       {groups.size > 1 ? (
         <div>
-          <h3>{s.byFormat}</h3>
+          <h3>
+            {s.byFormat}
+            <Tip text={tp.byFormat} label={tp.label} />
+          </h3>
           <div className="ins-formats">
             {[...groups.entries()].map(([name, xs]) => (
               <div className="ins-format" key={name}>

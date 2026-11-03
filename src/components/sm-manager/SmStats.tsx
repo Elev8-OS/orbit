@@ -1,5 +1,7 @@
 import type { CSSProperties } from "react";
 import { statsStrings, type StatsStrings } from "@/lib/sm-manager/stats-i18n";
+import { tipStrings } from "@/lib/sm-manager/tips-i18n";
+import { Tip } from "./Tip";
 import "./stats.css";
 
 export type SocialStats = {
@@ -76,6 +78,7 @@ function reason(social: SocialStats | null): string {
 
 export function SmStats({ locale, social, clicks, bioLink }: Props) {
   const s = statsStrings(locale);
+  const tp = tipStrings(locale);
   const r = social?.ok ? social.data?.results : undefined;
   const days = r?.dayRange ?? ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
   const b = r?.breakdowns;
@@ -84,7 +87,10 @@ export function SmStats({ locale, social, clicks, bioLink }: Props) {
       <p className="sm-muted">{s.statsIntro}</p>
 
       <div>
-        <h2>{s.socialTitle}</h2>
+        <h2>
+          {s.socialTitle}
+          <Tip text={tp.social} label={tp.label} />
+        </h2>
         {!r ? (
           <p className="sm-warn">
             {s.socialUnavailable}
@@ -94,35 +100,56 @@ export function SmStats({ locale, social, clicks, bioLink }: Props) {
           <>
             <div className="sm-kpis">
               <div className="sm-kpi">
-                <span className="sm-kpi-label">{s.kpiPosts}</span>
+                <span className="sm-kpi-label">
+                  {s.kpiPosts}
+                  <Tip text={tp.kpiPosts} label={tp.label} />
+                </span>
                 <span className="sm-kpi-value">{num(r.totals?.posts, locale)}</span>
                 <Change value={b?.posts?.totalChange} text={s.vsPrevious} />
               </div>
               <div className="sm-kpi">
-                <span className="sm-kpi-label">{s.kpiImpressions}</span>
+                <span className="sm-kpi-label">
+                  {s.kpiImpressions}
+                  <Tip text={tp.kpiImpressions} label={tp.label} />
+                </span>
                 <span className="sm-kpi-value">{num(r.totals?.impressions, locale)}</span>
                 <Change value={b?.impressions?.totalChange} text={s.vsPrevious} />
               </div>
               <div className="sm-kpi">
-                <span className="sm-kpi-label">{s.kpiReach}</span>
+                <span className="sm-kpi-label">
+                  {s.kpiReach}
+                  <Tip text={tp.kpiReach} label={tp.label} />
+                </span>
                 <span className="sm-kpi-value">{num(b?.reach?.total, locale)}</span>
                 <Change value={b?.reach?.totalChange} text={s.vsPrevious} />
               </div>
               <div className="sm-kpi">
-                <span className="sm-kpi-label">{s.kpiLikes}</span>
+                <span className="sm-kpi-label">
+                  {s.kpiLikes}
+                  <Tip text={tp.kpiLikes} label={tp.label} />
+                </span>
                 <span className="sm-kpi-value">{num(r.totals?.likes, locale)}</span>
                 <Change value={b?.engagement?.instagram?.change} text={s.vsPrevious} />
               </div>
               <div className="sm-kpi">
-                <span className="sm-kpi-label">{s.kpiComments}</span>
+                <span className="sm-kpi-label">
+                  {s.kpiComments}
+                  <Tip text={tp.kpiComments} label={tp.label} />
+                </span>
                 <span className="sm-kpi-value">{num(r.totals?.comments, locale)}</span>
               </div>
               <div className="sm-kpi">
-                <span className="sm-kpi-label">{s.kpiShares}</span>
+                <span className="sm-kpi-label">
+                  {s.kpiShares}
+                  <Tip text={tp.kpiShares} label={tp.label} />
+                </span>
                 <span className="sm-kpi-value">{num(b?.engagement?.instagram?.shares, locale)}</span>
               </div>
               <div className="sm-kpi">
-                <span className="sm-kpi-label">{s.kpiFollowers}</span>
+                <span className="sm-kpi-label">
+                  {s.kpiFollowers}
+                  <Tip text={tp.kpiFollowers} label={tp.label} />
+                </span>
                 <span className="sm-kpi-value">{num(r.totals?.followers, locale)}</span>
               </div>
             </div>
@@ -138,16 +165,21 @@ export function SmStats({ locale, social, clicks, bioLink }: Props) {
         <div className="sm-copy">
           <strong className="sm-small">{s.bioLink}:</strong>
           <code>{bioLink}</code>
+          <Tip text={tp.bioLink} label={tp.label} />
         </div>
         <p className="sm-muted sm-small">{s.bioHint}</p>
         {clicks ? (
           <>
             <div className="sm-kpis" style={{ marginTop: "0.5rem" }}>
               <div className="sm-kpi">
-                <span className="sm-kpi-label">{s.clicksTotal}</span>
+                <span className="sm-kpi-label">
+                  {s.clicksTotal}
+                  <Tip text={tp.clicks} label={tp.label} />
+                </span>
                 <span className="sm-kpi-value">{num(clicks.total, locale)}</span>
                 <span className="sm-kpi-change">
                   {num(clicks.withoutPost, locale)} {s.clicksNoPost}
+                  <Tip text={tp.clicksNoPost} label={tp.label} />
                 </span>
               </div>
             </div>

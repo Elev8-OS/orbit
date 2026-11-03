@@ -8,8 +8,10 @@ import { statsStrings } from "@/lib/sm-manager/stats-i18n";
 import { inquiryStrings } from "@/lib/sm-manager/inquiries-i18n";
 import { audienceStrings } from "@/lib/sm-manager/audience-i18n";
 import { learningStrings } from "@/lib/sm-manager/learnings-i18n";
+import { tipStrings } from "@/lib/sm-manager/tips-i18n";
 import { SmStats, type ClickStats, type SocialStats } from "./SmStats";
 import { SmInquiries, type Inquiry } from "./SmInquiries";
+import { Tip } from "./Tip";
 import "./sm.css";
 
 type Props = {
@@ -58,6 +60,7 @@ function defaultWhen(baliHour?: number | null) {
 
 export function SmHome({ locale, view, posts, properties, reviewCount, ghlReady, social = null, clicks = null, bioLink = "", inquiries = [], inquiryCount = 0, agentEnabled = false, audience = null, learnings = null, learningCount = 0, postHour = null }: Props) {
   const s = smStrings(locale);
+  const tp = tipStrings(locale);
   const navRef = useRef<HTMLElement>(null);
 
   // Auf dem Handy den aktiven Tab ins Bild scrollen, damit er nicht hinter dem Rand verschwindet.
@@ -72,8 +75,11 @@ export function SmHome({ locale, view, posts, properties, reviewCount, ghlReady,
           <h1>{s.title}</h1>
           <p className="sm-muted">{s.intro}</p>
         </div>
-        <span className={`sm-badge ${ghlReady ? "sm-badge-ok" : ""}`}>
-          {s.ghlTitle}: {ghlReady ? s.ghlReady : s.ghlMissing}
+        <span>
+          <span className={`sm-badge ${ghlReady ? "sm-badge-ok" : ""}`}>
+            {s.ghlTitle}: {ghlReady ? s.ghlReady : s.ghlMissing}
+          </span>
+          <Tip text={tp.ghl} label={tp.label} />
         </span>
       </header>
 
@@ -131,6 +137,7 @@ export function SmHome({ locale, view, posts, properties, reviewCount, ghlReady,
 
 function PostCard({ s, locale, post, ghlReady, actionable, postHour }: { s: SmStrings; locale: "de" | "en"; post: Post; ghlReady: boolean; actionable: boolean; postHour: number | null }) {
   const router = useRouter();
+  const tp = tipStrings(locale);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [when, setWhen] = useState(() => defaultWhen(postHour));
@@ -196,7 +203,8 @@ function PostCard({ s, locale, post, ghlReady, actionable, postHour }: { s: SmSt
         ) : null}
         {post.copy?.warnings?.length ? (
           <p className="sm-warn">
-            <strong>{s.warnings}:</strong> {post.copy.warnings.join("; ")}
+            <strong>{s.warnings}:</strong>
+            <Tip text={tp.warnings} label={tp.label} /> {post.copy.warnings.join("; ")}
           </p>
         ) : null}
         {post.error && !post.copy?.warnings?.length ? <p className="sm-warn">{post.error}</p> : null}
@@ -205,24 +213,32 @@ function PostCard({ s, locale, post, ghlReady, actionable, postHour }: { s: SmSt
         {actionable ? (
           <div className="sm-actions">
             {ghlReady && hasDraft ? (
-              <label className="sm-when">
-                {s.approveAt}
-                <input type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} />
-              </label>
+              <>
+                <label className="sm-when">
+                  {s.approveAt}
+                  <input type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} />
+                </label>
+                <Tip text={tp.approveAt} label={tp.label} />
+              </>
             ) : (
               <span className="sm-muted sm-small">{s.approveNoGhl}</span>
             )}
             <button type="button" className="sm-btn sm-btn-primary" onClick={approve} disabled={busy || urls.length === 0}>
               {s.approve}
             </button>
+            <Tip text={tp.approve} label={tp.label} />
             {!hasDraft && ghlReady && urls.length > 0 ? (
-              <button type="button" className="sm-btn" onClick={retry} disabled={busy}>
-                {s.retryDraft}
-              </button>
+              <>
+                <button type="button" className="sm-btn" onClick={retry} disabled={busy}>
+                  {s.retryDraft}
+                </button>
+                <Tip text={tp.retryDraft} label={tp.label} />
+              </>
             ) : null}
             <button type="button" className="sm-btn" onClick={() => setRejecting((v) => !v)} disabled={busy}>
               {s.reject}
             </button>
+            <Tip text={tp.reject} label={tp.label} />
             {rejecting ? (
               <div className="sm-reject">
                 <textarea value={comment} onChange={(e) => setComment(e.target.value)} placeholder={s.rejectComment} rows={2} maxLength={1000} />
@@ -247,6 +263,7 @@ function PostCard({ s, locale, post, ghlReady, actionable, postHour }: { s: SmSt
 
 function Properties({ s, locale, properties }: { s: SmStrings; locale: "de" | "en"; properties: Property[] }) {
   const router = useRouter();
+  const tp = tipStrings(locale);
   const [busy, setBusy] = useState<string | null>(null);
   const fmt = (iso: string | null) => (iso ? new Intl.DateTimeFormat(locale === "en" ? "en-GB" : "de-CH", { day: "numeric", month: "short" }).format(new Date(iso)) : s.never);
 
@@ -266,9 +283,18 @@ function Properties({ s, locale, properties }: { s: SmStrings; locale: "de" | "e
             <tr>
               <th>{s.colName}</th>
               <th>{s.colArea}</th>
-              <th>{s.colPhotos}</th>
-              <th>{s.colLast}</th>
-              <th>{s.colActive}</th>
+              <th>
+                {s.colPhotos}
+                <Tip text={tp.colPhotos} label={tp.label} />
+              </th>
+              <th>
+                {s.colLast}
+                <Tip text={tp.colLast} label={tp.label} />
+              </th>
+              <th>
+                {s.colActive}
+                <Tip text={tp.colActive} label={tp.label} />
+              </th>
             </tr>
           </thead>
           <tbody>
