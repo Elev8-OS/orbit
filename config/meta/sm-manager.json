@@ -2,6 +2,17 @@
   "app": "sm-manager",
   "changelog": [
     {
+      "version": "1.11",
+      "date": "2026-11-03",
+      "title": { "de": "Lea antwortet auf Wunsch automatisch", "en": "Lea replies automatically when you want" },
+      "changes": [
+        { "de": "Im Tab „Anfragen“ gibt es den neuen Antwortmodus von Lea: Du gibst jede Antwort frei, Lea antwortet immer automatisch, oder sie antwortet automatisch in einem Zeitfenster (zum Beispiel 22 bis 8 Uhr) und tagsüber gibst du frei. Die Zeitzone ist wählbar (Zürich oder Bali).", "en": "The \"Inquiries\" tab has a new answer mode for Lea: you approve every reply, Lea always replies automatically, or she replies automatically inside a time window (for example 22:00 to 08:00) and you approve during the day. The time zone is selectable (Zurich or Bali)." },
+        { "de": "Nachrichten, die „Bitte prüfen“ bekommen (Beschwerden, Zahlungen, Gruppen, Preisverhandlungen), sendet Lea nie automatisch. Auch ein von dir ausgelöstes „Neu entwerfen“ sendet nie von selbst.", "en": "Messages marked \"Please check\" (complaints, payments, groups, price negotiations) are never sent by Lea automatically. A \"Redraft\" that you trigger never sends by itself either." },
+        { "de": "Automatisch gesendete Antworten tragen die Markierung „Automatisch gesendet“.", "en": "Replies that were sent automatically carry the label \"Sent automatically\"." },
+        { "de": "Lea rechnet eine Reinigungsgebühr in Angebote ein, sobald sie für die Villa hinterlegt ist. Für Samalas ist noch keine gespeichert.", "en": "Lea adds a cleaning fee to quotes as soon as one is stored for the villa. None is stored for Samalas yet." }
+      ]
+    },
+    {
       "version": "1.10",
       "date": "2026-11-03",
       "title": { "de": "Erklärungen per (i)", "en": "Explanations with (i)" },
@@ -125,7 +136,8 @@
     { "term": "Vorlauf", "name": { "de": "Lead time", "en": "Lead time" }, "definition": { "de": "Wie viele Tage zwischen Buchung und Anreise liegen. Der Median heisst: Die Hälfte der Gäste bucht früher, die Hälfte später. Er bestimmt, wann Anzeigen starten sollten.", "en": "How many days lie between booking and arrival. The median means half of the guests book earlier and half later. It decides when ads should start." } },
     { "term": "Ferienfenster", "name": { "de": "Holiday window", "en": "Holiday window" }, "definition": { "de": "Typische Schulferien eines Herkunftslandes, zum Beispiel Weihnachten oder Sommer. Es sind Richtwerte, die je nach Region und Jahr abweichen.", "en": "Typical school holidays of a source country, for example Christmas or summer. They are guide values that differ by region and year." } },
     { "term": "Budgetanteil", "name": { "de": "Budget share", "en": "Budget share" }, "definition": { "de": "Der Anteil am Werbebudget, den das Tool einem Markt empfiehlt, in Prozent. Es sind keine Geldbeträge.", "en": "The share of the ad budget the tool recommends for a market, in percent. These are not money amounts." } },
-    { "term": "Lea", "definition": { "de": "Unsere virtuelle Sales Assistant. Sie schreibt Antwortvorschläge auf Instagram-Nachrichten und prüft dafür Verfügbarkeit und Preise.", "en": "Our virtual Sales Assistant. She drafts replies to Instagram messages and checks availability and prices for them." } },
+    { "term": "Lea", "definition": { "de": "Unsere virtuelle Sales Assistant. Sie schreibt Antwortvorschläge auf Instagram-Nachrichten und prüft dafür Verfügbarkeit und Preise. Je nach Antwortmodus sendet sie selbst oder wartet auf deine Freigabe.", "en": "Our virtual Sales Assistant. She drafts replies to Instagram messages and checks availability and prices for them. Depending on the answer mode she sends by herself or waits for your approval." } },
+    { "term": "Antwortmodus", "name": { "de": "Antwortmodus", "en": "Answer mode" }, "definition": { "de": "Legt fest, ob Lea Antworten selbst sendet: nie (du gibst jede frei), immer, oder nur in einem Zeitfenster, zum Beispiel nachts. Nachrichten mit „Bitte prüfen“ sendet sie nie selbst.", "en": "Sets whether Lea sends replies by herself: never (you approve each one), always, or only inside a time window, for example at night. She never sends messages marked \"Please check\" by herself." } },
     { "term": "Bitte prüfen", "name": { "de": "Bitte prüfen", "en": "Please check" }, "definition": { "de": "Lea ist unsicher oder das Thema braucht einen Menschen, zum Beispiel bei Beschwerden, Rückerstattungen oder Preisverhandlungen. Das Team bekommt zusätzlich eine E-Mail.", "en": "Lea is unsure or the topic needs a person, for example complaints, refunds or price negotiations. The team also gets an email." } },
     { "term": "24-Stunden-Regel", "name": { "de": "24-hour rule", "en": "24-hour rule" }, "definition": { "de": "Instagram erlaubt Antworten auf eine Nachricht nur innerhalb von 24 Stunden. Danach kann nicht mehr geantwortet werden.", "en": "Instagram only allows replies to a message within 24 hours. After that you can no longer reply." } },
     { "term": "Fotokatalog", "name": { "de": "Photo catalog", "en": "Photo catalog" }, "definition": { "de": "Die automatisch bewerteten Fotos jeder Villa. Für Beiträge werden nur gute Fotos (Qualität 4 oder 5) verwendet.", "en": "The automatically rated photos of each villa. Only good photos (quality 4 or 5) are used for posts." } },
