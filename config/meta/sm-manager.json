@@ -2,6 +2,15 @@
   "app": "sm-manager",
   "changelog": [
     {
+      "version": "1.9",
+      "date": "2026-11-03",
+      "title": { "de": "Bio-Link auf die Hauptseite, klarere Fehlermeldung", "en": "Bio link to the main page, clearer error message" },
+      "changes": [
+        { "de": "Der Bio-Link ist jetzt elevate-villas.com/IG. Er führt auf die Hauptseite und zählt den Klick. Ein Link in der Bio kann nicht sagen, von welchem Beitrag jemand kam. Das geht nur mit Links in Stories und Anzeigen.", "en": "The bio link is now elevate-villas.com/IG. It leads to the main page and counts the click. A link in the bio cannot tell which post someone came from. That only works with links in Stories and ads." },
+        { "de": "Liefert GHL keine Statistik, steht jetzt dabei, wo es hakt und was GHL gemeldet hat, nicht nur ein Zahlencode.", "en": "When GHL returns no statistics, the message now says where it fails and what GHL reported, not just a number code." }
+      ]
+    },
+    {
       "version": "1.8",
       "date": "2026-11-03",
       "title": { "de": "Beiträge sortieren", "en": "Sort your posts" },
@@ -102,7 +111,7 @@
     { "term": "Interaktionsrate", "name": { "de": "Interaktionsrate", "en": "Engagement rate" }, "definition": { "de": "Likes, Kommentare, Gespeichert und Geteilt im Verhältnis zur Reichweite eines Beitrags. So lassen sich Beiträge mit unterschiedlicher Reichweite vergleichen.", "en": "Likes, comments, saves and shares relative to the reach of a post. It lets you compare posts with different reach." } },
     { "term": "Erfolgswert", "name": { "de": "Erfolgswert", "en": "Success score" }, "definition": { "de": "Eine Zahl pro Beitrag für den Vergleich in den Learnings. Klicks, neue Follower, Profilbesuche, Gespeichert und Geteilt zählen mehr als Reichweite und Likes. Es ist eine Gewichtung, kein Messwert von Instagram.", "en": "One number per post for the comparison in Learnings. Clicks, new followers, profile visits, saves and shares count more than reach and likes. It is a weighting, not a number measured by Instagram." } },
     { "term": "Learnings", "name": { "de": "Learnings", "en": "Learnings" }, "definition": { "de": "Vorschläge des Systems, was du öfter oder seltener machen solltest, abgeleitet aus dem Vergleich deiner Beiträge. Sie wirken erst, wenn du sie übernimmst. „Belastbar“ heisst deutlicher Unterschied, „vorsichtig“ heisst schwächer belegt.", "en": "Suggestions from the system on what to do more or less, derived from comparing your posts. They only take effect once you accept them. \"Solid\" means a clear difference, \"tentative\" means weaker evidence." } },
-    { "term": "Bio-Link", "name": { "de": "Link in bio", "en": "Link in bio" }, "definition": { "de": "Der Link im Instagram-Profil. Der getrackte Link zählt jeden Klick und führt zum zuletzt veröffentlichten Beitrag auf der Website.", "en": "The link in the Instagram profile. The tracked link counts every click and leads to the most recently published post on the website." } },
+    { "term": "Bio-Link", "name": { "de": "Link in bio", "en": "Link in bio" }, "definition": { "de": "Der Link im Instagram-Profil (elevate-villas.com/IG). Er zählt jeden Klick und führt auf die Hauptseite der Website. Von welchem Beitrag ein Klick kam, lässt sich bei einem Bio-Link nicht erkennen. Das geht nur mit Links in Stories und Anzeigen.", "en": "The link in the Instagram profile (elevate-villas.com/IG). It counts every click and leads to the main page of the website. A bio link cannot show which post a click came from. That only works with links in Stories and ads." } },
     { "term": "UTM", "definition": { "de": "Zusatz am Link, der verrät, von welchem Beitrag ein Besucher kam. So lässt sich später sehen, welcher Beitrag Buchungen bringt.", "en": "An addition to a link that shows which post a visitor came from. It lets you see later which post brings bookings." } },
     { "term": "Vorlauf", "name": { "de": "Lead time", "en": "Lead time" }, "definition": { "de": "Wie viele Tage zwischen Buchung und Anreise liegen. Der Median heisst: Die Hälfte der Gäste bucht früher, die Hälfte später. Er bestimmt, wann Anzeigen starten sollten.", "en": "How many days lie between booking and arrival. The median means half of the guests book earlier and half later. It decides when ads should start." } },
     { "term": "Ferienfenster", "name": { "de": "Holiday window", "en": "Holiday window" }, "definition": { "de": "Typische Schulferien eines Herkunftslandes, zum Beispiel Weihnachten oder Sommer. Es sind Richtwerte, die je nach Region und Jahr abweichen.", "en": "Typical school holidays of a source country, for example Christmas or summer. They are guide values that differ by region and year." } },
