@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState, type ChangeEvent, type ReactNode } from "react";
+import { useEffect, useId, useState, type ChangeEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { promoStrings } from "@/lib/sm-manager/promos-i18n";
 import { tipStrings } from "@/lib/sm-manager/tips-i18n";
@@ -263,13 +263,33 @@ function SuggestionCard({ locale, sg }: { locale: "de" | "en"; sg: Suggestion })
 }
 
 /** Tab Aktionen: Vorschläge nach freien Nächten und die Promocodes, die das Team von Hand in Elev8 angelegt hat. */
-export function SmPromos({ locale, promos, suggestions, properties }: { locale: "de" | "en"; promos: PromosData | null; suggestions: SuggestionsData | null; properties: Prop[] }) {
+export function SmPromos({ locale, promos, properties }: { locale: "de" | "en"; promos: PromosData | null; properties: Prop[] }) {
   const s = promoStrings(locale);
   const tp = tipStrings(locale);
   const [adding, setAdding] = useState(false);
+  // Die Vorschläge brauchen Elev8 (einige Sekunden): sie werden nach dem Öffnen nachgeladen, der Tab ist sofort da.
+  const [sug, setSug] = useState<SuggestionsData | null>(null);
+  const [sugState, setSugState] = useState<"loading" | "done" | "failed">("loading");
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/sm-manager/promos/suggestions", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((j: SuggestionsData) => {
+        if (!alive) return;
+        setSug(j);
+        setSugState("done");
+      })
+      .catch(() => {
+        if (alive) setSugState("failed");
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
   const list = promos?.promos ?? [];
   const adopted = new Set(list.filter((p) => p.suggestion_id && p.status !== "ended").map((p) => p.suggestion_id));
-  const open = (suggestions?.suggestions ?? []).filter((x) => !adopted.has(x.id)).slice(0, 8);
+  const open = (sug?.suggestions ?? []).filter((x) => !adopted.has(x.id)).slice(0, 8);
+  const loadingText = locale === "en" ? "Loading suggestions from Elev8 ..." : "Vorschläge werden aus Elev8 geladen …";
 
   return (
     <section className="pr">
@@ -288,8 +308,14 @@ export function SmPromos({ locale, promos, suggestions, properties }: { locale: 
           {s.sugTitle}
           <Tip text={s.sugTip} label={tp.label} />
         </h2>
-        {suggestions?.error || !suggestions ? <p className="sm-warn">{s.sugError}</p> : null}
-        {suggestions && !suggestions.error && open.length === 0 ? <p className="sm-muted">{s.sugEmpty}</p> : null}
+        {sugState === "loading" ? <p className="sm-muted">{loadingText}</p> : null}
+        {sugState === "failed" ? <p className="sm-warn">{s.sugError}</p> : null}
+        {sugState === "done" && sug?.error ? (
+          <p className="sm-warn">
+            {s.sugError} ({sug.error})
+          </p>
+        ) : null}
+        {sugState === "done" && !sug?.error && open.length === 0 ? <p className="sm-muted">{s.sugEmpty}</p> : null}
         <div className="pr-cards">
           {open.map((sg) => (
             <SuggestionCard key={sg.id} locale={locale} sg={sg} />
