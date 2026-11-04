@@ -35,6 +35,7 @@ type Props = {
   promos?: ReactNode;
   competitors?: ReactNode;
   music?: ReactNode;
+  drafting?: ReactNode;
   learningCount?: number;
   postHour?: number | null;
 };
@@ -64,7 +65,7 @@ function defaultWhen(baliHour?: number | null) {
   return toLocalInput(d);
 }
 
-export function SmHome({ locale, view, posts, properties, reviewCount, ghlReady, social = null, clicks = null, bioLink = "", inquiries = [], inquiryCount = 0, agentEnabled = false, audience = null, learnings = null, promos = null, competitors = null, music = null, learningCount = 0, postHour = null }: Props) {
+export function SmHome({ locale, view, posts, properties, reviewCount, ghlReady, social = null, clicks = null, bioLink = "", inquiries = [], inquiryCount = 0, agentEnabled = false, audience = null, learnings = null, promos = null, competitors = null, music = null, drafting = null, learningCount = 0, postHour = null }: Props) {
   const s = smStrings(locale);
   const tp = tipStrings(locale);
   const navRef = useRef<HTMLElement>(null);
@@ -124,6 +125,8 @@ export function SmHome({ locale, view, posts, properties, reviewCount, ghlReady,
           {s.tabProperties}
         </a>
       </nav>
+
+      {view === "review" ? drafting : null}
 
       {view === "inquiries" ? (
         <SmInquiries locale={locale} inquiries={inquiries} agentEnabled={agentEnabled} />
