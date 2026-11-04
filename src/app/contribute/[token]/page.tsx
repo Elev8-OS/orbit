@@ -8,20 +8,27 @@ import { MAX_PHOTOS, countPhotos, getVenueByToken, markOpened } from "@/lib/venu
 
 export const dynamic = "force-dynamic";
 
-// Link-Vorschau: Titel, Beschreibung und das Bild kommen vom Betreiber. Das Bild liefert opengraph-image.tsx neben dieser Datei.
+// Link-Vorschau: Titel, Beschreibung und Bild kommen vom Betreiber und sind englisch. Das Bild liefert opengraph-image.tsx
+// neben dieser Datei. Die Hauptvorlage von Orbit setzt sonst für jede Seite "Elev8 Orbit" und eine deutsche Beschreibung;
+// darum werden Titel, Beschreibung, Sprache, App-Name und Symbol hier alle ausdrücklich überschrieben.
 // metadataBase muss gesetzt sein, sonst trägt die Bildadresse localhost statt der echten Domain.
 export async function generateMetadata({ params }: { params: Promise<{ token: string }> }): Promise<Metadata> {
   const { token } = await params;
   const venue = await getVenueByToken(token).catch(() => null);
   const brand = tenantBrand();
-  const title = venue ? `${venue.spotName} × ${brand.name}` : `Photo upload · ${brand.name}`;
-  const description = "A free feature on our Instagram, tagged to you. 3 to 5 photos, it takes 2 minutes.";
+  const title = venue ? `${venue.spotName}: a free Instagram feature from ${brand.name}` : `Photo upload · ${brand.name}`;
+  const description = venue
+    ? `We send our guests to ${venue.spotName}. Add 3 to 5 photos and we feature you, tagged. Takes 2 minutes.`
+    : "Add 3 to 5 photos and we feature you on our Instagram, tagged. Takes 2 minutes.";
   return {
     metadataBase: new URL((process.env.AUTH_URL ?? "https://myorbit.elev8-suite.com").replace(/\/$/, "")),
     title,
     description,
+    applicationName: brand.name,
     robots: { index: false, follow: false },
-    openGraph: { title, description, type: "website", siteName: brand.name }
+    ...(brand.logoUrl ? { icons: { icon: brand.logoUrl, apple: brand.logoUrl } } : {}),
+    openGraph: { title, description, type: "website", siteName: brand.name, locale: "en_US" },
+    twitter: { card: "summary_large_image", title, description }
   };
 }
 

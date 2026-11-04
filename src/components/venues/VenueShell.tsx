@@ -2,10 +2,13 @@ import "@/components/offerten/public/public.css";
 import "./venue-shell.css";
 import type { Brand } from "@/lib/venues/brand";
 
-/** Rahmen der Betriebsseite: helles Band mit dem Logo des Betreibers. Keine Elev8-Marke, die Nachricht kommt vom Betreiber. */
+/**
+ * Rahmen der Betriebsseite: helles Band mit dem Logo des Betreibers. Keine Elev8-Marke, die Nachricht kommt vom Betreiber.
+ * Die Seite ist englisch, auch wenn Orbit selbst auf Deutsch läuft: lang="en" sagt das dem Browser (Übersetzungsangebot, Vorlesen).
+ */
 export function VenueShell({ brand, label, children }: { brand: Brand; label: string; children: React.ReactNode }) {
   return (
-    <div className="pub">
+    <div className="pub" lang="en">
       <header className="vp-band">
         <div className="vp-band-inner">
           {brand.logoUrl ? (
