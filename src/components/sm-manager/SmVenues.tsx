@@ -26,9 +26,9 @@ async function call(method: string, url: string, body?: unknown): Promise<{ ok: 
   }
 }
 
-/** Der Text der Nachricht; derselbe, der später als WhatsApp-Template laufen soll. */
+/** Der Text der Nachricht; derselbe, der später als WhatsApp-Template laufen soll. Ohne Ansprechperson wird der Betrieb angesprochen. */
 function messageFor(contactName: string, spotName: string, link: string): string {
-  const hello = contactName.trim() || "there";
+  const hello = contactName.trim() || `${spotName} team`;
   return `Hi ${hello}, this is Reto from The R Villas in Pererenan. 🌴 Thank you for agreeing to be featured. We would love to show ${spotName} to our guests on Instagram. Please upload a few photos here and add a short note for each: ${link} It takes about two minutes. Thank you!`;
 }
 
@@ -61,16 +61,18 @@ export function SmVenues({ locale, data }: { locale: Locale; data: VenuesData | 
     setMsg("");
     const r = await call("POST", "/api/sm-manager/venues", { seed: true });
     setBusy(false);
-    if (r.ok) router.refresh();
-    else setMsg(l("Anlegen fehlgeschlagen", "Could not create the places"));
+    if (r.ok) {
+      setMsg(l("Angaben aus dem Guide ergänzt. Bereits Eingetragenes bleibt unverändert.", "Details from the guide added. Anything already entered stays as it is."));
+      router.refresh();
+    } else setMsg(l("Anlegen fehlgeschlagen", "Could not create the places"));
   }
 
   return (
     <section className="ve">
       <p className="sm-muted">
         {l(
-          "Betriebe aus dem Umgebungs-Guide. Jeder hat einen persönlichen Link, über den er Fotos hochlädt. Ein Klick auf die Nummer öffnet WhatsApp Web mit dem fertigen Text samt Link. Für Beiträge zählt ein Ort nur, wenn die Einwilligung bestätigt ist und mindestens ein Foto freigegeben wurde.",
-          "Venues from the area guide. Each has a personal link to upload photos. Click the number to open WhatsApp Web with the finished text and link. A place is only used in posts when consent is confirmed and at least one photo is approved."
+          "Betriebe aus dem Umgebungs-Guide, mit Nummer, Instagram und Website vorbelegt, soweit gefunden. Jeder hat einen persönlichen Link, über den er Fotos hochlädt und seine Daten selbst einträgt. Ein Klick auf die Nummer öffnet WhatsApp Web mit dem fertigen Text samt Link. Für Beiträge zählt ein Ort nur, wenn die Einwilligung bestätigt ist und mindestens ein Foto freigegeben wurde.",
+          "Venues from the area guide, prefilled with number, Instagram and website where found. Each has a personal link to upload photos and enter their own details. Click the number to open WhatsApp Web with the finished text and link. A place is only used in posts when consent is confirmed and at least one photo is approved."
         )}
       </p>
 
@@ -101,7 +103,11 @@ export function SmVenues({ locale, data }: { locale: Locale; data: VenuesData | 
             <button type="button" className={`sm-btn ${filter === "ready" ? "sm-btn-primary" : ""}`} onClick={() => setFilter("ready")}>
               {l("Für Beiträge bereit", "Ready for posts")} ({counts.ready})
             </button>
+            <button type="button" className="sm-btn" onClick={seed} disabled={busy} title={l("Füllt fehlende Angaben nach, überschreibt nichts", "Fills in missing details, overwrites nothing")}>
+              {l("Angaben aus dem Guide ergänzen", "Add details from the guide")}
+            </button>
           </div>
+          {msg ? <p className="sm-muted sm-small" role="status">{msg}</p> : null}
           <ul className="ve-list">
             {shown.map((v) => (
               <VenueRow key={v.id} v={v} locale={locale} isOpen={open === v.id} onToggle={() => setOpen(open === v.id ? null : v.id)} onChanged={() => router.refresh()} />
@@ -181,6 +187,14 @@ function VenueRow({ v, locale, isOpen, onToggle, onChanged }: { v: VenueItem; lo
   const panelUrl = whatsappUrl(form.phone, panelText);
   const status = (locale === "de" ? STATUS_DE : STATUS_EN)[v.status] ?? v.status;
   const fmt = (iso: string | null) => (iso ? new Intl.DateTimeFormat(locale === "en" ? "en-GB" : "de-CH", { day: "numeric", month: "short" }).format(new Date(iso)) : "–");
+  const phoneNote =
+    v.phoneSource === "google"
+      ? l("Nummer aus Google Maps, bitte vor dem ersten Versand prüfen.", "Number from Google Maps, please check it before the first message.")
+      : v.phoneSource === "public"
+        ? l("Nummer aus öffentlichen Quellen (Website oder Verzeichnis).", "Number from public sources (website or directory).")
+        : v.phoneSource === "entered"
+          ? l("Nummer vom Betrieb oder von Hand eingetragen.", "Number entered by the venue or by hand.")
+          : "";
 
   return (
     <li className={`ve-item ${isOpen ? "ve-open" : ""}`}>
@@ -208,7 +222,7 @@ function VenueRow({ v, locale, isOpen, onToggle, onChanged }: { v: VenueItem; lo
           <div className="ve-grid">
             <label>
               {l("Ansprechperson", "Contact person")}
-              <input value={form.contact_name} onChange={(e) => setForm({ ...form, contact_name: e.target.value })} maxLength={80} />
+              <input value={form.contact_name} onChange={(e) => setForm({ ...form, contact_name: e.target.value })} maxLength={80} placeholder={`${v.spotName} team`} />
             </label>
             <label>
               {l("Telefon / WhatsApp (mit Landesvorwahl)", "Phone / WhatsApp (with country code)")}
@@ -223,16 +237,35 @@ function VenueRow({ v, locale, isOpen, onToggle, onChanged }: { v: VenueItem; lo
               <input value={form.instagram} onChange={(e) => setForm({ ...form, instagram: e.target.value })} placeholder="@name" />
             </label>
             <label className="ve-wide">
-              {l("Nachweis der Einwilligung (zum Beispiel WhatsApp vom 3.11.)", "Proof of consent (for example WhatsApp of 3 Nov)")}
+              {l("Nachweis der Einwilligung (der Betrieb setzt sie beim Upload selbst, hier optional)", "Proof of consent (the venue sets it on upload, optional here)")}
               <input value={form.consent_ref} onChange={(e) => setForm({ ...form, consent_ref: e.target.value })} maxLength={200} />
             </label>
           </div>
+          <p className="sm-muted sm-small">
+            {phoneNote}
+            {v.website ? (
+              <>
+                {phoneNote ? " · " : ""}
+                <a href={v.website} target="_blank" rel="noreferrer">
+                  Website
+                </a>
+              </>
+            ) : null}
+            {v.placeId ? (
+              <>
+                {phoneNote || v.website ? " · " : ""}
+                <a href={`https://www.google.com/maps/place/?q=place_id:${encodeURIComponent(v.placeId)}`} target="_blank" rel="noreferrer">
+                  Google Maps
+                </a>
+              </>
+            ) : null}
+          </p>
           <label className="ve-check">
             <input type="checkbox" checked={consent} disabled={Boolean(v.consentAt)} onChange={(e) => setConsent(e.target.checked)} />
             <span>
               {v.consentAt
                 ? `${l("Einwilligung bestätigt am", "Consent confirmed on")} ${fmt(v.consentAt)}`
-                : l("Der Betrieb hat der Nutzung zugestimmt (Nachweis oben eingetragen)", "The venue has agreed to the use (proof entered above)")}
+                : l("Einwilligung von Hand bestätigen (sonst setzt sie der Betrieb beim ersten Upload)", "Confirm consent by hand (otherwise the venue sets it on the first upload)")}
             </span>
           </label>
           <div className="ve-actions">
