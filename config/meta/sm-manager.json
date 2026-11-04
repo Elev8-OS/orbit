@@ -2,6 +2,18 @@
   "app": "sm-manager",
   "changelog": [
     {
+      "version": "1.16",
+      "date": "2026-11-04",
+      "title": { "de": "Automatische Entwürfe, Ablehngründe und ein ruhigerer Look", "en": "Automatic drafts, rejection reasons and a calmer look" },
+      "changes": [
+        { "de": "Unter „Zur Freigabe“ gibt es den Schalter „Automatische Entwürfe“, standardmässig aus. Eingeschaltet erstellt das Tool jeden Tag selbst einen Entwurf für den Tag in 7 Tagen. Den Vorlauf stellst du dort ein (3 bis 14 Tage). Freigeben musst du weiterhin selbst, nichts wird ohne dich veröffentlicht.", "en": "Under \"To approve\" there is the switch \"Automatic drafts\", off by default. Switched on, the tool creates a draft by itself every day for the day 7 days ahead. You set the lead time there (3 to 14 days). You still have to approve, nothing is published without you." },
+        { "de": "Der Schalter zeigt auch den letzten Lauf und was dabei herauskam, zum Beispiel „am 11.11. bereits ein Reel vorhanden“. Ein Tag, der schon einen Beitrag hat, wird übersprungen und nicht doppelt geplant.", "en": "The switch also shows the last run and what came out of it, for example \"11 Nov already has a reel\". A day that already has a post is skipped and not planned twice." },
+        { "de": "Was du beim Ablehnen als Grund schreibst, fließt in die nächsten Entwürfe ein: Die letzten acht Gründe aus den letzten 90 Tagen stehen im Textauftrag an Claude. Schreib deshalb konkret, was nicht gepasst hat (zum Beispiel „Text zu lang“).", "en": "What you write as the reason when rejecting flows into the next drafts: the last eight reasons from the last 90 days are in the writing brief to Claude. So write concretely what did not fit (for example \"text too long\")." },
+        { "de": "Neuer Look: Auf Reels und Karussell-Folien steht die Schrift jetzt direkt auf dem Foto, ohne dunklen Balken dahinter. Ein weicher Schatten um die Buchstaben hält sie auch auf hellen Fotos lesbar. Die Schlussfolie des Karussells ist weiter abgedunkelt.", "en": "New look: on reels and carousel slides the text now sits directly on the photo, without a dark bar behind it. A soft shadow around the letters keeps it readable on bright photos too. The closing slide of the carousel is still darkened." },
+        { "de": "Von Instagram werden bis zu 300 Beiträge geladen (bisher 150). Das Konto hat derzeit weniger, es sind also schon alle da.", "en": "Up to 300 posts are loaded from Instagram (before: 150). The account currently has fewer, so all of them are already there." }
+      ]
+    },
+    {
       "version": "1.15",
       "date": "2026-11-04",
       "title": { "de": "Automatisch gegen von Hand", "en": "Automatic against by hand" },
@@ -192,6 +204,7 @@
     { "term": "Aktion", "name": { "de": "Aktion", "en": "Promotion" }, "definition": { "de": "Ein Angebot mit Promo-Code, Villa, Zeitraum und Vorteil, zum Beispiel Early Check-in oder Transfer. Lea und die Beitragstexte dürfen nur aktive Aktionen nennen.", "en": "An offer with a promo code, villa, period and benefit, for example early check-in or transfer. Lea and the post texts may only name active promotions." } },
     { "term": "Median", "name": { "de": "Median", "en": "Median" }, "definition": { "de": "Der mittlere Wert einer Reihe: Die Hälfte der Konten liegt darüber, die Hälfte darunter. In der Konkurrenz-Scorecard ist es der Vergleichswert, an dem wir gemessen werden.", "en": "The middle value of a series: half of the accounts are above, half below. In the competitor scorecard it is the reference value we are measured against." } },
     { "term": "Musikbibliothek", "name": { "de": "Musikbibliothek", "en": "Music library" }, "definition": { "de": "Die hochgeladenen Titel für Reels. Verwendet werden nur Titel mit bestätigter Lizenz und Nachweis. Ohne freigegebenen Titel bleibt ein Reel stumm.", "en": "The uploaded tracks for reels. Only tracks with a confirmed license and proof are used. Without an approved track a reel stays silent." } },
-    { "term": "Automatisch gegen von Hand", "name": { "de": "Automatisch gegen von Hand", "en": "Automatic against by hand" }, "definition": { "de": "Der Vergleich unter Kennzahlen zwischen Beiträgen, die das Tool erstellt hat, und Beiträgen, die in Instagram von Hand gepostet wurden. Ein Urteil gibt es erst ab 8 Beiträgen pro Gruppe und Format.", "en": "The comparison under Insights between posts the tool created and posts that were posted by hand in Instagram. A verdict needs 8 posts per group and format." } }
+    { "term": "Automatisch gegen von Hand", "name": { "de": "Automatisch gegen von Hand", "en": "Automatic against by hand" }, "definition": { "de": "Der Vergleich unter Kennzahlen zwischen Beiträgen, die das Tool erstellt hat, und Beiträgen, die in Instagram von Hand gepostet wurden. Ein Urteil gibt es erst ab 8 Beiträgen pro Gruppe und Format.", "en": "The comparison under Insights between posts the tool created and posts that were posted by hand in Instagram. A verdict needs 8 posts per group and format." } },
+    { "term": "Automatische Entwürfe", "name": { "de": "Automatische Entwürfe", "en": "Automatic drafts" }, "definition": { "de": "Der Schalter unter Zur Freigabe. Eingeschaltet erstellt das Tool täglich einen Entwurf für einen späteren Tag. Er ist standardmässig aus, und veröffentlicht wird erst nach deiner Freigabe.", "en": "The switch under To approve. Switched on, the tool creates a draft every day for a later day. It is off by default, and nothing is published until you approve." } }
   ]
 }
