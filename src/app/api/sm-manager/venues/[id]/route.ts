@@ -21,16 +21,22 @@ export async function GET(_req: Request, ctx: Ctx) {
   return Response.json({ venue, photos: await listPhotos(id) });
 }
 
-// Kontaktdaten und Einwilligung ändern; { rotate: true } erneuert den Link, { token_active: false } sperrt ihn.
+// Kontaktdaten und Einwilligung ändern; { rotate: true } erneuert den Link, { token_active: false } sperrt ihn,
+// { mark_sent: "whatsapp" | "email" } hält den Versand fest (ein Betrieb mit Fotos bleibt auf seinem Status).
 export async function PUT(req: Request, ctx: Ctx) {
   const gate = await requireUser(hasSmAccess);
   if ("response" in gate) return gate.response;
   const id = await idOf(ctx);
-  if (!id || !(await getVenue(id))) return Response.json({ error: "Not found" }, { status: 404 });
+  const current = id ? await getVenue(id) : null;
+  if (!id || !current) return Response.json({ error: "Not found" }, { status: 404 });
   const b = (await req.json().catch(() => ({}))) as Record<string, unknown>;
   const str = (k: string) => (typeof b[k] === "string" ? (b[k] as string) : undefined);
 
   if (b.rotate === true) await rotateToken(id);
+
+  if (b.mark_sent === "whatsapp" || b.mark_sent === "email") {
+    await updateVenue(id, { sent_at: new Date(), last_channel: b.mark_sent, ...(current.status === "new" ? { status: "sent" as const } : {}) });
+  }
 
   const phone = str("phone");
   const email = str("email");

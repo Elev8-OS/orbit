@@ -26,6 +26,18 @@ async function call(method: string, url: string, body?: unknown): Promise<{ ok: 
   }
 }
 
+/** Der Text der Nachricht; derselbe, der später als WhatsApp-Template laufen soll. */
+function messageFor(contactName: string, spotName: string, link: string): string {
+  const hello = contactName.trim() || "there";
+  return `Hi ${hello}, this is Reto from The R Villas in Pererenan. 🌴 Thank you for agreeing to be featured. We would love to show ${spotName} to our guests on Instagram. Please upload a few photos here and add a short note for each: ${link} It takes about two minutes. Thank you!`;
+}
+
+/** WhatsApp Web mit fertigem Text; leer, wenn die Nummer nicht reicht. */
+function whatsappUrl(phone: string, text: string): string {
+  const digits = phone.replace(/\D/g, "");
+  return digits.length >= 8 ? `https://web.whatsapp.com/send?phone=${digits}&text=${encodeURIComponent(text)}` : "";
+}
+
 export function SmVenues({ locale, data }: { locale: Locale; data: VenuesData | null }) {
   const router = useRouter();
   const l = (de: string, en: string) => (locale === "de" ? de : en);
@@ -57,8 +69,8 @@ export function SmVenues({ locale, data }: { locale: Locale; data: VenuesData | 
     <section className="ve">
       <p className="sm-muted">
         {l(
-          "Betriebe aus dem Umgebungs-Guide. Jeder bekommt einen persönlichen Link, über den er Fotos hochlädt. Für Beiträge zählt ein Ort nur, wenn die Einwilligung bestätigt ist und mindestens ein Foto freigegeben wurde.",
-          "Venues from the area guide. Each gets a personal link to upload photos. A place is only used in posts when consent is confirmed and at least one photo is approved."
+          "Betriebe aus dem Umgebungs-Guide. Jeder hat einen persönlichen Link, über den er Fotos hochlädt. Ein Klick auf die Nummer öffnet WhatsApp Web mit dem fertigen Text samt Link. Für Beiträge zählt ein Ort nur, wenn die Einwilligung bestätigt ist und mindestens ein Foto freigegeben wurde.",
+          "Venues from the area guide. Each has a personal link to upload photos. Click the number to open WhatsApp Web with the finished text and link. A place is only used in posts when consent is confirmed and at least one photo is approved."
         )}
       </p>
 
@@ -157,24 +169,39 @@ function VenueRow({ v, locale, isOpen, onToggle, onChanged }: { v: VenueItem; lo
       setMsg(l("Kopieren nicht möglich", "Could not copy"));
     }
   };
+  // Der Klick öffnet WhatsApp Web; ob die Nachricht dort wirklich abgeschickt wird, weiß Orbit nicht.
+  const markSent = () => {
+    void call("PUT", `/api/sm-manager/venues/${v.id}`, { mark_sent: "whatsapp" }).then((r) => {
+      if (r.ok) onChanged();
+    });
+  };
 
-  const hello = form.contact_name.trim() || l("there", "there");
-  const text = `Hi ${hello}, this is Reto from The R Villas in Pererenan. Thank you for agreeing to be featured. We would love to show ${v.spotName} to our guests on Instagram. Please upload a few photos and a short note for each here: ${v.link}`;
-  const digits = form.phone.replace(/\D/g, "");
+  const rowUrl = whatsappUrl(v.phone, messageFor(v.contactName, v.spotName, v.link));
+  const panelText = messageFor(form.contact_name, v.spotName, v.link);
+  const panelUrl = whatsappUrl(form.phone, panelText);
   const status = (locale === "de" ? STATUS_DE : STATUS_EN)[v.status] ?? v.status;
   const fmt = (iso: string | null) => (iso ? new Intl.DateTimeFormat(locale === "en" ? "en-GB" : "de-CH", { day: "numeric", month: "short" }).format(new Date(iso)) : "–");
 
   return (
     <li className={`ve-item ${isOpen ? "ve-open" : ""}`}>
-      <button type="button" className="ve-head" onClick={onToggle} aria-expanded={isOpen}>
-        <strong>{v.spotName}</strong>
-        <span className="sm-badge">{status}</span>
-        {!v.tokenActive ? <span className="sm-badge">{l("Link gesperrt", "Link blocked")}</span> : null}
-        <span className="sm-muted sm-small">
-          {v.photos === 0 ? l("keine Fotos", "no photos") : `${v.approved} ${l("freigegeben", "approved")} · ${v.pending} ${l("offen", "to review")}`}
-        </span>
-        <span className={`sm-badge ${usable(v) ? "sm-badge-ok" : ""}`}>{usable(v) ? l("bereit", "ready") : v.consentAt ? l("Einwilligung ✓", "Consent ✓") : l("Einwilligung offen", "Consent open")}</span>
-      </button>
+      <div className="ve-head">
+        <button type="button" className="ve-toggle" onClick={onToggle} aria-expanded={isOpen}>
+          <strong>{v.spotName}</strong>
+          <span className="sm-badge">{status}</span>
+          {!v.tokenActive ? <span className="sm-badge">{l("Link gesperrt", "Link blocked")}</span> : null}
+          <span className="sm-muted sm-small">
+            {v.photos === 0 ? l("keine Fotos", "no photos") : `${v.approved} ${l("freigegeben", "approved")} · ${v.pending} ${l("offen", "to review")}`}
+          </span>
+          <span className={`sm-badge ${usable(v) ? "sm-badge-ok" : ""}`}>{usable(v) ? l("bereit", "ready") : v.consentAt ? l("Einwilligung ✓", "Consent ✓") : l("Einwilligung offen", "Consent open")}</span>
+        </button>
+        {rowUrl && v.tokenActive ? (
+          <a className="sm-btn ve-wa" href={rowUrl} target="_blank" rel="noreferrer" onClick={markSent} title={l("Öffnet WhatsApp Web mit dem fertigen Text und Link", "Opens WhatsApp Web with the finished text and link")}>
+            {v.phone} · WhatsApp
+          </a>
+        ) : (
+          <span className="sm-muted sm-small">{v.tokenActive ? l("Nummer fehlt (im Detail eintragen)", "No number (add it in the details)") : l("Link gesperrt", "Link blocked")}</span>
+        )}
+      </div>
 
       {isOpen ? (
         <div className="ve-panel">
@@ -222,12 +249,12 @@ function VenueRow({ v, locale, isOpen, onToggle, onChanged }: { v: VenueItem; lo
             <button type="button" className="sm-btn" onClick={() => copy(v.link)}>
               {l("Link kopieren", "Copy link")}
             </button>
-            <button type="button" className="sm-btn" onClick={() => copy(text)}>
+            <button type="button" className="sm-btn" onClick={() => copy(panelText)}>
               {l("Nachricht kopieren", "Copy message")}
             </button>
-            {digits.length >= 8 ? (
-              <a className="sm-btn" href={`https://wa.me/${digits}?text=${encodeURIComponent(text)}`} target="_blank" rel="noreferrer">
-                {l("In WhatsApp öffnen", "Open in WhatsApp")}
+            {panelUrl && v.tokenActive ? (
+              <a className="sm-btn" href={panelUrl} target="_blank" rel="noreferrer" onClick={markSent}>
+                {l("In WhatsApp Web öffnen", "Open in WhatsApp Web")}
               </a>
             ) : null}
             <button type="button" className="sm-btn" onClick={toggleLink} disabled={busy}>

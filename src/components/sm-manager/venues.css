@@ -2,8 +2,10 @@
 .ve-empty { margin: 24px 0; display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
 .ve-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .ve-item { border: 1px solid rgba(128, 128, 128, 0.3); border-radius: 10px; overflow: hidden; }
-.ve-head { width: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 12px 14px; background: transparent; border: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; }
-.ve-head strong { flex: 1 1 200px; }
+.ve-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 8px 14px; }
+.ve-toggle { flex: 1 1 320px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 6px 0; background: transparent; border: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.ve-toggle strong { flex: 1 1 200px; }
+.ve-wa { white-space: nowrap; text-decoration: none; }
 .ve-panel { padding: 4px 14px 16px; border-top: 1px solid rgba(128, 128, 128, 0.2); }
 .ve-panel h4 { margin: 18px 0 8px; }
 .ve-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
