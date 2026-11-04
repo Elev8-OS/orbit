@@ -2,6 +2,18 @@
   "app": "sm-manager",
   "changelog": [
     {
+      "version": "1.15",
+      "date": "2026-11-04",
+      "title": { "de": "Automatisch gegen von Hand", "en": "Automatic against by hand" },
+      "changes": [
+        { "de": "Unter „Kennzahlen“ steht neu der Vergleich „Automatisch gegen von Hand“: Beiträge, die das Tool erstellt hat und die ihr freigegeben habt, gegen Beiträge, die in Instagram von Hand gepostet wurden. Die Zuordnung läuft über den Textanfang des Beitrags.", "en": "Under \"Insights\" there is now the comparison \"Automatic against by hand\": posts that the tool created and you approved, against posts that were posted by hand in Instagram. The match works through the start of the post text." },
+        { "de": "Der Vergleich ist so gebaut, dass er fair bleibt: Es zählen nur Beiträge ab 7 Tagen Alter, Reels und Karussell/Bild werden einzeln verglichen, verglichen wird der Median, und Zahlen wie Gespeichert, Geteilt, Profilbesuche und neue Follower werden auf 1000 Reichweite umgerechnet.", "en": "The comparison is built to stay fair: only posts of at least 7 days count, reels and carousel/image are compared separately, the median is compared, and numbers like saves, shares, profile visits and new followers are converted to 1000 reach." },
+        { "de": "Ein Urteil („Automatisch besser“, „Von Hand besser“ oder „Kein klarer Unterschied“) gibt es erst ab 8 Beiträgen pro Gruppe, bei mindestens 20 % Abstand und einem Test, der Zufall unwahrscheinlich macht. Bis dahin steht dort, wie viele Beiträge noch fehlen.", "en": "A verdict (\"Automatic better\", \"By hand better\" or \"No clear difference\") only appears from 8 posts per group, with a gap of at least 20% and a test that makes chance unlikely. Until then it shows how many posts are still missing." },
+        { "de": "Ein Hinweis erscheint, wenn sich die Zeiträume beider Gruppen kaum überschneiden (dann vergleicht ihr auch Jahreszeiten und Kontowachstum) oder die Beiträge sehr unterschiedlich alt sind. Klicks sind nicht Teil des Vergleichs, weil Beiträge von Hand keinen verfolgten Link haben.", "en": "A notice appears when the periods of both groups barely overlap (then you are also comparing seasons and account growth) or the posts differ a lot in age. Clicks are not part of the comparison, because posts by hand have no tracked link." },
+        { "de": "Dazu eine Bilanz der Entwürfe der letzten 60 Tage: wie viele erstellt, freigegeben und abgelehnt wurden und die Freigabequote.", "en": "Plus a balance of the drafts of the last 60 days: how many were created, approved and rejected, and the approval rate." }
+      ]
+    },
+    {
       "version": "1.14",
       "date": "2026-11-04",
       "title": { "de": "Musik für Reels, Villa und Kategorie automatisch", "en": "Music for reels, villa and category automatically" },
@@ -179,6 +191,7 @@
     { "term": "Rotation", "name": { "de": "Rotation", "en": "Rotation" }, "definition": { "de": "Die Villen kommen der Reihe nach dran. Unter „Objekte“ bestimmst du, welche Villen dabei sind.", "en": "Villas take turns. Under \"Properties\" you decide which villas are part of it." } },
     { "term": "Aktion", "name": { "de": "Aktion", "en": "Promotion" }, "definition": { "de": "Ein Angebot mit Promo-Code, Villa, Zeitraum und Vorteil, zum Beispiel Early Check-in oder Transfer. Lea und die Beitragstexte dürfen nur aktive Aktionen nennen.", "en": "An offer with a promo code, villa, period and benefit, for example early check-in or transfer. Lea and the post texts may only name active promotions." } },
     { "term": "Median", "name": { "de": "Median", "en": "Median" }, "definition": { "de": "Der mittlere Wert einer Reihe: Die Hälfte der Konten liegt darüber, die Hälfte darunter. In der Konkurrenz-Scorecard ist es der Vergleichswert, an dem wir gemessen werden.", "en": "The middle value of a series: half of the accounts are above, half below. In the competitor scorecard it is the reference value we are measured against." } },
-    { "term": "Musikbibliothek", "name": { "de": "Musikbibliothek", "en": "Music library" }, "definition": { "de": "Die hochgeladenen Titel für Reels. Verwendet werden nur Titel mit bestätigter Lizenz und Nachweis. Ohne freigegebenen Titel bleibt ein Reel stumm.", "en": "The uploaded tracks for reels. Only tracks with a confirmed license and proof are used. Without an approved track a reel stays silent." } }
+    { "term": "Musikbibliothek", "name": { "de": "Musikbibliothek", "en": "Music library" }, "definition": { "de": "Die hochgeladenen Titel für Reels. Verwendet werden nur Titel mit bestätigter Lizenz und Nachweis. Ohne freigegebenen Titel bleibt ein Reel stumm.", "en": "The uploaded tracks for reels. Only tracks with a confirmed license and proof are used. Without an approved track a reel stays silent." } },
+    { "term": "Automatisch gegen von Hand", "name": { "de": "Automatisch gegen von Hand", "en": "Automatic against by hand" }, "definition": { "de": "Der Vergleich unter Kennzahlen zwischen Beiträgen, die das Tool erstellt hat, und Beiträgen, die in Instagram von Hand gepostet wurden. Ein Urteil gibt es erst ab 8 Beiträgen pro Gruppe und Format.", "en": "The comparison under Insights between posts the tool created and posts that were posted by hand in Instagram. A verdict needs 8 posts per group and format." } }
   ]
 }
