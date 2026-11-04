@@ -8,6 +8,7 @@ import { statsStrings } from "@/lib/sm-manager/stats-i18n";
 import { inquiryStrings } from "@/lib/sm-manager/inquiries-i18n";
 import { audienceStrings } from "@/lib/sm-manager/audience-i18n";
 import { learningStrings } from "@/lib/sm-manager/learnings-i18n";
+import { promoStrings } from "@/lib/sm-manager/promos-i18n";
 import { tipStrings } from "@/lib/sm-manager/tips-i18n";
 import { SmStats, type ClickStats, type SocialStats } from "./SmStats";
 import { SmInquiries, type Inquiry } from "./SmInquiries";
@@ -16,7 +17,7 @@ import "./sm.css";
 
 type Props = {
   locale: "de" | "en";
-  view: "review" | "done" | "properties" | "stats" | "inquiries" | "audience" | "learnings";
+  view: "review" | "done" | "properties" | "stats" | "inquiries" | "audience" | "learnings" | "promos";
   posts: Post[];
   properties: Property[];
   reviewCount: number;
@@ -29,6 +30,7 @@ type Props = {
   agentEnabled?: boolean;
   audience?: ReactNode;
   learnings?: ReactNode;
+  promos?: ReactNode;
   learningCount?: number;
   postHour?: number | null;
 };
@@ -58,7 +60,7 @@ function defaultWhen(baliHour?: number | null) {
   return toLocalInput(d);
 }
 
-export function SmHome({ locale, view, posts, properties, reviewCount, ghlReady, social = null, clicks = null, bioLink = "", inquiries = [], inquiryCount = 0, agentEnabled = false, audience = null, learnings = null, learningCount = 0, postHour = null }: Props) {
+export function SmHome({ locale, view, posts, properties, reviewCount, ghlReady, social = null, clicks = null, bioLink = "", inquiries = [], inquiryCount = 0, agentEnabled = false, audience = null, learnings = null, promos = null, learningCount = 0, postHour = null }: Props) {
   const s = smStrings(locale);
   const tp = tipStrings(locale);
   const navRef = useRef<HTMLElement>(null);
@@ -102,6 +104,9 @@ export function SmHome({ locale, view, posts, properties, reviewCount, ghlReady,
           {learningStrings(locale).tabLearnings}
           {learningCount ? <span className="sm-count">{learningCount}</span> : null}
         </a>
+        <a href="/sm-manager?ansicht=aktionen" aria-current={view === "promos" ? "page" : undefined}>
+          {promoStrings(locale).tabPromos}
+        </a>
         <a href="/sm-manager?ansicht=zielgruppen" aria-current={view === "audience" ? "page" : undefined}>
           {audienceStrings(locale).tabAudience}
         </a>
@@ -116,6 +121,8 @@ export function SmHome({ locale, view, posts, properties, reviewCount, ghlReady,
         audience
       ) : view === "learnings" ? (
         learnings
+      ) : view === "promos" ? (
+        promos
       ) : view === "stats" ? (
         <SmStats locale={locale} social={social} clicks={clicks} bioLink={bioLink} />
       ) : view === "properties" ? (
