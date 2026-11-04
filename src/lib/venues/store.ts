@@ -13,8 +13,11 @@ export type Venue = {
   tokenActive: boolean;
   contactName: string;
   phone: string;
+  phoneSource: "" | "google" | "public" | "entered";
   email: string;
   instagram: string;
+  website: string;
+  placeId: string;
   consentRef: string;
   consentAt: string | null;
   status: VenueStatus;
@@ -32,8 +35,11 @@ type VenueRow = {
   token_active: boolean;
   contact_name: string | null;
   phone: string | null;
+  phone_source: string | null;
   email: string | null;
   instagram: string | null;
+  website: string | null;
+  place_id: string | null;
   consent_ref: string | null;
   consent_at: Date | null;
   status: string;
@@ -65,6 +71,9 @@ export function ensureVenueTables(): Promise<void> {
       last_channel text,
       created_at timestamptz not null default now()
     )`;
+    await sql`alter table venue_contacts add column if not exists phone_source text`;
+    await sql`alter table venue_contacts add column if not exists website text`;
+    await sql`alter table venue_contacts add column if not exists place_id text`;
     await sql`create table if not exists venue_photos (
       id serial primary key,
       venue_id integer not null references venue_contacts(id) on delete cascade,
@@ -95,8 +104,11 @@ function toVenue(r: VenueRow): Venue {
     tokenActive: r.token_active,
     contactName: r.contact_name ?? "",
     phone: r.phone ?? "",
+    phoneSource: (r.phone ? (r.phone_source ?? "") : "") as Venue["phoneSource"],
     email: r.email ?? "",
     instagram: r.instagram ?? "",
+    website: r.website ?? "",
+    placeId: r.place_id ?? "",
     consentRef: r.consent_ref ?? "",
     consentAt: iso(r.consent_at),
     status: (r.status as VenueStatus) ?? "new",
@@ -144,18 +156,39 @@ export function cleanPhone(input: string): string {
   return digits.length >= 8 && digits.length <= 15 ? plus + digits : "";
 }
 
-export async function createVenues(items: { name: string; instagram?: string }[]): Promise<number> {
+export function cleanEmail(input: string): string {
+  const v = input.trim();
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) ? v.slice(0, 120) : "";
+}
+
+export type SeedItem = { name: string; instagram?: string; phone?: string; phoneSource?: string; website?: string; placeId?: string };
+
+/**
+ * Legt Betriebe an. Bestehende Betriebe werden nur ergänzt: was schon eingetragen ist (auch vom Betrieb selbst),
+ * wird nie überschrieben.
+ */
+export async function createVenues(items: SeedItem[]): Promise<{ created: number; updated: number }> {
   await ensureVenueTables();
   let created = 0;
+  let updated = 0;
   for (const it of items) {
     const name = it.name.trim();
     if (!name) continue;
-    const rows = await sql`insert into venue_contacts (spot_name, token, instagram)
-      values (${name}, ${newToken(name)}, ${it.instagram ? cleanInstagram(it.instagram) : null})
-      on conflict (spot_name) do nothing returning id`;
-    created += rows.length;
+    const instagram = it.instagram ? cleanInstagram(it.instagram) || null : null;
+    const phone = it.phone ? cleanPhone(it.phone) || null : null;
+    const rows = await sql<{ inserted: boolean }[]>`insert into venue_contacts (spot_name, token, instagram, phone, phone_source, website, place_id)
+      values (${name}, ${newToken(name)}, ${instagram}, ${phone}, ${phone ? (it.phoneSource ?? "public") : null}, ${it.website ?? null}, ${it.placeId ?? null})
+      on conflict (spot_name) do update set
+        instagram = coalesce(nullif(venue_contacts.instagram, ''), excluded.instagram),
+        phone_source = case when coalesce(venue_contacts.phone, '') = '' then excluded.phone_source else venue_contacts.phone_source end,
+        phone = coalesce(nullif(venue_contacts.phone, ''), excluded.phone),
+        website = coalesce(nullif(venue_contacts.website, ''), excluded.website),
+        place_id = coalesce(nullif(venue_contacts.place_id, ''), excluded.place_id)
+      returning (xmax = 0) as inserted`;
+    if (rows[0]?.inserted) created++;
+    else updated++;
   }
-  return created;
+  return { created, updated };
 }
 
 export async function listVenues(): Promise<VenueSummary[]> {
@@ -187,8 +220,8 @@ export async function getVenueByToken(token: string): Promise<Venue | null> {
   return rows[0] ? toVenue(rows[0]) : null;
 }
 
-export type VenuePatch = Partial<{ contact_name: string; phone: string; email: string; instagram: string; consent_ref: string; consent_at: Date | null; status: VenueStatus; sent_at: Date; last_channel: string; token_active: boolean }>;
-const PATCH_KEYS = ["contact_name", "phone", "email", "instagram", "consent_ref", "consent_at", "status", "sent_at", "last_channel", "token_active"] as const;
+export type VenuePatch = Partial<{ contact_name: string; phone: string; phone_source: string; email: string; instagram: string; consent_ref: string; consent_at: Date | null; status: VenueStatus; sent_at: Date; last_channel: string; token_active: boolean }>;
+const PATCH_KEYS = ["contact_name", "phone", "phone_source", "email", "instagram", "consent_ref", "consent_at", "status", "sent_at", "last_channel", "token_active"] as const;
 
 export async function updateVenue(id: number, patch: VenuePatch): Promise<void> {
   await ensureVenueTables();

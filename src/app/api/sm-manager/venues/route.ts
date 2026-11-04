@@ -19,13 +19,14 @@ export async function GET(req: Request) {
   return Response.json({ venues, storage: storageConfigured() });
 }
 
-// Betriebe anlegen: { seed: true } für die Liste aus dem Umgebungs-Guide, oder { names: ["…"] }
+// Betriebe anlegen oder ergänzen: { seed: true } für die Liste aus dem Umgebungs-Guide, oder { names: ["…"] }.
+// Bereits eingetragene Angaben werden nie überschrieben.
 export async function POST(req: Request) {
   const gate = await requireUser(hasSmAccess);
   if ("response" in gate) return gate.response;
   const body = (await req.json().catch(() => ({}))) as { seed?: boolean; names?: unknown };
   const items = body.seed ? VENUE_SPOTS : Array.isArray(body.names) ? body.names.filter((n): n is string => typeof n === "string").map((name) => ({ name })) : [];
   if (items.length === 0) return Response.json({ error: "Nothing to create" }, { status: 400 });
-  const created = await createVenues(items);
-  return Response.json({ created }, { status: 201 });
+  const result = await createVenues(items);
+  return Response.json(result, { status: 201 });
 }

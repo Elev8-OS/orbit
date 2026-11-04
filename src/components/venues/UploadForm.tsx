@@ -13,6 +13,8 @@ export function UploadForm({ token, venueName, remaining, prefill }: { token: st
   const [items, setItems] = useState<Item[]>([]);
   const [contactName, setContactName] = useState(prefill.contactName);
   const [instagram, setInstagram] = useState(prefill.instagram);
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [rights, setRights] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
@@ -54,6 +56,8 @@ export function UploadForm({ token, venueName, remaining, prefill }: { token: st
       form.set("rights", "true");
       form.set("instagram", instagram);
       form.set("contact_name", contactName);
+      form.set("phone", phone);
+      form.set("email", email);
       try {
         const res = await fetch(`/api/venues/public/${encodeURIComponent(token)}/photos`, { method: "POST", body: form });
         if (res.ok) patch(it.key, { state: "done" });
@@ -127,14 +131,24 @@ export function UploadForm({ token, venueName, remaining, prefill }: { token: st
         </ul>
       )}
 
+      <h3 className="up-sub">About you</h3>
+      <p className="pub-muted up-hint">So we can reach you and tag you correctly. We use these details only to coordinate this post.</p>
       <div className="up-fields">
         <label>
-          Your name (optional)
+          Your name
           <input type="text" className="up-text" maxLength={80} value={contactName} disabled={busy} onChange={(e) => setContactName(e.target.value)} />
         </label>
         <label>
-          Instagram name to tag (optional)
+          Instagram name to tag
           <input type="text" className="up-text" placeholder="@yourname" maxLength={40} value={instagram} disabled={busy} onChange={(e) => setInstagram(e.target.value)} />
+        </label>
+        <label>
+          WhatsApp or phone number
+          <input type="tel" className="up-text" placeholder="+62 …" maxLength={24} value={phone} disabled={busy} onChange={(e) => setPhone(e.target.value)} />
+        </label>
+        <label>
+          Email
+          <input type="email" className="up-text" maxLength={120} value={email} disabled={busy} onChange={(e) => setEmail(e.target.value)} />
         </label>
       </div>
 

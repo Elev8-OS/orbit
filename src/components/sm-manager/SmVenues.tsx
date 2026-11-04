@@ -6,7 +6,8 @@ import type { Photo, VenueSummary } from "@/lib/venues/store";
 import "./venues.css";
 
 export type VenueItem = VenueSummary & { link: string };
-export type VenuesData = { venues: VenueItem[]; storage: boolean };
+export type VenueBrand = { name: string; instagram: string; sender: string; hasLogo: boolean };
+export type VenuesData = { venues: VenueItem[]; storage: boolean; brand: VenueBrand };
 
 type Locale = "de" | "en";
 
@@ -26,6 +27,23 @@ async function call(method: string, url: string, body?: unknown): Promise<{ ok: 
   }
 }
 
+/**
+ * Der Text der Nachricht an den Betrieb. Er kommt vom Betreiber (Tenant), nicht von der Software:
+ * Betreiber und Absender stehen in der Nachricht, dazu unser Instagram-Name und die Bitte um einen Gegen-Tag.
+ * Ohne Ansprechperson wird der Betrieb angesprochen. Dieselbe Fassung gehört später ins WhatsApp-Template.
+ */
+function messageFor(brand: VenueBrand, contactName: string, spotName: string, link: string): string {
+  const hello = contactName.trim() || `${spotName} team`;
+  const us = brand.instagram ? `We are @${brand.instagram} on Instagram. ` : "";
+  return `Hi ${hello}, this is ${brand.sender} from ${brand.name} in Pererenan. 🌴 We send our guests to ${spotName} and would love to feature you in an Instagram post as one of our tips around Pererenan. Please upload a few photos and a short note for each here: ${link}\n\n${us}Since we actively send guests your way, it would mean a lot to us if you tagged us in a post too. Together we are stronger! 🤝`;
+}
+
+/** WhatsApp Web mit fertigem Text; leer, wenn die Nummer nicht reicht. */
+function whatsappUrl(phone: string, text: string): string {
+  const digits = phone.replace(/\D/g, "");
+  return digits.length >= 8 ? `https://web.whatsapp.com/send?phone=${digits}&text=${encodeURIComponent(text)}` : "";
+}
+
 export function SmVenues({ locale, data }: { locale: Locale; data: VenuesData | null }) {
   const router = useRouter();
   const l = (de: string, en: string) => (locale === "de" ? de : en);
@@ -37,30 +55,43 @@ export function SmVenues({ locale, data }: { locale: Locale; data: VenuesData | 
   if (!data) return <p className="sm-empty">{l("Die Orte konnten nicht geladen werden.", "The places could not be loaded.")}</p>;
 
   const venues = data.venues;
+  const brand = data.brand;
   const counts = {
     ready: venues.filter(usable).length,
     review: venues.filter((v) => v.pending > 0).length,
     waiting: venues.filter((v) => v.photos === 0).length
   };
   const shown = venues.filter((v) => (filter === "all" ? true : filter === "review" ? v.pending > 0 : filter === "waiting" ? v.photos === 0 : usable(v)));
+  const missing = [!brand.instagram ? "TENANT_INSTAGRAM" : "", !brand.hasLogo ? "TENANT_LOGO_URL" : ""].filter(Boolean);
 
   async function seed() {
     setBusy(true);
     setMsg("");
     const r = await call("POST", "/api/sm-manager/venues", { seed: true });
     setBusy(false);
-    if (r.ok) router.refresh();
-    else setMsg(l("Anlegen fehlgeschlagen", "Could not create the places"));
+    if (r.ok) {
+      setMsg(l("Angaben aus dem Guide ergänzt. Bereits Eingetragenes bleibt unverändert.", "Details from the guide added. Anything already entered stays as it is."));
+      router.refresh();
+    } else setMsg(l("Anlegen fehlgeschlagen", "Could not create the places"));
   }
 
   return (
     <section className="ve">
       <p className="sm-muted">
         {l(
-          "Betriebe aus dem Umgebungs-Guide. Jeder bekommt einen persönlichen Link, über den er Fotos hochlädt. Für Beiträge zählt ein Ort nur, wenn die Einwilligung bestätigt ist und mindestens ein Foto freigegeben wurde.",
-          "Venues from the area guide. Each gets a personal link to upload photos. A place is only used in posts when consent is confirmed and at least one photo is approved."
+          "Betriebe aus dem Umgebungs-Guide, mit Nummer, Instagram und Website vorbelegt, soweit gefunden. Jeder hat einen persönlichen Link, über den er Fotos hochlädt und seine Daten selbst einträgt. Ein Klick auf die Nummer öffnet WhatsApp Web mit dem fertigen Text samt Link. Für Beiträge zählt ein Ort nur, wenn die Einwilligung bestätigt ist und mindestens ein Foto freigegeben wurde.",
+          "Venues from the area guide, prefilled with number, Instagram and website where found. Each has a personal link to upload photos and enter their own details. Click the number to open WhatsApp Web with the finished text and link. A place is only used in posts when consent is confirmed and at least one photo is approved."
         )}
       </p>
+
+      {missing.length > 0 ? (
+        <p className="sm-warn">
+          {l(
+            `Angaben des Betreibers fehlen (${missing.join(", ")}). Ohne den Instagram-Namen enthält die Nachricht keine Bitte um einen Gegen-Tag mit Namen, ohne Logo zeigt die Upload-Seite nur den Namen. Beides wird als Umgebungsvariable am Orbit-Dienst gesetzt.`,
+            `Operator details are missing (${missing.join(", ")}). Without the Instagram name the message names no account to tag, without a logo the upload page shows the name only. Both are set as environment variables on the Orbit service.`
+          )}
+        </p>
+      ) : null}
 
       {!data.storage ? (
         <p className="sm-warn">{l("Der Foto-Speicher ist nicht verbunden. Uploads funktionieren erst, wenn die S3-Variablen gesetzt sind und Orbit neu gestartet wurde.", "Photo storage is not connected. Uploads work once the S3 variables are set and Orbit has been redeployed.")}</p>
@@ -89,10 +120,14 @@ export function SmVenues({ locale, data }: { locale: Locale; data: VenuesData | 
             <button type="button" className={`sm-btn ${filter === "ready" ? "sm-btn-primary" : ""}`} onClick={() => setFilter("ready")}>
               {l("Für Beiträge bereit", "Ready for posts")} ({counts.ready})
             </button>
+            <button type="button" className="sm-btn" onClick={seed} disabled={busy} title={l("Füllt fehlende Angaben nach, überschreibt nichts", "Fills in missing details, overwrites nothing")}>
+              {l("Angaben aus dem Guide ergänzen", "Add details from the guide")}
+            </button>
           </div>
+          {msg ? <p className="sm-muted sm-small" role="status">{msg}</p> : null}
           <ul className="ve-list">
             {shown.map((v) => (
-              <VenueRow key={v.id} v={v} locale={locale} isOpen={open === v.id} onToggle={() => setOpen(open === v.id ? null : v.id)} onChanged={() => router.refresh()} />
+              <VenueRow key={v.id} v={v} brand={brand} locale={locale} isOpen={open === v.id} onToggle={() => setOpen(open === v.id ? null : v.id)} onChanged={() => router.refresh()} />
             ))}
           </ul>
         </>
@@ -104,7 +139,7 @@ export function SmVenues({ locale, data }: { locale: Locale; data: VenuesData | 
 const STATUS_DE: Record<string, string> = { new: "Neu", sent: "Versendet", opened: "Link geöffnet", uploaded: "Fotos da" };
 const STATUS_EN: Record<string, string> = { new: "New", sent: "Sent", opened: "Link opened", uploaded: "Photos in" };
 
-function VenueRow({ v, locale, isOpen, onToggle, onChanged }: { v: VenueItem; locale: Locale; isOpen: boolean; onToggle: () => void; onChanged: () => void }) {
+function VenueRow({ v, brand, locale, isOpen, onToggle, onChanged }: { v: VenueItem; brand: VenueBrand; locale: Locale; isOpen: boolean; onToggle: () => void; onChanged: () => void }) {
   const l = (de: string, en: string) => (locale === "de" ? de : en);
   const [form, setForm] = useState({ contact_name: v.contactName, phone: v.phone, email: v.email, instagram: v.instagram, consent_ref: v.consentRef });
   const [consent, setConsent] = useState(Boolean(v.consentAt));
@@ -157,31 +192,54 @@ function VenueRow({ v, locale, isOpen, onToggle, onChanged }: { v: VenueItem; lo
       setMsg(l("Kopieren nicht möglich", "Could not copy"));
     }
   };
+  // Der Klick öffnet WhatsApp Web; ob die Nachricht dort wirklich abgeschickt wird, weiß Orbit nicht.
+  const markSent = () => {
+    void call("PUT", `/api/sm-manager/venues/${v.id}`, { mark_sent: "whatsapp" }).then((r) => {
+      if (r.ok) onChanged();
+    });
+  };
 
-  const hello = form.contact_name.trim() || l("there", "there");
-  const text = `Hi ${hello}, this is Reto from The R Villas in Pererenan. Thank you for agreeing to be featured. We would love to show ${v.spotName} to our guests on Instagram. Please upload a few photos and a short note for each here: ${v.link}`;
-  const digits = form.phone.replace(/\D/g, "");
+  const rowUrl = whatsappUrl(v.phone, messageFor(brand, v.contactName, v.spotName, v.link));
+  const panelText = messageFor(brand, form.contact_name, v.spotName, v.link);
+  const panelUrl = whatsappUrl(form.phone, panelText);
   const status = (locale === "de" ? STATUS_DE : STATUS_EN)[v.status] ?? v.status;
   const fmt = (iso: string | null) => (iso ? new Intl.DateTimeFormat(locale === "en" ? "en-GB" : "de-CH", { day: "numeric", month: "short" }).format(new Date(iso)) : "–");
+  const phoneNote =
+    v.phoneSource === "google"
+      ? l("Nummer aus Google Maps, bitte vor dem ersten Versand prüfen.", "Number from Google Maps, please check it before the first message.")
+      : v.phoneSource === "public"
+        ? l("Nummer aus öffentlichen Quellen (Website oder Verzeichnis).", "Number from public sources (website or directory).")
+        : v.phoneSource === "entered"
+          ? l("Nummer vom Betrieb oder von Hand eingetragen.", "Number entered by the venue or by hand.")
+          : "";
 
   return (
     <li className={`ve-item ${isOpen ? "ve-open" : ""}`}>
-      <button type="button" className="ve-head" onClick={onToggle} aria-expanded={isOpen}>
-        <strong>{v.spotName}</strong>
-        <span className="sm-badge">{status}</span>
-        {!v.tokenActive ? <span className="sm-badge">{l("Link gesperrt", "Link blocked")}</span> : null}
-        <span className="sm-muted sm-small">
-          {v.photos === 0 ? l("keine Fotos", "no photos") : `${v.approved} ${l("freigegeben", "approved")} · ${v.pending} ${l("offen", "to review")}`}
-        </span>
-        <span className={`sm-badge ${usable(v) ? "sm-badge-ok" : ""}`}>{usable(v) ? l("bereit", "ready") : v.consentAt ? l("Einwilligung ✓", "Consent ✓") : l("Einwilligung offen", "Consent open")}</span>
-      </button>
+      <div className="ve-head">
+        <button type="button" className="ve-toggle" onClick={onToggle} aria-expanded={isOpen}>
+          <strong>{v.spotName}</strong>
+          <span className="sm-badge">{status}</span>
+          {!v.tokenActive ? <span className="sm-badge">{l("Link gesperrt", "Link blocked")}</span> : null}
+          <span className="sm-muted sm-small">
+            {v.photos === 0 ? l("keine Fotos", "no photos") : `${v.approved} ${l("freigegeben", "approved")} · ${v.pending} ${l("offen", "to review")}`}
+          </span>
+          <span className={`sm-badge ${usable(v) ? "sm-badge-ok" : ""}`}>{usable(v) ? l("bereit", "ready") : v.consentAt ? l("Einwilligung ✓", "Consent ✓") : l("Einwilligung offen", "Consent open")}</span>
+        </button>
+        {rowUrl && v.tokenActive ? (
+          <a className="sm-btn ve-wa" href={rowUrl} target="_blank" rel="noreferrer" onClick={markSent} title={l("Öffnet WhatsApp Web mit dem fertigen Text und Link", "Opens WhatsApp Web with the finished text and link")}>
+            {v.phone} · WhatsApp
+          </a>
+        ) : (
+          <span className="sm-muted sm-small">{v.tokenActive ? l("Nummer fehlt (im Detail eintragen)", "No number (add it in the details)") : l("Link gesperrt", "Link blocked")}</span>
+        )}
+      </div>
 
       {isOpen ? (
         <div className="ve-panel">
           <div className="ve-grid">
             <label>
               {l("Ansprechperson", "Contact person")}
-              <input value={form.contact_name} onChange={(e) => setForm({ ...form, contact_name: e.target.value })} maxLength={80} />
+              <input value={form.contact_name} onChange={(e) => setForm({ ...form, contact_name: e.target.value })} maxLength={80} placeholder={`${v.spotName} team`} />
             </label>
             <label>
               {l("Telefon / WhatsApp (mit Landesvorwahl)", "Phone / WhatsApp (with country code)")}
@@ -196,16 +254,35 @@ function VenueRow({ v, locale, isOpen, onToggle, onChanged }: { v: VenueItem; lo
               <input value={form.instagram} onChange={(e) => setForm({ ...form, instagram: e.target.value })} placeholder="@name" />
             </label>
             <label className="ve-wide">
-              {l("Nachweis der Einwilligung (zum Beispiel WhatsApp vom 3.11.)", "Proof of consent (for example WhatsApp of 3 Nov)")}
+              {l("Nachweis der Einwilligung (der Betrieb setzt sie beim Upload selbst, hier optional)", "Proof of consent (the venue sets it on upload, optional here)")}
               <input value={form.consent_ref} onChange={(e) => setForm({ ...form, consent_ref: e.target.value })} maxLength={200} />
             </label>
           </div>
+          <p className="sm-muted sm-small">
+            {phoneNote}
+            {v.website ? (
+              <>
+                {phoneNote ? " · " : ""}
+                <a href={v.website} target="_blank" rel="noreferrer">
+                  Website
+                </a>
+              </>
+            ) : null}
+            {v.placeId ? (
+              <>
+                {phoneNote || v.website ? " · " : ""}
+                <a href={`https://www.google.com/maps/place/?q=place_id:${encodeURIComponent(v.placeId)}`} target="_blank" rel="noreferrer">
+                  Google Maps
+                </a>
+              </>
+            ) : null}
+          </p>
           <label className="ve-check">
             <input type="checkbox" checked={consent} disabled={Boolean(v.consentAt)} onChange={(e) => setConsent(e.target.checked)} />
             <span>
               {v.consentAt
                 ? `${l("Einwilligung bestätigt am", "Consent confirmed on")} ${fmt(v.consentAt)}`
-                : l("Der Betrieb hat der Nutzung zugestimmt (Nachweis oben eingetragen)", "The venue has agreed to the use (proof entered above)")}
+                : l("Einwilligung von Hand bestätigen (sonst setzt sie der Betrieb beim ersten Upload)", "Confirm consent by hand (otherwise the venue sets it on the first upload)")}
             </span>
           </label>
           <div className="ve-actions">
@@ -222,12 +299,12 @@ function VenueRow({ v, locale, isOpen, onToggle, onChanged }: { v: VenueItem; lo
             <button type="button" className="sm-btn" onClick={() => copy(v.link)}>
               {l("Link kopieren", "Copy link")}
             </button>
-            <button type="button" className="sm-btn" onClick={() => copy(text)}>
+            <button type="button" className="sm-btn" onClick={() => copy(panelText)}>
               {l("Nachricht kopieren", "Copy message")}
             </button>
-            {digits.length >= 8 ? (
-              <a className="sm-btn" href={`https://wa.me/${digits}?text=${encodeURIComponent(text)}`} target="_blank" rel="noreferrer">
-                {l("In WhatsApp öffnen", "Open in WhatsApp")}
+            {panelUrl && v.tokenActive ? (
+              <a className="sm-btn" href={panelUrl} target="_blank" rel="noreferrer" onClick={markSent}>
+                {l("In WhatsApp Web öffnen", "Open in WhatsApp Web")}
               </a>
             ) : null}
             <button type="button" className="sm-btn" onClick={toggleLink} disabled={busy}>

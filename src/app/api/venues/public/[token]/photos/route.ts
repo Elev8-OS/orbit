@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { putObject, storageConfigured } from "@/lib/venues/s3";
-import { MAX_PHOTOS, addPhoto, cleanInstagram, countPhotos, getVenueByToken, markUploaded, updateVenue } from "@/lib/venues/store";
+import { MAX_PHOTOS, addPhoto, cleanEmail, cleanInstagram, cleanPhone, countPhotos, getVenueByToken, markUploaded, updateVenue } from "@/lib/venues/store";
 
 export const dynamic = "force-dynamic";
 
@@ -50,13 +50,18 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
   const caption = String(form.get("caption") ?? "").trim().slice(0, 300);
   const id = await addPhoto({ venueId: venue.id, storageKey: key, filename: file.name.slice(0, 120), contentType: kind.mime, bytes: file.size, caption, rightsOk: true });
 
-  // Einwilligung mit Datum festhalten und Kontaktangaben übernehmen, soweit angegeben.
+  // Der Betrieb trägt seine Daten selbst ein: das hat Vorrang vor allem, was wir vorbelegt haben.
+  // Die Einwilligung wird beim ersten Upload mit Datum festgehalten.
   const instagram = cleanInstagram(String(form.get("instagram") ?? ""));
   const contactName = String(form.get("contact_name") ?? "").trim().slice(0, 80);
+  const phone = cleanPhone(String(form.get("phone") ?? ""));
+  const email = cleanEmail(String(form.get("email") ?? ""));
   await updateVenue(venue.id, {
-    ...(venue.consentAt ? {} : { consent_ref: "Confirmed on the upload page", consent_at: new Date() }),
+    ...(venue.consentAt ? {} : { consent_ref: "Confirmed by the venue on the upload page", consent_at: new Date() }),
     ...(instagram ? { instagram } : {}),
-    ...(contactName ? { contact_name: contactName } : {})
+    ...(contactName ? { contact_name: contactName } : {}),
+    ...(phone ? { phone, phone_source: "entered" } : {}),
+    ...(email ? { email } : {})
   });
   await markUploaded(venue.id);
   return Response.json({ id }, { status: 201 });
