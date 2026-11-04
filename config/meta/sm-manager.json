@@ -2,6 +2,40 @@
   "app": "sm-manager",
   "changelog": [
     {
+      "version": "1.14",
+      "date": "2026-11-04",
+      "title": { "de": "Musik für Reels, Villa und Kategorie automatisch", "en": "Music for reels, villa and category automatically" },
+      "changes": [
+        { "de": "Neuer Tab „Musik“: Hier lädst du MP3-Titel hoch (bis 15 MB) und legst pro Titel Anbieter, Stimmung (ruhig, lebendig, passt zu allem) und Lizenz-Nachweis fest. Du kannst jeden Titel probehören, ausschalten oder löschen.", "en": "New tab \"Music\": upload MP3 tracks here (up to 15 MB) and set provider, mood (calm, upbeat, fits everything) and license proof for each track. You can preview, switch off or delete every track." },
+        { "de": "Verwendet werden nur Titel, bei denen du die Lizenz bestätigt hast. Die Bestätigung geht nur mit Anbieter und Nachweis. Ohne freigegebenen Titel bleibt ein Reel stumm, wie bisher.", "en": "Only tracks whose license you have confirmed are used. Confirming needs the provider and a proof. Without an approved track a reel stays silent, as before." },
+        { "de": "Jedes neue Reel bekommt automatisch einen passenden Titel: ruhige für Villen und Details, lebendige für die Umgebung und für Villen nach Zielgruppe. Titel, die weniger oft liefen, kommen zuerst dran. Alle Titel werden auf eine gleiche Lautstärke gebracht.", "en": "Every new reel automatically gets a fitting track: calm ones for villas and details, livelier ones for the area and for villas by audience. Tracks that were used less come first. All tracks are brought to the same loudness." },
+        { "de": "Instagram-Beiträge, die nicht aus dem Tool stammen (ältere oder von Hand gepostete), bekommen jetzt automatisch Villa und Kategorie. Die Villa wird am Namen im Text und in den Hashtags erkannt, die Kategorie ordnet Claude ein, sonst entscheiden Stichwörter. Das sieht man unter „Kennzahlen“ in der Tabelle „Einzelne Beiträge“.", "en": "Instagram posts that did not come from the tool (older or posted by hand) now get a villa and a category automatically. The villa is recognised by the name in the text and hashtags, Claude sorts the category, otherwise keywords decide. You see it under \"Insights\" in the \"Individual posts\" table." }
+      ]
+    },
+    {
+      "version": "1.13",
+      "date": "2026-11-04",
+      "title": { "de": "Konkurrenz im Vergleich", "en": "Competitors compared" },
+      "changes": [
+        { "de": "Die Konkurrenz-Analyse hat jetzt einen eigenen Tab „Konkurrenz“ und steht nicht mehr bei den Zielgruppen.", "en": "The competitor analysis now has its own tab \"Competitors\" and is no longer part of Audiences." },
+        { "de": "Oben steht eine Scorecard: Für Interaktion, Likes, Kommentare, Follower, Posts pro Woche und Reel-Anteil siehst du unseren Wert, den Median der anderen, den Besten, unseren Platz und den Abstand zum Median. Grün heisst mehr als 10 % darüber, rot mehr als 10 % darunter.", "en": "At the top is a scorecard: for engagement, likes, comments, followers, posts per week and reel share you see our value, the median of the others, the best one, our rank and the gap to the median. Green means more than 10% above, red more than 10% below." },
+        { "de": "Unser eigenes Konto wird mit denselben Definitionen gemessen wie die anderen und steht als gelbe Zeile in der Tabelle. Darunter „Daraus folgt“ mit Hebeln, wenn wir zurückliegen, und der stärkste Beitrag jedes Kontos.", "en": "Our own account is measured with the same definitions as the others and shows as a yellow row in the table. Below it \"What follows\" lists levers where we are behind, and the strongest post of each account." },
+        { "de": "Die Konten werden täglich neu gelesen. Du kannst Konten hinzufügen, entfernen und jederzeit „Jetzt prüfen“ auslösen. Die Konten sind Vermittler und Verwalter, deshalb sind Interaktion und Rhythmus aussagekräftiger als die Follower-Zahl.", "en": "The accounts are read again daily. You can add and remove accounts and trigger \"Check now\" at any time. The accounts are agents and managers, so engagement and rhythm say more than the follower count." }
+      ]
+    },
+    {
+      "version": "1.12",
+      "date": "2026-11-04",
+      "title": { "de": "Aktionen, Währungen und Buchungslink", "en": "Promotions, currencies and booking link" },
+      "changes": [
+        { "de": "Neuer Tab „Aktionen“: Du trägst Promocodes mit Villa, Zeitraum und Vorteil ein. Den Code selbst legst du wie bisher in Elev8 an. Dazu gibt es Vorschläge für Aktionen, abgeleitet aus den freien Nächten.", "en": "New tab \"Promotions\": enter promo codes with villa, period and benefit. You still create the code itself in Elev8. There are also suggestions for promotions, derived from the free nights." },
+        { "de": "Lea bietet nur aktive Aktionen an. Sie erfindet, verlängert oder kombiniert nichts. Auch die Beitragstexte werden geprüft: Ein falscher Code, ein falscher Prozentsatz oder ein Angebot ohne aktive Aktion löst eine Warnung aus.", "en": "Lea only offers active promotions. She never invents, extends or combines anything. The post texts are checked too: a wrong code, a wrong percentage or an offer without an active promotion triggers a warning." },
+        { "de": "Lea nennt Beträge auf Wunsch in der Währung des Gastes, gerundet und mit „etwa“, zusammen mit dem Betrag in CHF. Sind keine Kurse verfügbar, sagt sie, dass das Team den Betrag bestätigt.", "en": "On request Lea quotes amounts in the guest's currency, rounded and with \"about\", together with the amount in CHF. If no rates are available she says the team will confirm the amount." },
+        { "de": "Die Buchungslinks von Lea enthalten Anreise, Abreise, Erwachsene, Kinder und die Währung, und bei einer angebotenen Aktion auch den Promo-Code. Die Website liest die ersten fünf Angaben. Den Code muss sie noch ins Buchungsfeld übernehmen.", "en": "Lea's booking links contain check-in, check-out, adults, children and the currency, and the promo code when a promotion was offered. The website reads the first five. It still has to fill the code into the booking field." },
+        { "de": "Im Antwortmodus zeigt die Uhr jetzt die Zeit der gewählten Zeitzone (Bali oder Zürich). Die Vorschau sagt, was die aktuelle, noch nicht gespeicherte Auswahl jetzt bewirken würde.", "en": "In the answer mode the clock now shows the time of the selected time zone (Bali or Zurich). The preview says what the current, not yet saved choice would do right now." }
+      ]
+    },
+    {
       "version": "1.11",
       "date": "2026-11-03",
       "title": { "de": "Lea antwortet auf Wunsch automatisch", "en": "Lea replies automatically when you want" },
@@ -141,6 +175,9 @@
     { "term": "Bitte prüfen", "name": { "de": "Bitte prüfen", "en": "Please check" }, "definition": { "de": "Lea ist unsicher oder das Thema braucht einen Menschen, zum Beispiel bei Beschwerden, Rückerstattungen oder Preisverhandlungen. Das Team bekommt zusätzlich eine E-Mail.", "en": "Lea is unsure or the topic needs a person, for example complaints, refunds or price negotiations. The team also gets an email." } },
     { "term": "24-Stunden-Regel", "name": { "de": "24-hour rule", "en": "24-hour rule" }, "definition": { "de": "Instagram erlaubt Antworten auf eine Nachricht nur innerhalb von 24 Stunden. Danach kann nicht mehr geantwortet werden.", "en": "Instagram only allows replies to a message within 24 hours. After that you can no longer reply." } },
     { "term": "Fotokatalog", "name": { "de": "Photo catalog", "en": "Photo catalog" }, "definition": { "de": "Die automatisch bewerteten Fotos jeder Villa. Für Beiträge werden nur gute Fotos (Qualität 4 oder 5) verwendet.", "en": "The automatically rated photos of each villa. Only good photos (quality 4 or 5) are used for posts." } },
-    { "term": "Rotation", "name": { "de": "Rotation", "en": "Rotation" }, "definition": { "de": "Die Villen kommen der Reihe nach dran. Unter „Objekte“ bestimmst du, welche Villen dabei sind.", "en": "Villas take turns. Under \"Properties\" you decide which villas are part of it." } }
+    { "term": "Rotation", "name": { "de": "Rotation", "en": "Rotation" }, "definition": { "de": "Die Villen kommen der Reihe nach dran. Unter „Objekte“ bestimmst du, welche Villen dabei sind.", "en": "Villas take turns. Under \"Properties\" you decide which villas are part of it." } },
+    { "term": "Aktion", "name": { "de": "Aktion", "en": "Promotion" }, "definition": { "de": "Ein Angebot mit Promo-Code, Villa, Zeitraum und Vorteil, zum Beispiel Early Check-in oder Transfer. Lea und die Beitragstexte dürfen nur aktive Aktionen nennen.", "en": "An offer with a promo code, villa, period and benefit, for example early check-in or transfer. Lea and the post texts may only name active promotions." } },
+    { "term": "Median", "name": { "de": "Median", "en": "Median" }, "definition": { "de": "Der mittlere Wert einer Reihe: Die Hälfte der Konten liegt darüber, die Hälfte darunter. In der Konkurrenz-Scorecard ist es der Vergleichswert, an dem wir gemessen werden.", "en": "The middle value of a series: half of the accounts are above, half below. In the competitor scorecard it is the reference value we are measured against." } },
+    { "term": "Musikbibliothek", "name": { "de": "Musikbibliothek", "en": "Music library" }, "definition": { "de": "Die hochgeladenen Titel für Reels. Verwendet werden nur Titel mit bestätigter Lizenz und Nachweis. Ohne freigegebenen Titel bleibt ein Reel stumm.", "en": "The uploaded tracks for reels. Only tracks with a confirmed license and proof are used. Without an approved track a reel stays silent." } }
   ]
 }
