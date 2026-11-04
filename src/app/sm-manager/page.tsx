@@ -12,6 +12,7 @@ import type { Inquiry } from "@/components/sm-manager/SmInquiries";
 import { SmPostInsights, type PostInsights } from "@/components/sm-manager/SmPostInsights";
 import { SmAudience, type AudiencePlan } from "@/components/sm-manager/SmAudience";
 import { SmCompetitors, type CompetitorsData } from "@/components/sm-manager/SmCompetitors";
+import { SmMusic, type MusicData } from "@/components/sm-manager/SmMusic";
 import { SmLearnings, type LearningsData } from "@/components/sm-manager/SmLearnings";
 import { SmPromos, type PromosData } from "@/components/sm-manager/SmPromos";
 import "@/components/sm-manager/responsive.css";
@@ -47,12 +48,14 @@ export default async function SmManagerPage({ searchParams }: { searchParams: Pr
                 ? "promos"
                 : params.ansicht === "konkurrenz"
                   ? "competitors"
-                  : params.ansicht === "learnings"
-                    ? "learnings"
-                    : "review";
+                  : params.ansicht === "musik"
+                    ? "music"
+                    : params.ansicht === "learnings"
+                      ? "learnings"
+                      : "review";
   const range = RANGES.includes(params.zeitraum ?? "") ? (params.zeitraum as string) : "90";
   try {
-    const [health, list, props, social, clicks, inq, agent, insights, audiencePlan, learningsData, promoData, competitorData] = await Promise.all([
+    const [health, list, props, social, clicks, inq, agent, insights, audiencePlan, learningsData, promoData, competitorData, musicData] = await Promise.all([
       engineHealth(),
       engine<{ posts: Post[] }>("/posts?limit=80"),
       view === "properties" || view === "promos" ? engine<{ properties: Property[] }>("/properties") : Promise.resolve({ properties: [] as Property[] }),
@@ -64,7 +67,8 @@ export default async function SmManagerPage({ searchParams }: { searchParams: Pr
       view === "audience" ? engine<AudiencePlan>("/audience/plan?days=60").catch(() => null) : Promise.resolve(null),
       engine<LearningsData>("/learnings").catch(() => null),
       view === "promos" ? engine<PromosData>("/promos").catch(() => null) : Promise.resolve(null),
-      view === "competitors" ? engine<CompetitorsData>("/competitors").catch(() => null) : Promise.resolve(null)
+      view === "competitors" ? engine<CompetitorsData>("/competitors").catch(() => null) : Promise.resolve(null),
+      view === "music" ? engine<MusicData>("/music").catch(() => null) : Promise.resolve(null)
     ]);
     const reviewCount = list.posts.filter((p) => REVIEW.includes(p.status)).length;
     const inquiryCount = inq.inquiries.filter((i) => INQUIRY_OPEN.includes(i.status)).length;
@@ -98,6 +102,7 @@ export default async function SmManagerPage({ searchParams }: { searchParams: Pr
           learnings={view === "learnings" ? <SmLearnings locale={locale} data={learningsData} /> : null}
           promos={view === "promos" ? <SmPromos locale={locale} promos={promoData} properties={props.properties.map((p) => ({ key: p.key, name: p.name }))} /> : null}
           competitors={view === "competitors" ? <SmCompetitors locale={locale} data={competitorData} /> : null}
+          music={view === "music" ? <SmMusic locale={locale} data={musicData} /> : null}
           learningCount={learningCount}
           postHour={typeof postHour === "number" ? postHour : null}
         />

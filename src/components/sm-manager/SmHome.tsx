@@ -13,12 +13,13 @@ import { tipStrings } from "@/lib/sm-manager/tips-i18n";
 import { SmStats, type ClickStats, type SocialStats } from "./SmStats";
 import { SmInquiries, type Inquiry } from "./SmInquiries";
 import { competitorTabLabel } from "./SmCompetitors";
+import { musicTabLabel } from "./SmMusic";
 import { Tip } from "./Tip";
 import "./sm.css";
 
 type Props = {
   locale: "de" | "en";
-  view: "review" | "done" | "properties" | "stats" | "inquiries" | "audience" | "learnings" | "promos" | "competitors";
+  view: "review" | "done" | "properties" | "stats" | "inquiries" | "audience" | "learnings" | "promos" | "competitors" | "music";
   posts: Post[];
   properties: Property[];
   reviewCount: number;
@@ -33,6 +34,7 @@ type Props = {
   learnings?: ReactNode;
   promos?: ReactNode;
   competitors?: ReactNode;
+  music?: ReactNode;
   learningCount?: number;
   postHour?: number | null;
 };
@@ -62,7 +64,7 @@ function defaultWhen(baliHour?: number | null) {
   return toLocalInput(d);
 }
 
-export function SmHome({ locale, view, posts, properties, reviewCount, ghlReady, social = null, clicks = null, bioLink = "", inquiries = [], inquiryCount = 0, agentEnabled = false, audience = null, learnings = null, promos = null, competitors = null, learningCount = 0, postHour = null }: Props) {
+export function SmHome({ locale, view, posts, properties, reviewCount, ghlReady, social = null, clicks = null, bioLink = "", inquiries = [], inquiryCount = 0, agentEnabled = false, audience = null, learnings = null, promos = null, competitors = null, music = null, learningCount = 0, postHour = null }: Props) {
   const s = smStrings(locale);
   const tp = tipStrings(locale);
   const navRef = useRef<HTMLElement>(null);
@@ -112,6 +114,9 @@ export function SmHome({ locale, view, posts, properties, reviewCount, ghlReady,
         <a href="/sm-manager?ansicht=konkurrenz" aria-current={view === "competitors" ? "page" : undefined}>
           {competitorTabLabel(locale)}
         </a>
+        <a href="/sm-manager?ansicht=musik" aria-current={view === "music" ? "page" : undefined}>
+          {musicTabLabel(locale)}
+        </a>
         <a href="/sm-manager?ansicht=zielgruppen" aria-current={view === "audience" ? "page" : undefined}>
           {audienceStrings(locale).tabAudience}
         </a>
@@ -130,6 +135,8 @@ export function SmHome({ locale, view, posts, properties, reviewCount, ghlReady,
         promos
       ) : view === "competitors" ? (
         competitors
+      ) : view === "music" ? (
+        music
       ) : view === "stats" ? (
         <SmStats locale={locale} social={social} clicks={clicks} bioLink={bioLink} />
       ) : view === "properties" ? (
