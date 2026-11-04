@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { UploadForm } from "@/components/venues/UploadForm";
 import { VenueShell } from "@/components/venues/VenueShell";
@@ -6,14 +7,34 @@ import { tenantBrand } from "@/lib/venues/brand";
 import { MAX_PHOTOS, countPhotos, getVenueByToken, markOpened } from "@/lib/venues/store";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Photo upload", robots: { index: false, follow: false } };
+
+// Link-Vorschau: Titel, Beschreibung und das Bild kommen vom Betreiber. Das Bild liefert opengraph-image.tsx neben dieser Datei.
+// metadataBase muss gesetzt sein, sonst trägt die Bildadresse localhost statt der echten Domain.
+export async function generateMetadata({ params }: { params: Promise<{ token: string }> }): Promise<Metadata> {
+  const { token } = await params;
+  const venue = await getVenueByToken(token).catch(() => null);
+  const brand = tenantBrand();
+  const title = venue ? `${venue.spotName} × ${brand.name}` : `Photo upload · ${brand.name}`;
+  const description = "A free feature on our Instagram, tagged to you. 3 to 5 photos, it takes 2 minutes.";
+  return {
+    metadataBase: new URL((process.env.AUTH_URL ?? "https://myorbit.elev8-suite.com").replace(/\/$/, "")),
+    title,
+    description,
+    robots: { index: false, follow: false },
+    openGraph: { title, description, type: "website", siteName: brand.name }
+  };
+}
+
+/** Vorschau-Roboter (WhatsApp, Facebook, Slack …) holen die Seite schon beim Schreiben der Nachricht. Das ist kein Öffnen durch den Betrieb. */
+const BOT = /whatsapp|facebookexternalhit|facebot|meta-externalagent|slackbot|twitterbot|linkedinbot|telegrambot|discordbot|skypeuripreview|googlebot|bingbot|bot\b|crawler|spider|preview/i;
 
 /** Öffentlich (ohne Login): ein Betrieb lädt Fotos hoch. Zugang ist der Token im Link. Absender ist der Betreiber, nicht die Software. */
 export default async function ContributePage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   const venue = await getVenueByToken(token);
   if (!venue) notFound();
-  await markOpened(venue.id);
+  const agent = (await headers()).get("user-agent") ?? "";
+  if (!BOT.test(agent)) await markOpened(venue.id);
   const used = await countPhotos(venue.id);
   const brand = tenantBrand();
 
