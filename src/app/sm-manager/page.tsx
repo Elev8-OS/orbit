@@ -13,7 +13,7 @@ import { SmPostInsights, type PostInsights } from "@/components/sm-manager/SmPos
 import { SmAudience, type AudiencePlan } from "@/components/sm-manager/SmAudience";
 import { SmCompetitors, type CompetitorsData } from "@/components/sm-manager/SmCompetitors";
 import { SmLearnings, type LearningsData } from "@/components/sm-manager/SmLearnings";
-import { SmPromos, type PromosData, type SuggestionsData } from "@/components/sm-manager/SmPromos";
+import { SmPromos, type PromosData } from "@/components/sm-manager/SmPromos";
 import "@/components/sm-manager/responsive.css";
 
 export const dynamic = "force-dynamic";
@@ -50,7 +50,7 @@ export default async function SmManagerPage({ searchParams }: { searchParams: Pr
                   : "review";
   const range = RANGES.includes(params.zeitraum ?? "") ? (params.zeitraum as string) : "90";
   try {
-    const [health, list, props, social, clicks, inq, agent, insights, audiencePlan, learningsData, promoData, sugData, competitorData] = await Promise.all([
+    const [health, list, props, social, clicks, inq, agent, insights, audiencePlan, learningsData, promoData, competitorData] = await Promise.all([
       engineHealth(),
       engine<{ posts: Post[] }>("/posts?limit=80"),
       view === "properties" || view === "promos" ? engine<{ properties: Property[] }>("/properties") : Promise.resolve({ properties: [] as Property[] }),
@@ -62,7 +62,6 @@ export default async function SmManagerPage({ searchParams }: { searchParams: Pr
       view === "audience" ? engine<AudiencePlan>("/audience/plan?days=60").catch(() => null) : Promise.resolve(null),
       engine<LearningsData>("/learnings").catch(() => null),
       view === "promos" ? engine<PromosData>("/promos").catch(() => null) : Promise.resolve(null),
-      view === "promos" ? engine<SuggestionsData>("/promos/suggestions?days=60").catch(() => null) : Promise.resolve(null),
       view === "audience" ? engine<CompetitorsData>("/competitors").catch(() => null) : Promise.resolve(null)
     ]);
     const reviewCount = list.posts.filter((p) => REVIEW.includes(p.status)).length;
@@ -102,7 +101,7 @@ export default async function SmManagerPage({ searchParams }: { searchParams: Pr
             ) : null
           }
           learnings={view === "learnings" ? <SmLearnings locale={locale} data={learningsData} /> : null}
-          promos={view === "promos" ? <SmPromos locale={locale} promos={promoData} suggestions={sugData} properties={props.properties.map((p) => ({ key: p.key, name: p.name }))} /> : null}
+          promos={view === "promos" ? <SmPromos locale={locale} promos={promoData} properties={props.properties.map((p) => ({ key: p.key, name: p.name }))} /> : null}
           learningCount={learningCount}
           postHour={typeof postHour === "number" ? postHour : null}
         />
