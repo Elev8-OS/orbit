@@ -6,6 +6,8 @@ import { hasSmAccess, smConfigured } from "@/lib/sm-manager/access";
 import { engine, engineHealth } from "@/lib/sm-manager/client";
 import { smStrings } from "@/lib/sm-manager/i18n";
 import type { Post, Property } from "@/lib/sm-manager/types";
+import { storageConfigured } from "@/lib/venues/s3";
+import { listVenues } from "@/lib/venues/store";
 import { SmHome } from "@/components/sm-manager/SmHome";
 import type { ClickStats, SocialStats } from "@/components/sm-manager/SmStats";
 import type { Inquiry } from "@/components/sm-manager/SmInquiries";
@@ -15,6 +17,7 @@ import { SmDrafting, type DraftingData } from "@/components/sm-manager/SmDraftin
 import { SmAudience, type AudiencePlan } from "@/components/sm-manager/SmAudience";
 import { SmCompetitors, type CompetitorsData } from "@/components/sm-manager/SmCompetitors";
 import { SmMusic, type MusicData } from "@/components/sm-manager/SmMusic";
+import { SmVenues, type VenuesData } from "@/components/sm-manager/SmVenues";
 import { SmLearnings, type LearningsData } from "@/components/sm-manager/SmLearnings";
 import { SmPromos, type PromosData } from "@/components/sm-manager/SmPromos";
 import "@/components/sm-manager/responsive.css";
@@ -52,9 +55,11 @@ export default async function SmManagerPage({ searchParams }: { searchParams: Pr
                   ? "competitors"
                   : params.ansicht === "musik"
                     ? "music"
-                    : params.ansicht === "learnings"
-                      ? "learnings"
-                      : "review";
+                    : params.ansicht === "orte"
+                      ? "venues"
+                      : params.ansicht === "learnings"
+                        ? "learnings"
+                        : "review";
   const range = RANGES.includes(params.zeitraum ?? "") ? (params.zeitraum as string) : "90";
   try {
     const [health, list, props, social, clicks, inq, agent, insights, audiencePlan, learningsData, promoData, competitorData, musicData, compareData, draftingData] = await Promise.all([
@@ -79,6 +84,18 @@ export default async function SmManagerPage({ searchParams }: { searchParams: Pr
     const learningCount = learningsData?.proposed.length ?? 0;
     // Uhrzeit aus einem übernommenen Learning (Bali-Zeit), sonst gilt 18 Uhr
     const postHour = learningsData?.accepted.find((l) => l.action.type === "post_hour")?.action.hour ?? null;
+
+    // Betriebe und ihre Fotos liegen in der Orbit-Datenbank, nicht in der Engine.
+    let venueData: VenuesData | null = null;
+    if (view === "venues") {
+      try {
+        const base = (process.env.AUTH_URL ?? "https://myorbit.elev8-suite.com").replace(/\/$/, "");
+        venueData = { venues: (await listVenues()).map((v) => ({ ...v, link: `${base}/contribute/${v.token}` })), storage: storageConfigured() };
+      } catch (e) {
+        console.error("Orte konnten nicht geladen werden:", e);
+      }
+    }
+
     let posts: Post[] = [];
     if (view === "review" || view === "done") {
       const wanted = list.posts.filter((p) => (view === "review" ? REVIEW : DONE).includes(p.status)).slice(0, view === "review" ? 20 : 30);
@@ -107,6 +124,7 @@ export default async function SmManagerPage({ searchParams }: { searchParams: Pr
           promos={view === "promos" ? <SmPromos locale={locale} promos={promoData} properties={props.properties.map((p) => ({ key: p.key, name: p.name }))} /> : null}
           competitors={view === "competitors" ? <SmCompetitors locale={locale} data={competitorData} /> : null}
           music={view === "music" ? <SmMusic locale={locale} data={musicData} /> : null}
+          venues={view === "venues" ? <SmVenues locale={locale} data={venueData} /> : null}
           drafting={view === "review" ? <SmDrafting locale={locale} data={draftingData} /> : null}
           learningCount={learningCount}
           postHour={typeof postHour === "number" ? postHour : null}
