@@ -28,14 +28,19 @@ async function call(method: string, url: string, body?: unknown): Promise<{ ok: 
 }
 
 /**
- * Der Text der Nachricht an den Betrieb. Er kommt vom Betreiber (Tenant), nicht von der Software:
- * Betreiber und Absender stehen in der Nachricht, dazu unser Instagram-Name und die Bitte um einen Gegen-Tag.
- * Ohne Ansprechperson wird der Betrieb angesprochen. Dieselbe Fassung gehört später ins WhatsApp-Template.
+ * Die Nachricht an den Betrieb. Sie kommt vom Betreiber (Tenant), nicht von der Software.
+ * Aufbau: Gruß, wer und wo, Nutzen für den Betrieb, genau eine Bitte mit Zeitrahmen, Link allein auf einer Zeile,
+ * Gegen-Tag, Dank. Kurze Absätze, *fett* nur für das Wichtige, wie WhatsApp es darstellt.
+ * Ohne Ansprechperson wird der Betrieb angesprochen. Dieselbe Fassung gehört ins WhatsApp-Template.
+ * "reminder" ist die kurze Erinnerung nach ein bis zwei Tagen.
  */
-function messageFor(brand: VenueBrand, contactName: string, spotName: string, link: string): string {
+function messageFor(brand: VenueBrand, contactName: string, spotName: string, link: string, kind: "first" | "reminder" = "first"): string {
   const hello = contactName.trim() || `${spotName} team`;
-  const us = brand.instagram ? `We are @${brand.instagram} on Instagram. ` : "";
-  return `Hi ${hello}, this is ${brand.sender} from ${brand.name} in Pererenan. 🌴 We send our guests to ${spotName} and would love to feature you in an Instagram post as one of our tips around Pererenan. Please upload a few photos and a short note for each here: ${link}\n\n${us}Since we actively send guests your way, it would mean a lot to us if you tagged us in a post too. Together we are stronger! 🤝`;
+  if (kind === "reminder") {
+    return `Hi ${hello} 👋\n\nQuick reminder from ${brand.sender} at *${brand.name}*: your feature is waiting for your photos. 📸\n\n3 photos are enough, it takes 2 minutes:\n${link}\n\nHappy to help with anything here. Thank you! 🙏`;
+  }
+  const where = brand.instagram ? ` (@${brand.instagram})` : "";
+  return `Hi ${hello} 👋\n\nIt's ${brand.sender} from *${brand.name}*, just around the corner in Pererenan.\n\nWe send our guests to *${spotName}* and we would love to feature you on our Instagram${where} as one of our local tips. *Free, and tagged to you.* 🌴\n\nAll we need:\n📸 3 to 5 of your best photos\n✍️ one line about each\n\nTakes 2 minutes 👇\n${link}\n\nIf you tag us back, even better. We keep sending guests your way. Together we are stronger 🤝\n\nThank you!\n${brand.sender}`;
 }
 
 /** WhatsApp Web mit fertigem Text; leer, wenn die Nummer nicht reicht. */
@@ -79,15 +84,15 @@ export function SmVenues({ locale, data }: { locale: Locale; data: VenuesData | 
     <section className="ve">
       <p className="sm-muted">
         {l(
-          "Betriebe aus dem Umgebungs-Guide, mit Nummer, Instagram und Website vorbelegt, soweit gefunden. Jeder hat einen persönlichen Link, über den er Fotos hochlädt und seine Daten selbst einträgt. Ein Klick auf die Nummer öffnet WhatsApp Web mit dem fertigen Text samt Link. Für Beiträge zählt ein Ort nur, wenn die Einwilligung bestätigt ist und mindestens ein Foto freigegeben wurde.",
-          "Venues from the area guide, prefilled with number, Instagram and website where found. Each has a personal link to upload photos and enter their own details. Click the number to open WhatsApp Web with the finished text and link. A place is only used in posts when consent is confirmed and at least one photo is approved."
+          "Betriebe aus dem Umgebungs-Guide, mit Nummer, Instagram und Website vorbelegt, soweit gefunden. Jeder hat einen persönlichen Link, über den er Fotos hochlädt und seine Daten selbst einträgt. Ein Klick auf die Nummer öffnet WhatsApp Web mit dem fertigen Text samt Link, nach ein bis zwei Tagen ohne Fotos schickt der Knopf «Erinnerung» die kurze Nachfrage. Für Beiträge zählt ein Ort nur, wenn die Einwilligung bestätigt ist und mindestens ein Foto freigegeben wurde.",
+          "Venues from the area guide, prefilled with number, Instagram and website where found. Each has a personal link to upload photos and enter their own details. Click the number to open WhatsApp Web with the finished text and link; after a day or two without photos the Reminder button sends the short follow-up. A place is only used in posts when consent is confirmed and at least one photo is approved."
         )}
       </p>
 
       {missing.length > 0 ? (
         <p className="sm-warn">
           {l(
-            `Angaben des Betreibers fehlen (${missing.join(", ")}). Ohne den Instagram-Namen enthält die Nachricht keine Bitte um einen Gegen-Tag mit Namen, ohne Logo zeigt die Upload-Seite nur den Namen. Beides wird als Umgebungsvariable am Orbit-Dienst gesetzt.`,
+            `Angaben des Betreibers fehlen (${missing.join(", ")}). Ohne den Instagram-Namen nennt die Nachricht kein Konto zum Taggen, ohne Logo zeigt die Upload-Seite nur den Namen. Beides wird als Umgebungsvariable am Orbit-Dienst gesetzt.`,
             `Operator details are missing (${missing.join(", ")}). Without the Instagram name the message names no account to tag, without a logo the upload page shows the name only. Both are set as environment variables on the Orbit service.`
           )}
         </p>
@@ -200,8 +205,12 @@ function VenueRow({ v, brand, locale, isOpen, onToggle, onChanged }: { v: VenueI
   };
 
   const rowUrl = whatsappUrl(v.phone, messageFor(brand, v.contactName, v.spotName, v.link));
+  // Erinnerung nur, wenn der Link raus ist und noch keine Fotos da sind
+  const remindable = (v.status === "sent" || v.status === "opened") && v.photos === 0;
+  const rowReminderUrl = remindable ? whatsappUrl(v.phone, messageFor(brand, v.contactName, v.spotName, v.link, "reminder")) : "";
   const panelText = messageFor(brand, form.contact_name, v.spotName, v.link);
   const panelUrl = whatsappUrl(form.phone, panelText);
+  const panelReminderUrl = remindable ? whatsappUrl(form.phone, messageFor(brand, form.contact_name, v.spotName, v.link, "reminder")) : "";
   const status = (locale === "de" ? STATUS_DE : STATUS_EN)[v.status] ?? v.status;
   const fmt = (iso: string | null) => (iso ? new Intl.DateTimeFormat(locale === "en" ? "en-GB" : "de-CH", { day: "numeric", month: "short" }).format(new Date(iso)) : "–");
   const phoneNote =
@@ -226,9 +235,16 @@ function VenueRow({ v, brand, locale, isOpen, onToggle, onChanged }: { v: VenueI
           <span className={`sm-badge ${usable(v) ? "sm-badge-ok" : ""}`}>{usable(v) ? l("bereit", "ready") : v.consentAt ? l("Einwilligung ✓", "Consent ✓") : l("Einwilligung offen", "Consent open")}</span>
         </button>
         {rowUrl && v.tokenActive ? (
-          <a className="sm-btn ve-wa" href={rowUrl} target="_blank" rel="noreferrer" onClick={markSent} title={l("Öffnet WhatsApp Web mit dem fertigen Text und Link", "Opens WhatsApp Web with the finished text and link")}>
-            {v.phone} · WhatsApp
-          </a>
+          <span className="ve-send">
+            <a className="sm-btn ve-wa" href={rowUrl} target="_blank" rel="noreferrer" onClick={markSent} title={l("Öffnet WhatsApp Web mit dem fertigen Text und Link", "Opens WhatsApp Web with the finished text and link")}>
+              {v.phone} · WhatsApp
+            </a>
+            {rowReminderUrl ? (
+              <a className="sm-btn ve-wa" href={rowReminderUrl} target="_blank" rel="noreferrer" onClick={markSent} title={l("Kurze Erinnerung, wenn noch keine Fotos da sind", "Short reminder while no photos are in")}>
+                {l("Erinnerung", "Reminder")}
+              </a>
+            ) : null}
+          </span>
         ) : (
           <span className="sm-muted sm-small">{v.tokenActive ? l("Nummer fehlt (im Detail eintragen)", "No number (add it in the details)") : l("Link gesperrt", "Link blocked")}</span>
         )}
@@ -305,6 +321,11 @@ function VenueRow({ v, brand, locale, isOpen, onToggle, onChanged }: { v: VenueI
             {panelUrl && v.tokenActive ? (
               <a className="sm-btn" href={panelUrl} target="_blank" rel="noreferrer" onClick={markSent}>
                 {l("In WhatsApp Web öffnen", "Open in WhatsApp Web")}
+              </a>
+            ) : null}
+            {panelReminderUrl && v.tokenActive ? (
+              <a className="sm-btn" href={panelReminderUrl} target="_blank" rel="noreferrer" onClick={markSent}>
+                {l("Erinnerung in WhatsApp Web", "Reminder in WhatsApp Web")}
               </a>
             ) : null}
             <button type="button" className="sm-btn" onClick={toggleLink} disabled={busy}>

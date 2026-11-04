@@ -22,20 +22,34 @@ export default async function ContributePage({ params }: { params: Promise<{ tok
       <div className="pub-hero">
         <p className="pub-kicker">Thank you for joining in</p>
         <h1>{venue.spotName}</h1>
+        <p className="pub-muted">We send our guests to {venue.spotName}. Now we would love to show you to them.</p>
+
+        <ul className="vp-list">
+          <li>
+            <strong>A free feature</strong> on our Instagram{brand.instagram ? <> (@{brand.instagram})</> : null}, as one of our local tips around Pererenan
+          </li>
+          <li>
+            <strong>A tag to your account</strong>, so people who see the post find you
+          </li>
+          <li>
+            <strong>It takes 2 minutes</strong>: 3 to 5 photos and a few words on each
+          </li>
+        </ul>
+
         <p className="pub-muted">
-          We send our guests to {venue.spotName}, and we would love to show you to them on Instagram as one of our tips around Pererenan. Please add 3 to 5 of your best photos, ideally some in landscape and some in portrait, and a few words on what each one shows. We will tag you.
-        </p>
-        <p className="pub-muted">
+          Landscape and portrait photos both work, the originals from your phone or camera are best.{" "}
           {brand.instagram ? (
             <>
-              We are{" "}
+              If you tag{" "}
               <a href={`https://www.instagram.com/${encodeURIComponent(brand.instagram)}/`} target="_blank" rel="noreferrer">
                 @{brand.instagram}
               </a>{" "}
-              on Instagram.{" "}
+              in a post of your own, even better:{" "}
             </>
-          ) : null}
-          Since we actively send guests your way, we would be happy if you tagged us in a post too. Together we are stronger. 🤝
+          ) : (
+            <>If you tag us in a post of your own, even better: </>
+          )}
+          we keep sending guests your way. Together we are stronger. 🤝
         </p>
       </div>
       <UploadForm token={token} venueName={venue.spotName} remaining={Math.max(0, MAX_PHOTOS - used)} prefill={{ contactName: venue.contactName, instagram: venue.instagram }} />
