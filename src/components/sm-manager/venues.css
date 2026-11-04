@@ -5,6 +5,7 @@
 .ve-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 8px 14px; }
 .ve-toggle { flex: 1 1 320px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 6px 0; background: transparent; border: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; }
 .ve-toggle strong { flex: 1 1 200px; }
+.ve-send { display: flex; flex-wrap: wrap; gap: 8px; }
 .ve-wa { white-space: nowrap; text-decoration: none; }
 .ve-panel { padding: 4px 14px 16px; border-top: 1px solid rgba(128, 128, 128, 0.2); }
 .ve-panel h4 { margin: 18px 0 8px; }
