@@ -1,0 +1,64 @@
+.src {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+.src h2 {
+  margin: 0.5rem 0 0;
+  font-size: 1.1rem;
+}
+.src-seg {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.src-seg button[aria-pressed="true"] {
+  background: #1f1f1f;
+  color: #fff;
+}
+.src-box {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  background: #f6f6f4;
+}
+.src-chip {
+  display: inline-block;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.src-auto {
+  background: #dff3e4;
+  color: #17612b;
+}
+.src-manual {
+  background: #fff1d6;
+  color: #7a4b00;
+}
+.src-none,
+.src-few {
+  background: #ececec;
+  color: #444;
+}
+.src-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin: 0;
+}
+.src-stats div {
+  display: grid;
+}
+.src-stats strong {
+  font-size: 1.4rem;
+}
+.src details {
+  font-size: 0.9rem;
+}
+.src details ul {
+  margin: 0.5rem 0 0;
+  padding-left: 1.2rem;
+}

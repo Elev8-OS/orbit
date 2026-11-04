@@ -10,6 +10,7 @@ import { SmHome } from "@/components/sm-manager/SmHome";
 import type { ClickStats, SocialStats } from "@/components/sm-manager/SmStats";
 import type { Inquiry } from "@/components/sm-manager/SmInquiries";
 import { SmPostInsights, type PostInsights } from "@/components/sm-manager/SmPostInsights";
+import { SmSourceCompare, type SourceCompare } from "@/components/sm-manager/SmSourceCompare";
 import { SmAudience, type AudiencePlan } from "@/components/sm-manager/SmAudience";
 import { SmCompetitors, type CompetitorsData } from "@/components/sm-manager/SmCompetitors";
 import { SmMusic, type MusicData } from "@/components/sm-manager/SmMusic";
@@ -55,7 +56,7 @@ export default async function SmManagerPage({ searchParams }: { searchParams: Pr
                       : "review";
   const range = RANGES.includes(params.zeitraum ?? "") ? (params.zeitraum as string) : "90";
   try {
-    const [health, list, props, social, clicks, inq, agent, insights, audiencePlan, learningsData, promoData, competitorData, musicData] = await Promise.all([
+    const [health, list, props, social, clicks, inq, agent, insights, audiencePlan, learningsData, promoData, competitorData, musicData, compareData] = await Promise.all([
       engineHealth(),
       engine<{ posts: Post[] }>("/posts?limit=80"),
       view === "properties" || view === "promos" ? engine<{ properties: Property[] }>("/properties") : Promise.resolve({ properties: [] as Property[] }),
@@ -68,7 +69,8 @@ export default async function SmManagerPage({ searchParams }: { searchParams: Pr
       engine<LearningsData>("/learnings").catch(() => null),
       view === "promos" ? engine<PromosData>("/promos").catch(() => null) : Promise.resolve(null),
       view === "competitors" ? engine<CompetitorsData>("/competitors").catch(() => null) : Promise.resolve(null),
-      view === "music" ? engine<MusicData>("/music").catch(() => null) : Promise.resolve(null)
+      view === "music" ? engine<MusicData>("/music").catch(() => null) : Promise.resolve(null),
+      view === "stats" ? engine<SourceCompare>(`/stats/compare?days=${range}`).catch(() => null) : Promise.resolve(null)
     ]);
     const reviewCount = list.posts.filter((p) => REVIEW.includes(p.status)).length;
     const inquiryCount = inq.inquiries.filter((i) => INQUIRY_OPEN.includes(i.status)).length;
@@ -109,6 +111,7 @@ export default async function SmManagerPage({ searchParams }: { searchParams: Pr
         {view === "stats" ? (
           <div className="p-page sm" style={{ paddingTop: 0 }}>
             <SmPostInsights locale={locale} data={insights} range={range} />
+            <SmSourceCompare locale={locale} data={compareData} />
           </div>
         ) : null}
       </>
