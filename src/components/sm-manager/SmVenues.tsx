@@ -6,7 +6,8 @@ import type { Photo, VenueSummary } from "@/lib/venues/store";
 import "./venues.css";
 
 export type VenueItem = VenueSummary & { link: string };
-export type VenuesData = { venues: VenueItem[]; storage: boolean };
+export type VenueBrand = { name: string; instagram: string; sender: string; hasLogo: boolean };
+export type VenuesData = { venues: VenueItem[]; storage: boolean; brand: VenueBrand };
 
 type Locale = "de" | "en";
 
@@ -26,10 +27,15 @@ async function call(method: string, url: string, body?: unknown): Promise<{ ok: 
   }
 }
 
-/** Der Text der Nachricht; derselbe, der später als WhatsApp-Template laufen soll. Ohne Ansprechperson wird der Betrieb angesprochen. */
-function messageFor(contactName: string, spotName: string, link: string): string {
+/**
+ * Der Text der Nachricht an den Betrieb. Er kommt vom Betreiber (Tenant), nicht von der Software:
+ * Betreiber und Absender stehen in der Nachricht, dazu unser Instagram-Name und die Bitte um einen Gegen-Tag.
+ * Ohne Ansprechperson wird der Betrieb angesprochen. Dieselbe Fassung gehört später ins WhatsApp-Template.
+ */
+function messageFor(brand: VenueBrand, contactName: string, spotName: string, link: string): string {
   const hello = contactName.trim() || `${spotName} team`;
-  return `Hi ${hello}, this is Reto from The R Villas in Pererenan. 🌴 Thank you for agreeing to be featured. We would love to show ${spotName} to our guests on Instagram. Please upload a few photos here and add a short note for each: ${link} It takes about two minutes. Thank you!`;
+  const us = brand.instagram ? `We are @${brand.instagram} on Instagram. ` : "";
+  return `Hi ${hello}, this is ${brand.sender} from ${brand.name} in Pererenan. 🌴 We send our guests to ${spotName} and would love to feature you in an Instagram post as one of our tips around Pererenan. Please upload a few photos and a short note for each here: ${link}\n\n${us}Since we actively send guests your way, it would mean a lot to us if you tagged us in a post too. Together we are stronger! 🤝`;
 }
 
 /** WhatsApp Web mit fertigem Text; leer, wenn die Nummer nicht reicht. */
@@ -49,12 +55,14 @@ export function SmVenues({ locale, data }: { locale: Locale; data: VenuesData | 
   if (!data) return <p className="sm-empty">{l("Die Orte konnten nicht geladen werden.", "The places could not be loaded.")}</p>;
 
   const venues = data.venues;
+  const brand = data.brand;
   const counts = {
     ready: venues.filter(usable).length,
     review: venues.filter((v) => v.pending > 0).length,
     waiting: venues.filter((v) => v.photos === 0).length
   };
   const shown = venues.filter((v) => (filter === "all" ? true : filter === "review" ? v.pending > 0 : filter === "waiting" ? v.photos === 0 : usable(v)));
+  const missing = [!brand.instagram ? "TENANT_INSTAGRAM" : "", !brand.hasLogo ? "TENANT_LOGO_URL" : ""].filter(Boolean);
 
   async function seed() {
     setBusy(true);
@@ -75,6 +83,15 @@ export function SmVenues({ locale, data }: { locale: Locale; data: VenuesData | 
           "Venues from the area guide, prefilled with number, Instagram and website where found. Each has a personal link to upload photos and enter their own details. Click the number to open WhatsApp Web with the finished text and link. A place is only used in posts when consent is confirmed and at least one photo is approved."
         )}
       </p>
+
+      {missing.length > 0 ? (
+        <p className="sm-warn">
+          {l(
+            `Angaben des Betreibers fehlen (${missing.join(", ")}). Ohne den Instagram-Namen enthält die Nachricht keine Bitte um einen Gegen-Tag mit Namen, ohne Logo zeigt die Upload-Seite nur den Namen. Beides wird als Umgebungsvariable am Orbit-Dienst gesetzt.`,
+            `Operator details are missing (${missing.join(", ")}). Without the Instagram name the message names no account to tag, without a logo the upload page shows the name only. Both are set as environment variables on the Orbit service.`
+          )}
+        </p>
+      ) : null}
 
       {!data.storage ? (
         <p className="sm-warn">{l("Der Foto-Speicher ist nicht verbunden. Uploads funktionieren erst, wenn die S3-Variablen gesetzt sind und Orbit neu gestartet wurde.", "Photo storage is not connected. Uploads work once the S3 variables are set and Orbit has been redeployed.")}</p>
@@ -110,7 +127,7 @@ export function SmVenues({ locale, data }: { locale: Locale; data: VenuesData | 
           {msg ? <p className="sm-muted sm-small" role="status">{msg}</p> : null}
           <ul className="ve-list">
             {shown.map((v) => (
-              <VenueRow key={v.id} v={v} locale={locale} isOpen={open === v.id} onToggle={() => setOpen(open === v.id ? null : v.id)} onChanged={() => router.refresh()} />
+              <VenueRow key={v.id} v={v} brand={brand} locale={locale} isOpen={open === v.id} onToggle={() => setOpen(open === v.id ? null : v.id)} onChanged={() => router.refresh()} />
             ))}
           </ul>
         </>
@@ -122,7 +139,7 @@ export function SmVenues({ locale, data }: { locale: Locale; data: VenuesData | 
 const STATUS_DE: Record<string, string> = { new: "Neu", sent: "Versendet", opened: "Link geöffnet", uploaded: "Fotos da" };
 const STATUS_EN: Record<string, string> = { new: "New", sent: "Sent", opened: "Link opened", uploaded: "Photos in" };
 
-function VenueRow({ v, locale, isOpen, onToggle, onChanged }: { v: VenueItem; locale: Locale; isOpen: boolean; onToggle: () => void; onChanged: () => void }) {
+function VenueRow({ v, brand, locale, isOpen, onToggle, onChanged }: { v: VenueItem; brand: VenueBrand; locale: Locale; isOpen: boolean; onToggle: () => void; onChanged: () => void }) {
   const l = (de: string, en: string) => (locale === "de" ? de : en);
   const [form, setForm] = useState({ contact_name: v.contactName, phone: v.phone, email: v.email, instagram: v.instagram, consent_ref: v.consentRef });
   const [consent, setConsent] = useState(Boolean(v.consentAt));
@@ -182,8 +199,8 @@ function VenueRow({ v, locale, isOpen, onToggle, onChanged }: { v: VenueItem; lo
     });
   };
 
-  const rowUrl = whatsappUrl(v.phone, messageFor(v.contactName, v.spotName, v.link));
-  const panelText = messageFor(form.contact_name, v.spotName, v.link);
+  const rowUrl = whatsappUrl(v.phone, messageFor(brand, v.contactName, v.spotName, v.link));
+  const panelText = messageFor(brand, form.contact_name, v.spotName, v.link);
   const panelUrl = whatsappUrl(form.phone, panelText);
   const status = (locale === "de" ? STATUS_DE : STATUS_EN)[v.status] ?? v.status;
   const fmt = (iso: string | null) => (iso ? new Intl.DateTimeFormat(locale === "en" ? "en-GB" : "de-CH", { day: "numeric", month: "short" }).format(new Date(iso)) : "–");

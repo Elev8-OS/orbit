@@ -6,6 +6,7 @@ import { hasSmAccess, smConfigured } from "@/lib/sm-manager/access";
 import { engine, engineHealth } from "@/lib/sm-manager/client";
 import { smStrings } from "@/lib/sm-manager/i18n";
 import type { Post, Property } from "@/lib/sm-manager/types";
+import { tenantBrand } from "@/lib/venues/brand";
 import { storageConfigured } from "@/lib/venues/s3";
 import { listVenues } from "@/lib/venues/store";
 import { SmHome } from "@/components/sm-manager/SmHome";
@@ -90,7 +91,12 @@ export default async function SmManagerPage({ searchParams }: { searchParams: Pr
     if (view === "venues") {
       try {
         const base = (process.env.AUTH_URL ?? "https://myorbit.elev8-suite.com").replace(/\/$/, "");
-        venueData = { venues: (await listVenues()).map((v) => ({ ...v, link: `${base}/contribute/${v.token}` })), storage: storageConfigured() };
+        const brand = tenantBrand();
+        venueData = {
+          venues: (await listVenues()).map((v) => ({ ...v, link: `${base}/contribute/${v.token}` })),
+          storage: storageConfigured(),
+          brand: { name: brand.name, instagram: brand.instagram, sender: brand.sender, hasLogo: Boolean(brand.logoUrl) }
+        };
       } catch (e) {
         console.error("Orte konnten nicht geladen werden:", e);
       }
