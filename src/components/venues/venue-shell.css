@@ -1,0 +1,5 @@
+.vp-band { background: #fff; border-bottom: 1px solid rgba(0, 0, 0, 0.08); }
+.vp-band-inner { max-width: 880px; margin: 0 auto; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.vp-logo { height: 44px; width: auto; max-width: 60%; object-fit: contain; display: block; }
+.vp-name { font-size: 18px; color: #111; }
+.vp-label { font-size: 13px; color: #555; white-space: nowrap; }
