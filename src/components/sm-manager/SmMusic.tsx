@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { tipStrings } from "@/lib/sm-manager/tips-i18n";
 import { Tip } from "./Tip";
@@ -33,7 +33,9 @@ const de = {
   usable: (n: number) => `${n} ${n === 1 ? "Titel ist" : "Titel sind"} freigegeben und wird für neue Reels verwendet.`,
   noneUsable: "Noch kein Titel freigegeben: neue Reels werden stumm gerendert.",
   addTitle: "Titel hinzufügen",
-  file: "MP3-Datei (bis 15 MB)",
+  file: "MP3-Dateien (mehrere möglich, je bis 15 MB)",
+  sharedTitle: "Gilt für alle Dateien",
+  filesTitle: "Dateien",
   name: "Titel",
   provider: "Anbieter",
   providerHelp: "Woher stammt der Titel, zum Beispiel Epidemic Sound, Artlist oder Uppbeat.",
@@ -44,9 +46,15 @@ const de = {
   licenseOk: "Lizenz geprüft: Die kommerzielle Nutzung in Social-Media-Videos (Instagram, Facebook, TikTok) ist erlaubt.",
   note: "Notiz (optional)",
   upload: "Hochladen",
+  uploadN: (n: number) => `${n} ${n === 1 ? "Datei" : "Dateien"} hochladen`,
   uploading: "Wird hochgeladen und geprüft …",
-  chooseFile: "Bitte wähle eine MP3-Datei.",
+  progress: (i: number, n: number) => `Datei ${i} von ${n} …`,
+  chooseFile: "Bitte wähle mindestens eine MP3-Datei.",
+  onlyMp3: "Nur MP3-Dateien werden angenommen. Die anderen wurden übersprungen.",
   needProof: "Für die Freigabe brauchen wir Anbieter und Lizenz-Nachweis.",
+  rowStatus: { ready: "Bereit", uploading: "Läuft …", error: "Fehler" } as Record<string, string>,
+  removeRow: "Entfernen",
+  result: (ok: number, bad: number) => (bad ? `${ok} hochgeladen, ${bad} fehlgeschlagen. Die fehlgeschlagenen stehen noch in der Liste, du kannst es erneut versuchen.` : `${ok} hochgeladen.`),
   listTitle: "Bibliothek",
   empty: "Noch keine Titel. Lade den ersten hoch, sobald Anbieter und Lizenz geklärt sind.",
   approved: "Freigegeben",
@@ -69,8 +77,10 @@ const en: typeof de = {
   noStorage: "File storage is not set up in the engine, so uploads are not possible.",
   usable: (n) => `${n} ${n === 1 ? "track is" : "tracks are"} approved and used for new reels.`,
   noneUsable: "No track is approved yet: new reels are rendered silent.",
-  addTitle: "Add a track",
-  file: "MP3 file (up to 15 MB)",
+  addTitle: "Add tracks",
+  file: "MP3 files (several possible, up to 15 MB each)",
+  sharedTitle: "Applies to all files",
+  filesTitle: "Files",
   name: "Title",
   provider: "Provider",
   providerHelp: "Where the track comes from, for example Epidemic Sound, Artlist or Uppbeat.",
@@ -81,9 +91,15 @@ const en: typeof de = {
   licenseOk: "License checked: commercial use in social media videos (Instagram, Facebook, TikTok) is allowed.",
   note: "Note (optional)",
   upload: "Upload",
+  uploadN: (n) => `Upload ${n} ${n === 1 ? "file" : "files"}`,
   uploading: "Uploading and checking ...",
-  chooseFile: "Please choose an MP3 file.",
+  progress: (i, n) => `File ${i} of ${n} ...`,
+  chooseFile: "Please choose at least one MP3 file.",
+  onlyMp3: "Only MP3 files are accepted. The others were skipped.",
   needProof: "Approval needs the provider and the license proof.",
+  rowStatus: { ready: "Ready", uploading: "Running ...", error: "Error" },
+  removeRow: "Remove",
+  result: (ok, bad) => (bad ? `${ok} uploaded, ${bad} failed. The failed ones are still in the list, you can try again.` : `${ok} uploaded.`),
   listTitle: "Library",
   empty: "No tracks yet. Upload the first one once provider and license are settled.",
   approved: "Approved",
@@ -102,6 +118,17 @@ export const musicTabLabel = (locale: "de" | "en") => (locale === "en" ? en : de
 
 type S = typeof de;
 
+type Row = { id: number; file: File; title: string; mood: Mood; status: "ready" | "uploading" | "error"; error?: string };
+
+// "Artist_-_Track_Name.mp3" -> "Artist - Track Name"
+const cleanName = (name: string) =>
+  name
+    .replace(/\.mp3$/i, "")
+    .replace(/_+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+const isMp3 = (f: File) => /\.mp3$/i.test(f.name) || f.type === "audio/mpeg";
+
 async function call(method: string, url: string, body?: unknown): Promise<{ ok: boolean; error?: string }> {
   try {
     const res = await fetch(url, { method, headers: body ? { "Content-Type": "application/json" } : undefined, body: body ? JSON.stringify(body) : undefined });
@@ -117,16 +144,15 @@ export function SmMusic({ locale, data }: { locale: "de" | "en"; data: MusicData
   const s: S = locale === "en" ? en : de;
   const tp = tipStrings(locale);
   const router = useRouter();
-  const [file, setFile] = useState<File | null>(null);
-  const [title, setTitle] = useState("");
+  const [rows, setRows] = useState<Row[]>([]);
   const [provider, setProvider] = useState("");
-  const [mood, setMood] = useState<Mood>("any");
   const [licenseRef, setLicenseRef] = useState("");
   const [licenseOk, setLicenseOk] = useState(false);
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [fileKey, setFileKey] = useState(0);
+  const nextId = useRef(1);
 
   if (!data) {
     return (
@@ -137,43 +163,58 @@ export function SmMusic({ locale, data }: { locale: "de" | "en"; data: MusicData
     );
   }
 
-  async function upload() {
-    if (!file) return setMsg(s.chooseFile);
-    if (licenseOk && (!provider.trim() || !licenseRef.trim())) return setMsg(s.needProof);
-    setBusy(true);
-    setMsg(s.uploading);
+  function pick(list: FileList | null) {
+    if (!list) return;
+    const all = Array.from(list);
+    const mp3 = all.filter(isMp3);
+    setMsg(mp3.length < all.length ? s.onlyMp3 : null);
+    setRows((prev) => [...prev, ...mp3.map((f) => ({ id: nextId.current++, file: f, title: cleanName(f.name), mood: "any" as Mood, status: "ready" as const }))]);
+    setFileKey((k) => k + 1); // empties the file field so the same files can be picked again
+  }
+  const patch = (id: number, p: Partial<Row>) => setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...p } : r)));
+
+  async function uploadOne(r: Row): Promise<{ ok: boolean; error?: string }> {
     const form = new FormData();
-    form.set("file", file);
-    form.set("title", title.trim() || file.name.replace(/\.mp3$/i, ""));
+    form.set("file", r.file);
+    form.set("title", r.title.trim() || cleanName(r.file.name));
     form.set("provider", provider);
-    form.set("mood", mood);
+    form.set("mood", r.mood);
     form.set("license_ref", licenseRef);
     form.set("license_ok", String(licenseOk));
     form.set("note", note);
-    let ok = false;
-    let error: string | undefined;
     try {
       const res = await fetch("/api/sm-manager/music", { method: "POST", body: form });
-      ok = res.ok;
-      if (!ok) error = ((await res.json().catch(() => ({}))) as { error?: string }).error;
+      if (res.ok) return { ok: true };
+      return { ok: false, error: ((await res.json().catch(() => ({}))) as { error?: string }).error };
     } catch {
-      ok = false;
+      return { ok: false };
+    }
+  }
+
+  async function uploadAll() {
+    const todo = rows.filter((r) => r.status !== "uploading");
+    if (!todo.length) return setMsg(s.chooseFile);
+    if (licenseOk && (!provider.trim() || !licenseRef.trim())) return setMsg(s.needProof);
+    setBusy(true);
+    let ok = 0;
+    let bad = 0;
+    // One after the other: each file is checked and stored before the next one starts
+    for (let i = 0; i < todo.length; i++) {
+      const r = todo[i];
+      setMsg(s.progress(i + 1, todo.length));
+      patch(r.id, { status: "uploading", error: undefined });
+      const res = await uploadOne(r);
+      if (res.ok) {
+        ok++;
+        setRows((prev) => prev.filter((x) => x.id !== r.id));
+      } else {
+        bad++;
+        patch(r.id, { status: "error", error: res.error });
+      }
     }
     setBusy(false);
-    if (ok) {
-      setMsg(s.saved);
-      setFile(null);
-      setFileKey((k) => k + 1);
-      setTitle("");
-      setProvider("");
-      setMood("any");
-      setLicenseRef("");
-      setLicenseOk(false);
-      setNote("");
-      router.refresh();
-    } else {
-      setMsg(`${s.failed}${error ? `: ${error}` : ""}`);
-    }
+    setMsg(s.result(ok, bad));
+    if (ok) router.refresh();
   }
 
   return (
@@ -190,49 +231,62 @@ export function SmMusic({ locale, data }: { locale: "de" | "en"; data: MusicData
         <h2>{s.addTitle}</h2>
         <label>
           {s.file}
-          <input key={fileKey} type="file" accept=".mp3,audio/mpeg" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+          <input key={fileKey} type="file" accept=".mp3,audio/mpeg" multiple onChange={(e) => pick(e.target.files)} disabled={busy} />
         </label>
+
+        {rows.length ? (
+          <>
+            <h3>{s.filesTitle}</h3>
+            <ul className="mus-list">
+              {rows.map((r) => (
+                <li key={r.id} className="mus-row">
+                  <input type="text" value={r.title} onChange={(e) => patch(r.id, { title: e.target.value })} maxLength={120} aria-label={s.name} disabled={busy} />
+                  <select value={r.mood} onChange={(e) => patch(r.id, { mood: e.target.value as Mood })} aria-label={s.mood} disabled={busy}>
+                    {(Object.keys(s.moods) as Mood[]).map((m) => (
+                      <option key={m} value={m}>
+                        {s.moods[m]}
+                      </option>
+                    ))}
+                  </select>
+                  <span className={`sm-badge ${r.status === "error" ? "mus-open" : ""}`}>{s.rowStatus[r.status]}</span>
+                  <button type="button" className="sm-btn" onClick={() => setRows((prev) => prev.filter((x) => x.id !== r.id))} disabled={busy}>
+                    {s.removeRow}
+                  </button>
+                  {r.error ? <span className="sm-warn sm-small mus-rowerr">{r.error}</span> : null}
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : null}
+
+        <h3>{s.sharedTitle}</h3>
         <div className="mus-grid">
-          <label>
-            {s.name}
-            <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} />
-          </label>
           <label>
             <span>
               {s.provider}
               <Tip text={s.providerHelp} label={tp.label} />
             </span>
-            <input type="text" value={provider} onChange={(e) => setProvider(e.target.value)} maxLength={120} />
-          </label>
-          <label>
-            {s.mood}
-            <select value={mood} onChange={(e) => setMood(e.target.value as Mood)}>
-              {(Object.keys(s.moods) as Mood[]).map((m) => (
-                <option key={m} value={m}>
-                  {s.moods[m]}
-                </option>
-              ))}
-            </select>
+            <input type="text" value={provider} onChange={(e) => setProvider(e.target.value)} maxLength={120} disabled={busy} />
           </label>
           <label>
             <span>
               {s.licenseRef}
               <Tip text={s.licenseRefHelp} label={tp.label} />
             </span>
-            <input type="text" value={licenseRef} onChange={(e) => setLicenseRef(e.target.value)} maxLength={300} />
+            <input type="text" value={licenseRef} onChange={(e) => setLicenseRef(e.target.value)} maxLength={300} disabled={busy} />
+          </label>
+          <label>
+            {s.note}
+            <input type="text" value={note} onChange={(e) => setNote(e.target.value)} maxLength={500} disabled={busy} />
           </label>
         </div>
-        <label>
-          {s.note}
-          <input type="text" value={note} onChange={(e) => setNote(e.target.value)} maxLength={500} />
-        </label>
         <label className="mus-check">
-          <input type="checkbox" checked={licenseOk} onChange={(e) => setLicenseOk(e.target.checked)} />
+          <input type="checkbox" checked={licenseOk} onChange={(e) => setLicenseOk(e.target.checked)} disabled={busy} />
           <span>{s.licenseOk}</span>
         </label>
         <div className="sm-actions">
-          <button type="button" className="sm-btn sm-btn-primary" onClick={upload} disabled={busy || !data.storage}>
-            {s.upload}
+          <button type="button" className="sm-btn sm-btn-primary" onClick={uploadAll} disabled={busy || !data.storage || rows.length === 0}>
+            {rows.length > 1 ? s.uploadN(rows.length) : s.upload}
           </button>
           {msg ? (
             <span className="sm-muted sm-small" role="status">
