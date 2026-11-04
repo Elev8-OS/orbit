@@ -1,0 +1,53 @@
+.cmp {
+  display: grid;
+  gap: 1rem;
+}
+.cmp h2 {
+  margin: 0.5rem 0 0;
+  font-size: 1.1rem;
+}
+.cmp-summary {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  background: #f6f6f4;
+  font-size: 1rem;
+}
+.cmp-chip {
+  display: inline-block;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.cmp-better {
+  background: #dff3e4;
+  color: #17612b;
+}
+.cmp-worse {
+  background: #fbe1df;
+  color: #8c1d18;
+}
+.cmp-similar,
+.cmp-neutral,
+.cmp-unknown {
+  background: #ececec;
+  color: #444;
+}
+.cmp-self td {
+  background: #fff8e1;
+  font-weight: 600;
+}
+.cmp-posts {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.cmp-posts li {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #e3e3e3;
+  border-radius: 8px;
+}
