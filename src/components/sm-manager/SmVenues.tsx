@@ -22,6 +22,8 @@ export function venueTabLabel(locale: Locale): string {
 const usable = (v: VenueItem) => Boolean(v.consentAt) && v.approved > 0;
 /** Die Business-WhatsApp-Nachricht kam nicht an (oder GHL hat gar keine gefunden). */
 const notDelivered = (i?: GhlInfo) => i?.waStatus === 'failed' || i?.waStatus === 'none';
+/** Der Guide rät nur mit Einschränkung zu diesem Betrieb. */
+const cautious = (v: VenueItem) => /^nur mit hinweis/i.test(v.fit);
 
 async function call<T = Record<string, unknown>>(method: string, url: string, body?: unknown): Promise<{ ok: boolean; error?: string; json?: T }> {
   try {
@@ -103,10 +105,10 @@ export function SmVenues({ locale, data }: { locale: Locale; data: VenuesData | 
   async function seed() {
     setBusy(true);
     setMsg('');
-    const r = await call('POST', '/api/sm-manager/venues', { seed: true });
+    const r = await call<{ created: number; updated: number }>('POST', '/api/sm-manager/venues', { seed: true });
     setBusy(false);
     if (r.ok) {
-      setMsg(l('Angaben aus dem Guide ergänzt. Bereits Eingetragenes bleibt unverändert.', 'Details from the guide added. Anything already entered stays as it is.'));
+      setMsg(l(`Liste aus dem Guide abgeglichen: ${r.json?.created ?? 0} neu, ${r.json?.updated ?? 0} ergänzt. Bereits Eingetragenes bleibt unverändert.`, `Guide list synced: ${r.json?.created ?? 0} new, ${r.json?.updated ?? 0} updated. Anything already entered stays as it is.`));
       router.refresh();
     } else setMsg(l('Anlegen fehlgeschlagen', 'Could not create the places'));
   }
@@ -162,7 +164,7 @@ export function SmVenues({ locale, data }: { locale: Locale; data: VenuesData | 
         <div className="ve-empty">
           <p>{l('Noch keine Orte angelegt.', 'No places yet.')}</p>
           <button type="button" className="sm-btn sm-btn-primary" onClick={seed} disabled={busy}>
-            {l('30 Orte aus dem Umgebungs-Guide anlegen', 'Create the 30 places from the area guide')}
+            {l('Orte aus dem Umgebungs-Guide anlegen', 'Create the places from the area guide')}
           </button>
           {msg ? <p className="sm-warn">{msg}</p> : null}
         </div>
@@ -240,8 +242,8 @@ export function SmVenues({ locale, data }: { locale: Locale; data: VenuesData | 
                 {l('Nicht zugestellt', 'Not delivered')} ({failedCount})
               </button>
             ) : null}
-            <button type="button" className="sm-btn" onClick={seed} disabled={busy} title={l('Füllt fehlende Angaben nach, überschreibt nichts', 'Fills in missing details, overwrites nothing')}>
-              {l('Angaben aus dem Guide ergänzen', 'Add details from the guide')}
+            <button type="button" className="sm-btn" onClick={seed} disabled={busy} title={l('Gleicht die Liste aus dem Guide ab: legt neue Betriebe an und füllt fehlende Angaben nach, überschreibt nichts Eingetragenes', 'Syncs the guide list: adds new venues and fills in missing details, overwrites nothing entered')}>
+              {l('Liste aus dem Guide abgleichen', 'Sync list from the guide')}
             </button>
           </div>
           {msg ? <p className="sm-muted sm-small" role="status">{msg}</p> : null}
@@ -368,6 +370,9 @@ function VenueRow({ v, brand, locale, info, ghlOk, isOpen, onToggle, onChanged }
           ? l('Nummer vom Betrieb oder von Hand eingetragen.', 'Number entered by the venue or by hand.')
           : '';
 
+  // Ort, Preisklasse und Einstufung laut Umgebungs-Guide
+  const guideLine = [v.area, v.price, v.fit].filter(Boolean).join(' · ');
+
   // Zustellung der Business-WhatsApp-Nachricht, wie GHL sie meldet
   const wa = info?.waStatus ?? '';
   const waBadge =
@@ -389,6 +394,8 @@ function VenueRow({ v, brand, locale, info, ghlOk, isOpen, onToggle, onChanged }
         <button type="button" className="ve-toggle" onClick={onToggle} aria-expanded={isOpen}>
           <strong>{v.spotName}</strong>
           <span className="sm-badge">{status}</span>
+          {guideLine ? <span className="sm-muted sm-small">{guideLine}</span> : null}
+          {cautious(v) ? <span className="sm-badge ve-bad">{l('Guide: nur mit Hinweis', 'Guide: with caveats')}</span> : null}
           {!v.tokenActive ? <span className="sm-badge">{l('Link gesperrt', 'Link blocked')}</span> : null}
           <span className="sm-muted sm-small">
             {v.photos === 0 ? l('keine Fotos', 'no photos') : `${v.approved} ${l('freigegeben', 'approved')} · ${v.pending} ${l('offen', 'to review')}`}
@@ -446,6 +453,7 @@ function VenueRow({ v, brand, locale, info, ghlOk, isOpen, onToggle, onChanged }
               <input value={form.consent_ref} onChange={(e) => setForm({ ...form, consent_ref: e.target.value })} maxLength={200} />
             </label>
           </div>
+          {guideLine ? <p className="sm-muted sm-small">{l('Laut Umgebungs-Guide', 'According to the area guide')}: {guideLine}</p> : null}
           <p className="sm-muted sm-small">
             {phoneNote}
             {v.website ? (
