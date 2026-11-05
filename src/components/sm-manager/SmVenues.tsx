@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Photo, VenueSummary } from '@/lib/venues/store';
+import { blockedUntil, waFailureKind } from '@/lib/venues/wa';
 import './venues.css';
 import './ghl.css';
 
@@ -22,6 +23,8 @@ export function venueTabLabel(locale: Locale): string {
 const usable = (v: VenueItem) => Boolean(v.consentAt) && v.approved > 0;
 /** Die Business-WhatsApp-Nachricht kam nicht an (oder GHL hat gar keine gefunden). */
 const notDelivered = (i?: GhlInfo) => i?.waStatus === 'failed' || i?.waStatus === 'none';
+/** Meta hat die Nachricht wegen des Limits pro Nutzer für Marketing-Vorlagen blockiert. Die Nummer des Betriebs ist dann nicht schuld. */
+const metaBlocked = (i?: GhlInfo) => i?.waStatus === 'failed' && waFailureKind(i.waError) === 'limit';
 /** Der Guide rät nur mit Einschränkung zu diesem Betrieb. */
 const cautious = (v: VenueItem) => /^nur mit hinweis/i.test(v.fit);
 
@@ -63,11 +66,13 @@ function whatsappUrl(phone: string, text: string): string {
   return digits.length >= 8 ? `https://web.whatsapp.com/send?phone=${digits}&text=${encodeURIComponent(text)}` : '';
 }
 
+type Filter = 'all' | 'review' | 'waiting' | 'ready' | 'failed' | 'blocked';
+
 export function SmVenues({ locale, data }: { locale: Locale; data: VenuesData | null }) {
   const router = useRouter();
   const l = (de: string, en: string) => (locale === 'de' ? de : en);
   const [open, setOpen] = useState<number | null>(null);
-  const [filter, setFilter] = useState<'all' | 'review' | 'waiting' | 'ready' | 'failed'>('all');
+  const [filter, setFilter] = useState<Filter>('all');
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
   const [ghl, setGhl] = useState<GhlData | null>(null);
@@ -94,15 +99,24 @@ export function SmVenues({ locale, data }: { locale: Locale; data: VenuesData | 
 
   const venues = data.venues;
   const brand = data.brand;
-  const failedCount = venues.filter((v) => notDelivered(ghl?.infos[String(v.id)])).length;
+  const infoOf = (v: VenueItem) => ghl?.infos[String(v.id)];
+  // "Nicht zugestellt" ohne die Orte, die Meta wegen des Limits blockiert hat: die haben ihren eigenen Filter.
+  const failedCount = venues.filter((v) => notDelivered(infoOf(v)) && !metaBlocked(infoOf(v))).length;
+  const blockedCount = venues.filter((v) => metaBlocked(infoOf(v))).length;
   const counts = {
     ready: venues.filter(usable).length,
     review: venues.filter((v) => v.pending > 0).length,
     waiting: venues.filter((v) => v.photos === 0).length
   };
-  const shown = venues.filter((v) =>
-    filter === 'all' ? true : filter === 'review' ? v.pending > 0 : filter === 'waiting' ? v.photos === 0 : filter === 'failed' ? notDelivered(ghl?.infos[String(v.id)]) : usable(v)
-  );
+  const matches = (v: VenueItem): boolean => {
+    if (filter === 'review') return v.pending > 0;
+    if (filter === 'waiting') return v.photos === 0;
+    if (filter === 'failed') return notDelivered(infoOf(v)) && !metaBlocked(infoOf(v));
+    if (filter === 'blocked') return metaBlocked(infoOf(v));
+    if (filter === 'ready') return usable(v);
+    return true;
+  };
+  const shown = venues.filter(matches);
   const missing = [!brand.instagram ? 'TENANT_INSTAGRAM' : '', !brand.hasLogo ? 'TENANT_LOGO_URL' : ''].filter(Boolean);
   const inGhl = ghl ? Object.values(ghl.infos).filter((i) => i.contactId).length : 0;
   const fieldsMissing = ghl?.status.configured && ghl.status.fields && (!ghl.status.fields.venue_token || !ghl.status.fields.venue_link);
@@ -148,8 +162,8 @@ export function SmVenues({ locale, data }: { locale: Locale; data: VenuesData | 
     <section className="ve">
       <p className="sm-muted">
         {l(
-          'Betriebe aus dem Umgebungs-Guide, mit Nummer, Instagram und Website vorbelegt, soweit gefunden. Jeder hat einen persönlichen Link, über den er Fotos hochlädt und seine Daten selbst einträgt. Der erste Kontakt läuft persönlich: ein Klick auf die Nummer öffnet WhatsApp Web mit dem fertigen Text. Hat ein Betrieb zugestimmt, per WhatsApp Business zu schreiben, schickt ein Knopf die Vorlage über GHL. Kommen nach zwei Tagen keine Fotos, geht die Erinnerung automatisch raus. Kommt eine Nachricht nicht an, wird der Betrieb rot markiert. Für Beiträge zählt ein Ort nur, wenn die Einwilligung bestätigt ist und mindestens ein Foto freigegeben wurde.',
-          'Venues from the area guide, prefilled with number, Instagram and website where found. Each has a personal link to upload photos and enter their own details. The first contact is personal: clicking the number opens WhatsApp Web with the finished text. Once a venue has agreed to WhatsApp Business messages, a button sends the template through GHL. If no photos arrive after two days, the reminder goes out automatically. If a message does not arrive, the venue is marked red. A place is only used in posts when consent is confirmed and at least one photo is approved.'
+          'Betriebe aus dem Umgebungs-Guide, mit Nummer, Instagram und Website vorbelegt, soweit gefunden. Jeder hat einen persönlichen Link, über den er Fotos hochlädt und seine Daten selbst einträgt. Der erste Kontakt läuft persönlich: ein Klick auf die Nummer öffnet WhatsApp Web mit dem fertigen Text. Hat ein Betrieb zugestimmt, per WhatsApp Business zu schreiben, schickt ein Knopf die Vorlage über GHL. Kommen nach zwei Tagen keine Fotos, geht die Erinnerung automatisch raus. Kommt eine Nachricht nicht an, wird der Betrieb rot markiert. Blockiert Meta eine Vorlage wegen des Limits pro Nutzer, ruht der Business-Knopf einige Tage, und du schreibst persönlich. Für Beiträge zählt ein Ort nur, wenn die Einwilligung bestätigt ist und mindestens ein Foto freigegeben wurde.',
+          'Venues from the area guide, prefilled with number, Instagram and website where found. Each has a personal link to upload photos and enter their own details. The first contact is personal: clicking the number opens WhatsApp Web with the finished text. Once a venue has agreed to WhatsApp Business messages, a button sends the template through GHL. If no photos arrive after two days, the reminder goes out automatically. If a message does not arrive, the venue is marked red. If Meta blocks a template because of the per-user limit, the business button rests for a few days and you write personally. A place is only used in posts when consent is confirmed and at least one photo is approved.'
         )}
       </p>
 
@@ -190,6 +204,14 @@ export function SmVenues({ locale, data }: { locale: Locale; data: VenuesData | 
                 {ghl.status.error ? <p className="sm-warn">GHL: {ghl.status.error}</p> : null}
                 {fieldsMissing ? (
                   <p className="sm-warn">{l('Die Kontaktfelder Venue Token und Venue Link fehlen noch. Beim Anlegen versucht die Engine, sie zu erstellen. Klappt das nicht, lege beide als Textfelder in GHL an.', 'The contact fields Venue Token and Venue Link are missing. The engine tries to create them on the first sync. If that fails, create both as text fields in GHL.')}</p>
+                ) : null}
+                {blockedCount > 0 ? (
+                  <p className="sm-warn">
+                    {l(
+                      `${blockedCount} Betrieb(e): Meta hat die Vorlage wegen des Limits pro Nutzer blockiert. Das liegt nicht an der Nummer. Der Business-Knopf ruht für diese Orte einige Tage. Schreibe sie persönlich über WhatsApp Web an, der Filter «Von Meta blockiert» zeigt sie.`,
+                      `${blockedCount} venue(s): Meta blocked the template because of the per-user limit. The number is not at fault. The business button rests for these places for a few days. Write to them personally via WhatsApp Web, the filter "Blocked by Meta" shows them.`
+                    )}
+                  </p>
                 ) : null}
                 {failedCount > 0 ? (
                   <p className="sm-warn">
@@ -246,6 +268,11 @@ export function SmVenues({ locale, data }: { locale: Locale; data: VenuesData | 
             {failedCount > 0 || filter === 'failed' ? (
               <button type="button" className={`sm-btn ${filter === 'failed' ? 'sm-btn-primary' : ''}`} onClick={() => setFilter('failed')}>
                 {l('Nicht zugestellt', 'Not delivered')} ({failedCount})
+              </button>
+            ) : null}
+            {blockedCount > 0 || filter === 'blocked' ? (
+              <button type="button" className={`sm-btn ${filter === 'blocked' ? 'sm-btn-primary' : ''}`} onClick={() => setFilter('blocked')}>
+                {l('Von Meta blockiert', 'Blocked by Meta')} ({blockedCount})
               </button>
             ) : null}
             <button type="button" className="sm-btn" onClick={seed} disabled={busy} title={l('Gleicht die Liste aus dem Guide ab: legt neue Betriebe an und füllt fehlende Angaben nach, überschreibt nichts Eingetragenes', 'Syncs the guide list: adds new venues and fills in missing details, overwrites nothing entered')}>
@@ -349,8 +376,15 @@ function VenueRow({ v, brand, locale, info, ghlOk, ghlUrl, isOpen, onToggle, onC
     });
   };
 
+  // Zustellung der Business-WhatsApp-Nachricht, wie GHL sie meldet
+  const wa = info?.waStatus ?? '';
+  const waKind = wa === 'failed' ? waFailureKind(info?.waError) : 'other';
+  // Nach einem Meta-Limit ruht der Business-Knopf einige Tage: ein neuer Versuch hilft nicht und belastet die Nummer.
+  const until = waKind === 'limit' ? blockedUntil(v.sentAt) : null;
+  const locked = Boolean(until && until.getTime() > Date.now());
+
   const optedIn = Boolean(info?.optInAt);
-  const canBusiness = ghlOk && optedIn && Boolean(info?.contactId) && v.tokenActive && Boolean(v.phone);
+  const canBusiness = ghlOk && optedIn && Boolean(info?.contactId) && v.tokenActive && Boolean(v.phone) && !locked;
   const setOptIn = (value: boolean) => run(() => call('POST', `/api/sm-manager/venues/${v.id}/ghl`, { action: 'optin', value }), value ? l('Zustimmung festgehalten', 'Opt-in recorded') : l('Zustimmung entfernt', 'Opt-in removed'));
   const syncOne = () => run(() => call('POST', '/api/sm-manager/venues/ghl', { action: 'sync', ids: [v.id] }), l('In GHL abgeglichen', 'Synced to GHL'));
   const checkOne = () => run(() => call('POST', '/api/sm-manager/venues/ghl', { action: 'delivery', ids: [v.id] }), l('Zustellung geprüft', 'Delivery checked'));
@@ -380,11 +414,13 @@ function VenueRow({ v, brand, locale, info, ghlOk, ghlUrl, isOpen, onToggle, onC
   // Ort, Preisklasse und Einstufung laut Umgebungs-Guide
   const guideLine = [v.area, v.price, v.fit].filter(Boolean).join(' · ');
 
-  // Zustellung der Business-WhatsApp-Nachricht, wie GHL sie meldet
-  const wa = info?.waStatus ?? '';
   const waBadge =
     wa === 'failed'
-      ? { cls: 've-bad', text: l('WhatsApp nicht zugestellt', 'WhatsApp not delivered') }
+      ? waKind === 'limit'
+        ? { cls: 've-bad', text: l('Von Meta blockiert (Limit)', 'Blocked by Meta (limit)') }
+        : waKind === 'number'
+          ? { cls: 've-bad', text: l('WhatsApp: Nummer prüfen', 'WhatsApp: check the number') }
+          : { cls: 've-bad', text: l('WhatsApp nicht zugestellt', 'WhatsApp not delivered') }
       : wa === 'none'
         ? { cls: 've-bad', text: l('Keine Nachricht in GHL gefunden', 'No message found in GHL') }
         : wa === 'read'
@@ -424,6 +460,11 @@ function VenueRow({ v, brand, locale, info, ghlOk, ghlUrl, isOpen, onToggle, onC
               <button type="button" className="sm-btn sm-btn-primary" onClick={sendBusiness} disabled={busy} title={l('Schickt die Vorlage über GHL (WhatsApp Business) und startet die automatische Erinnerung', 'Sends the template through GHL (WhatsApp Business) and starts the automatic reminder')}>
                 {v.status === 'new' ? l('Business-WhatsApp senden', 'Send business WhatsApp') : l('Business-WhatsApp erneut senden', 'Send business WhatsApp again')}
               </button>
+            ) : null}
+            {locked && until ? (
+              <span className="sm-muted sm-small" title={l('Meta hat die Vorlage wegen des Limits pro Nutzer blockiert. Ein neuer Versuch hilft jetzt nicht. Persönlich über WhatsApp Web schreiben ist möglich.', 'Meta blocked the template because of the per-user limit. Trying again now does not help. Writing personally via WhatsApp Web is possible.')}>
+                {l('Business bis', 'Business paused until')} {fmt(until.toISOString())} {l('gesperrt', '')}
+              </span>
             ) : null}
             {rowUrl && v.tokenActive ? (
               <a className="sm-btn ve-wa" href={rowUrl} target="_blank" rel="noreferrer" onClick={markSent} title={l('Persönlich: öffnet WhatsApp Web mit dem fertigen Text und Link', 'Personal: opens WhatsApp Web with the finished text and link')}>
@@ -519,10 +560,25 @@ function VenueRow({ v, brand, locale, info, ghlOk, ghlUrl, isOpen, onToggle, onC
               </>
             ) : null}
           </p>
-          {wa === 'failed' ? (
+          {wa === 'failed' && waKind === 'limit' ? (
+            <p className="sm-warn">
+              {l(
+                'Meta hat die Vorlage blockiert («Message blocked to maintain quality standards»). Das ist das Limit pro Nutzer für Marketing-Vorlagen: Es liegt nicht an der Nummer des Betriebs und lässt sich nicht umgehen. Ein neuer Versuch in den nächsten Tagen hilft nicht und belastet die Qualitätsbewertung deiner Nummer, darum ruht der Business-Knopf für diesen Ort. Schreibe den Betrieb persönlich über WhatsApp Web an. Antwortet er, kannst du danach 24 Stunden lang frei schreiben, auch mit dem Upload-Link.',
+                'Meta blocked the template ("Message blocked to maintain quality standards"). This is the per-user limit for marketing templates: it is not caused by the venue\'s number and cannot be worked around. Trying again in the next days does not help and hurts the quality rating of your number, so the business button rests for this place. Write to the venue personally via WhatsApp Web. If they reply, you can write freely for 24 hours, including the upload link.'
+              )}
+              {until ? ` ${l('Business-Versand wieder möglich ab', 'Business send possible again from')} ${fmt(until.toISOString())}.` : ''}
+            </p>
+          ) : null}
+          {wa === 'failed' && waKind === 'number' ? (
+            <p className="sm-warn">
+              {l('Die Nummer scheint kein WhatsApp zu haben oder ungültig zu sein', 'The number seems to have no WhatsApp or to be invalid')}
+              {info?.waError ? `: ${info.waError}` : ''}. {l('Prüfe die Nummer (Google Maps, Website) und korrigiere sie, oder schreibe über einen anderen Kanal.', 'Check the number (Google Maps, website) and correct it, or write through another channel.')}
+            </p>
+          ) : null}
+          {wa === 'failed' && waKind === 'other' ? (
             <p className="sm-warn">
               {l('Die WhatsApp-Nachricht konnte nicht zugestellt werden', 'The WhatsApp message could not be delivered')}
-              {info?.waError ? `: ${info.waError}` : ''}. {l('Häufige Gründe: Die Nummer hat kein WhatsApp, die Nummer ist falsch oder die Vorlage ist bei Meta noch nicht genehmigt. Prüfe die Nummer (Google Maps) oder schreibe persönlich über WhatsApp Web.', 'Common reasons: the number has no WhatsApp, the number is wrong, or the template is not approved by Meta yet. Check the number (Google Maps) or write personally via WhatsApp Web.')}
+              {info?.waError ? `: ${info.waError}` : ''}. {l('Häufige Gründe: Die Nummer hat kein WhatsApp, die Nummer ist falsch oder die Vorlage ist bei Meta noch nicht genehmigt. Öffne den Fehler in GHL (rotes Dreieck an der Nachricht), prüfe die Nummer oder schreibe persönlich über WhatsApp Web.', 'Common reasons: the number has no WhatsApp, the number is wrong, or the template is not approved by Meta yet. Open the error in GHL (red triangle on the message), check the number or write personally via WhatsApp Web.')}
             </p>
           ) : null}
           {wa === 'none' ? (
