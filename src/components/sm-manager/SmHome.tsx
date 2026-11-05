@@ -18,10 +18,13 @@ import { venueTabLabel } from "./SmVenues";
 import { adsTabLabel } from "./SmAds";
 import { Tip } from "./Tip";
 import "./sm.css";
+import "./nav.css";
+
+type View = "review" | "done" | "properties" | "stats" | "inquiries" | "audience" | "learnings" | "promos" | "competitors" | "music" | "venues" | "ads";
 
 type Props = {
   locale: "de" | "en";
-  view: "review" | "done" | "properties" | "stats" | "inquiries" | "audience" | "learnings" | "promos" | "competitors" | "music" | "venues" | "ads";
+  view: View;
   posts: Post[];
   properties: Property[];
   reviewCount: number;
@@ -69,10 +72,56 @@ function defaultWhen(baliHour?: number | null) {
   return toLocalInput(d);
 }
 
+type NavItem = { view: View; href: string; label: string; count?: number };
+type NavGroup = { key: string; label: string; items: NavItem[] };
+
 export function SmHome({ locale, view, posts, properties, reviewCount, ghlReady, social = null, clicks = null, bioLink = "", inquiries = [], inquiryCount = 0, agentEnabled = false, audience = null, learnings = null, promos = null, competitors = null, music = null, venues = null, ads = null, drafting = null, learningCount = 0, postHour = null }: Props) {
   const s = smStrings(locale);
   const tp = tipStrings(locale);
   const navRef = useRef<HTMLElement>(null);
+  const l = (de: string, en: string) => (locale === "de" ? de : en);
+
+  // Fünf Hauptpunkte statt zwölf Reiter. Die Adressen der Ansichten bleiben gleich (?ansicht=...).
+  // Täglich gebraucht: Beiträge und Anfragen. Danach Werbung, Auswertung und die Quellen, aus denen Beiträge entstehen.
+  const groups: NavGroup[] = [
+    {
+      key: "posts",
+      label: l("Beiträge", "Posts"),
+      items: [
+        { view: "review", href: "/sm-manager", label: s.tabReview, count: reviewCount },
+        { view: "done", href: "/sm-manager?ansicht=done", label: s.tabDone }
+      ]
+    },
+    { key: "inquiries", label: inquiryStrings(locale).tabInquiries, items: [{ view: "inquiries", href: "/sm-manager?ansicht=anfragen", label: inquiryStrings(locale).tabInquiries, count: inquiryCount }] },
+    {
+      key: "ads",
+      label: adsTabLabel(locale),
+      items: [
+        { view: "ads", href: "/sm-manager?ansicht=ads", label: adsTabLabel(locale) },
+        { view: "audience", href: "/sm-manager?ansicht=zielgruppen", label: audienceStrings(locale).tabAudience }
+      ]
+    },
+    {
+      key: "insights",
+      label: l("Auswertung", "Insights"),
+      items: [
+        { view: "stats", href: "/sm-manager?ansicht=kennzahlen", label: statsStrings(locale).tabStats },
+        { view: "learnings", href: "/sm-manager?ansicht=learnings", label: learningStrings(locale).tabLearnings, count: learningCount },
+        { view: "competitors", href: "/sm-manager?ansicht=konkurrenz", label: competitorTabLabel(locale) }
+      ]
+    },
+    {
+      key: "content",
+      label: l("Inhalte", "Content"),
+      items: [
+        { view: "venues", href: "/sm-manager?ansicht=orte", label: venueTabLabel(locale) },
+        { view: "promos", href: "/sm-manager?ansicht=aktionen", label: promoStrings(locale).tabPromos },
+        { view: "music", href: "/sm-manager?ansicht=musik", label: musicTabLabel(locale) },
+        { view: "properties", href: "/sm-manager?ansicht=objekte", label: s.tabProperties }
+      ]
+    }
+  ];
+  const activeGroup = groups.find((g) => g.items.some((i) => i.view === view)) ?? groups[0];
 
   // Auf dem Handy den aktiven Tab ins Bild scrollen, damit er nicht hinter dem Rand verschwindet.
   useEffect(() => {
@@ -95,46 +144,26 @@ export function SmHome({ locale, view, posts, properties, reviewCount, ghlReady,
       </header>
 
       <nav ref={navRef} className="sm-tabs" aria-label={s.title}>
-        <a href="/sm-manager" aria-current={view === "review" ? "page" : undefined}>
-          {s.tabReview}
-          {reviewCount ? <span className="sm-count">{reviewCount}</span> : null}
-        </a>
-        <a href="/sm-manager?ansicht=anfragen" aria-current={view === "inquiries" ? "page" : undefined}>
-          {inquiryStrings(locale).tabInquiries}
-          {inquiryCount ? <span className="sm-count">{inquiryCount}</span> : null}
-        </a>
-        <a href="/sm-manager?ansicht=done" aria-current={view === "done" ? "page" : undefined}>
-          {s.tabDone}
-        </a>
-        <a href="/sm-manager?ansicht=kennzahlen" aria-current={view === "stats" ? "page" : undefined}>
-          {statsStrings(locale).tabStats}
-        </a>
-        <a href="/sm-manager?ansicht=learnings" aria-current={view === "learnings" ? "page" : undefined}>
-          {learningStrings(locale).tabLearnings}
-          {learningCount ? <span className="sm-count">{learningCount}</span> : null}
-        </a>
-        <a href="/sm-manager?ansicht=aktionen" aria-current={view === "promos" ? "page" : undefined}>
-          {promoStrings(locale).tabPromos}
-        </a>
-        <a href="/sm-manager?ansicht=konkurrenz" aria-current={view === "competitors" ? "page" : undefined}>
-          {competitorTabLabel(locale)}
-        </a>
-        <a href="/sm-manager?ansicht=musik" aria-current={view === "music" ? "page" : undefined}>
-          {musicTabLabel(locale)}
-        </a>
-        <a href="/sm-manager?ansicht=orte" aria-current={view === "venues" ? "page" : undefined}>
-          {venueTabLabel(locale)}
-        </a>
-        <a href="/sm-manager?ansicht=zielgruppen" aria-current={view === "audience" ? "page" : undefined}>
-          {audienceStrings(locale).tabAudience}
-        </a>
-        <a href="/sm-manager?ansicht=ads" aria-current={view === "ads" ? "page" : undefined}>
-          {adsTabLabel(locale)}
-        </a>
-        <a href="/sm-manager?ansicht=objekte" aria-current={view === "properties" ? "page" : undefined}>
-          {s.tabProperties}
-        </a>
+        {groups.map((g) => {
+          const total = g.items.reduce((sum, i) => sum + (i.count ?? 0), 0);
+          return (
+            <a key={g.key} href={g.items[0].href} aria-current={g === activeGroup ? "page" : undefined}>
+              {g.label}
+              {total ? <span className="sm-count">{total}</span> : null}
+            </a>
+          );
+        })}
       </nav>
+      {activeGroup.items.length > 1 ? (
+        <nav className="sm-subtabs" aria-label={activeGroup.label}>
+          {activeGroup.items.map((i) => (
+            <a key={i.view} href={i.href} aria-current={i.view === view ? "page" : undefined}>
+              {i.label}
+              {i.count ? <span className="sm-count">{i.count}</span> : null}
+            </a>
+          ))}
+        </nav>
+      ) : null}
 
       {view === "review" ? drafting : null}
 

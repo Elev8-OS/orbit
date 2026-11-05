@@ -1,0 +1,5 @@
+.ve-ghl { display: grid; gap: 8px; padding: 14px; margin: 12px 0; border: 1px solid rgba(128, 128, 128, 0.3); border-radius: 12px; }
+.ve-ghl p { margin: 0; }
+.ve-ghl details { font-size: 13px; }
+.ve-ghl ul { margin: 6px 0 0; padding-left: 18px; }
+.ve-ghlline { font-size: 13px; opacity: 0.85; }

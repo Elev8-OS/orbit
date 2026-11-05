@@ -1,27 +1,31 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import type { Photo, VenueSummary } from "@/lib/venues/store";
-import "./venues.css";
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import type { Photo, VenueSummary } from '@/lib/venues/store';
+import './venues.css';
+import './ghl.css';
 
 export type VenueItem = VenueSummary & { link: string };
 export type VenueBrand = { name: string; instagram: string; sender: string; hasLogo: boolean };
 export type VenuesData = { venues: VenueItem[]; storage: boolean; brand: VenueBrand };
 
-type Locale = "de" | "en";
+type Locale = 'de' | 'en';
+type GhlInfo = { contactId: string; optInAt: string | null; syncedAt: string | null; note: string };
+type GhlData = { status: { configured: boolean; location?: string | null; fields?: { venue_token?: boolean; venue_link?: boolean }; error?: string | null }; infos: Record<string, GhlInfo> };
+type SyncSummary = { synced: number; skipped: number; failed: number; items: { id: number; name: string; ok: boolean; reason: string }[] };
 
 export function venueTabLabel(locale: Locale): string {
-  return locale === "en" ? "Places" : "Orte";
+  return locale === 'en' ? 'Places' : 'Orte';
 }
 
 const usable = (v: VenueItem) => Boolean(v.consentAt) && v.approved > 0;
 
-async function call(method: string, url: string, body?: unknown): Promise<{ ok: boolean; error?: string }> {
+async function call<T = Record<string, unknown>>(method: string, url: string, body?: unknown): Promise<{ ok: boolean; error?: string; json?: T }> {
   try {
-    const res = await fetch(url, { method, headers: body ? { "Content-Type": "application/json" } : undefined, body: body ? JSON.stringify(body) : undefined });
-    const json = (await res.json().catch(() => ({}))) as { error?: string };
-    return res.ok ? { ok: true } : { ok: false, error: json.error };
+    const res = await fetch(url, { method, headers: body ? { 'Content-Type': 'application/json' } : undefined, body: body ? JSON.stringify(body) : undefined });
+    const json = (await res.json().catch(() => ({}))) as T & { error?: string };
+    return res.ok ? { ok: true, json } : { ok: false, error: json.error };
   } catch {
     return { ok: false };
   }
@@ -29,35 +33,49 @@ async function call(method: string, url: string, body?: unknown): Promise<{ ok: 
 
 /**
  * Die Nachricht an den Betrieb. Sie kommt vom Betreiber (Tenant), nicht von der Software.
- * Aufbau: Gruß, wer und wo, Nutzen für den Betrieb, genau eine Bitte mit Zeitrahmen, Link allein auf einer Zeile,
+ * Aufbau: Gruss, wer und wo, Nutzen für den Betrieb, genau eine Bitte mit Zeitrahmen, Link allein auf einer Zeile,
  * Gegen-Tag, Dank. Kurze Absätze, *fett* nur für das Wichtige, wie WhatsApp es darstellt.
- * Ohne Ansprechperson wird der Betrieb angesprochen. Dieselbe Fassung gehört ins WhatsApp-Template.
+ * Ohne Ansprechperson wird der Betrieb angesprochen. Dieselbe Fassung steht im WhatsApp-Template (Business).
  * "reminder" ist die kurze Erinnerung nach ein bis zwei Tagen.
  */
-function messageFor(brand: VenueBrand, contactName: string, spotName: string, link: string, kind: "first" | "reminder" = "first"): string {
+function messageFor(brand: VenueBrand, contactName: string, spotName: string, link: string, kind: 'first' | 'reminder' = 'first'): string {
   const hello = contactName.trim() || `${spotName} team`;
-  if (kind === "reminder") {
+  if (kind === 'reminder') {
     return `Hi ${hello} 👋\n\nQuick reminder from ${brand.sender} at *${brand.name}*: your feature is waiting for your photos. 📸\n\n3 photos are enough, it takes 2 minutes:\n${link}\n\nHappy to help with anything here. Thank you! 🙏`;
   }
-  const where = brand.instagram ? ` (@${brand.instagram})` : "";
+  const where = brand.instagram ? ` (@${brand.instagram})` : '';
   return `Hi ${hello} 👋\n\nIt's ${brand.sender} from *${brand.name}*, just around the corner in Pererenan.\n\nWe send our guests to *${spotName}* and we would love to feature you on our Instagram${where} as one of our local tips. *Free, and tagged to you.* 🌴\n\nAll we need:\n📸 3 to 5 of your best photos\n✍️ one line about each\n\nTakes 2 minutes 👇\n${link}\n\nIf you tag us back, even better. We keep sending guests your way. Together we are stronger 🤝\n\nThank you!\n${brand.sender}`;
 }
 
 /** WhatsApp Web mit fertigem Text; leer, wenn die Nummer nicht reicht. */
 function whatsappUrl(phone: string, text: string): string {
-  const digits = phone.replace(/\D/g, "");
-  return digits.length >= 8 ? `https://web.whatsapp.com/send?phone=${digits}&text=${encodeURIComponent(text)}` : "";
+  const digits = phone.replace(/\D/g, '');
+  return digits.length >= 8 ? `https://web.whatsapp.com/send?phone=${digits}&text=${encodeURIComponent(text)}` : '';
 }
 
 export function SmVenues({ locale, data }: { locale: Locale; data: VenuesData | null }) {
   const router = useRouter();
-  const l = (de: string, en: string) => (locale === "de" ? de : en);
+  const l = (de: string, en: string) => (locale === 'de' ? de : en);
   const [open, setOpen] = useState<number | null>(null);
-  const [filter, setFilter] = useState<"all" | "review" | "waiting" | "ready">("all");
+  const [filter, setFilter] = useState<'all' | 'review' | 'waiting' | 'ready'>('all');
   const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState("");
+  const [msg, setMsg] = useState('');
+  const [ghl, setGhl] = useState<GhlData | null>(null);
+  const [summary, setSummary] = useState<SyncSummary | null>(null);
 
-  if (!data) return <p className="sm-empty">{l("Die Orte konnten nicht geladen werden.", "The places could not be loaded.")}</p>;
+  async function loadGhl() {
+    try {
+      const res = await fetch('/api/sm-manager/venues/ghl');
+      if (res.ok) setGhl((await res.json()) as GhlData);
+    } catch {
+      /* bleibt leer */
+    }
+  }
+  useEffect(() => {
+    void loadGhl();
+  }, []);
+
+  if (!data) return <p className="sm-empty">{l('Die Orte konnten nicht geladen werden.', 'The places could not be loaded.')}</p>;
 
   const venues = data.venues;
   const brand = data.brand;
@@ -66,73 +84,150 @@ export function SmVenues({ locale, data }: { locale: Locale; data: VenuesData | 
     review: venues.filter((v) => v.pending > 0).length,
     waiting: venues.filter((v) => v.photos === 0).length
   };
-  const shown = venues.filter((v) => (filter === "all" ? true : filter === "review" ? v.pending > 0 : filter === "waiting" ? v.photos === 0 : usable(v)));
-  const missing = [!brand.instagram ? "TENANT_INSTAGRAM" : "", !brand.hasLogo ? "TENANT_LOGO_URL" : ""].filter(Boolean);
+  const shown = venues.filter((v) => (filter === 'all' ? true : filter === 'review' ? v.pending > 0 : filter === 'waiting' ? v.photos === 0 : usable(v)));
+  const missing = [!brand.instagram ? 'TENANT_INSTAGRAM' : '', !brand.hasLogo ? 'TENANT_LOGO_URL' : ''].filter(Boolean);
+  const inGhl = ghl ? Object.values(ghl.infos).filter((i) => i.contactId).length : 0;
+  const fieldsMissing = ghl?.status.configured && ghl.status.fields && (!ghl.status.fields.venue_token || !ghl.status.fields.venue_link);
 
   async function seed() {
     setBusy(true);
-    setMsg("");
-    const r = await call("POST", "/api/sm-manager/venues", { seed: true });
+    setMsg('');
+    const r = await call('POST', '/api/sm-manager/venues', { seed: true });
     setBusy(false);
     if (r.ok) {
-      setMsg(l("Angaben aus dem Guide ergänzt. Bereits Eingetragenes bleibt unverändert.", "Details from the guide added. Anything already entered stays as it is."));
+      setMsg(l('Angaben aus dem Guide ergänzt. Bereits Eingetragenes bleibt unverändert.', 'Details from the guide added. Anything already entered stays as it is.'));
       router.refresh();
-    } else setMsg(l("Anlegen fehlgeschlagen", "Could not create the places"));
+    } else setMsg(l('Anlegen fehlgeschlagen', 'Could not create the places'));
+  }
+
+  async function syncAll() {
+    setBusy(true);
+    setMsg(l('Die Orte werden in GHL angelegt … das dauert einen Moment.', 'Creating the places in GHL ... this takes a moment.'));
+    setSummary(null);
+    const r = await call<SyncSummary>('POST', '/api/sm-manager/venues/ghl', { action: 'sync' });
+    setBusy(false);
+    if (!r.ok || !r.json) {
+      setMsg(`${l('Fehlgeschlagen', 'Failed')}${r.error ? `: ${r.error}` : ''}`);
+      return;
+    }
+    setSummary(r.json);
+    setMsg('');
+    await loadGhl();
+    router.refresh();
   }
 
   return (
     <section className="ve">
       <p className="sm-muted">
         {l(
-          "Betriebe aus dem Umgebungs-Guide, mit Nummer, Instagram und Website vorbelegt, soweit gefunden. Jeder hat einen persönlichen Link, über den er Fotos hochlädt und seine Daten selbst einträgt. Ein Klick auf die Nummer öffnet WhatsApp Web mit dem fertigen Text samt Link, nach ein bis zwei Tagen ohne Fotos schickt der Knopf «Erinnerung» die kurze Nachfrage. Für Beiträge zählt ein Ort nur, wenn die Einwilligung bestätigt ist und mindestens ein Foto freigegeben wurde.",
-          "Venues from the area guide, prefilled with number, Instagram and website where found. Each has a personal link to upload photos and enter their own details. Click the number to open WhatsApp Web with the finished text and link; after a day or two without photos the Reminder button sends the short follow-up. A place is only used in posts when consent is confirmed and at least one photo is approved."
+          'Betriebe aus dem Umgebungs-Guide, mit Nummer, Instagram und Website vorbelegt, soweit gefunden. Jeder hat einen persönlichen Link, über den er Fotos hochlädt und seine Daten selbst einträgt. Der erste Kontakt läuft persönlich: ein Klick auf die Nummer öffnet WhatsApp Web mit dem fertigen Text. Hat ein Betrieb zugestimmt, per WhatsApp Business zu schreiben, schickt ein Knopf die Vorlage über GHL. Kommen nach zwei Tagen keine Fotos, geht die Erinnerung automatisch raus. Für Beiträge zählt ein Ort nur, wenn die Einwilligung bestätigt ist und mindestens ein Foto freigegeben wurde.',
+          'Venues from the area guide, prefilled with number, Instagram and website where found. Each has a personal link to upload photos and enter their own details. The first contact is personal: clicking the number opens WhatsApp Web with the finished text. Once a venue has agreed to WhatsApp Business messages, a button sends the template through GHL. If no photos arrive after two days, the reminder goes out automatically. A place is only used in posts when consent is confirmed and at least one photo is approved.'
         )}
       </p>
 
       {missing.length > 0 ? (
         <p className="sm-warn">
           {l(
-            `Angaben des Betreibers fehlen (${missing.join(", ")}). Ohne den Instagram-Namen nennt die Nachricht kein Konto zum Taggen, ohne Logo zeigt die Upload-Seite nur den Namen. Beides wird als Umgebungsvariable am Orbit-Dienst gesetzt.`,
-            `Operator details are missing (${missing.join(", ")}). Without the Instagram name the message names no account to tag, without a logo the upload page shows the name only. Both are set as environment variables on the Orbit service.`
+            `Angaben des Betreibers fehlen (${missing.join(', ')}). Ohne den Instagram-Namen nennt die Nachricht kein Konto zum Taggen, ohne Logo zeigt die Upload-Seite nur den Namen. Beides wird als Umgebungsvariable am Orbit-Dienst gesetzt, der Instagram-Name sonst aus Elev8 gelesen.`,
+            `Operator details are missing (${missing.join(', ')}). Without the Instagram name the message names no account to tag, without a logo the upload page shows the name only. Both are set as environment variables on the Orbit service, the Instagram name is otherwise read from Elev8.`
           )}
         </p>
       ) : null}
 
       {!data.storage ? (
-        <p className="sm-warn">{l("Der Foto-Speicher ist nicht verbunden. Uploads funktionieren erst, wenn die S3-Variablen gesetzt sind und Orbit neu gestartet wurde.", "Photo storage is not connected. Uploads work once the S3 variables are set and Orbit has been redeployed.")}</p>
+        <p className="sm-warn">{l('Der Foto-Speicher ist nicht verbunden. Uploads funktionieren erst, wenn die S3-Variablen gesetzt sind und Orbit neu gestartet wurde.', 'Photo storage is not connected. Uploads work once the S3 variables are set and Orbit has been redeployed.')}</p>
       ) : null}
 
       {venues.length === 0 ? (
         <div className="ve-empty">
-          <p>{l("Noch keine Orte angelegt.", "No places yet.")}</p>
+          <p>{l('Noch keine Orte angelegt.', 'No places yet.')}</p>
           <button type="button" className="sm-btn sm-btn-primary" onClick={seed} disabled={busy}>
-            {l("30 Orte aus dem Umgebungs-Guide anlegen", "Create the 30 places from the area guide")}
+            {l('30 Orte aus dem Umgebungs-Guide anlegen', 'Create the 30 places from the area guide')}
           </button>
           {msg ? <p className="sm-warn">{msg}</p> : null}
         </div>
       ) : (
         <>
+          <div className="ve-ghl">
+            <strong>{l('GHL und WhatsApp Business', 'GHL and WhatsApp Business')}</strong>
+            {ghl === null ? (
+              <p className="sm-muted sm-small">{l('Lade …', 'Loading ...')}</p>
+            ) : !ghl.status.configured ? (
+              <p className="sm-warn">{l('GHL ist in der Engine nicht eingerichtet (GHL_API_TOKEN und GHL_LOCATION_ID).', 'GHL is not set up in the engine (GHL_API_TOKEN and GHL_LOCATION_ID).')}</p>
+            ) : (
+              <>
+                <p className="sm-small">
+                  {l('Die Kontakte landen im GHL-Konto', 'Contacts go to the GHL account')}: <strong>{ghl.status.location ?? '?'}</strong>. {l('Stimmt das nicht, ist die Engine mit dem falschen Konto verbunden.', 'If that is not right, the engine is connected to the wrong account.')}
+                </p>
+                {ghl.status.error ? <p className="sm-warn">GHL: {ghl.status.error}</p> : null}
+                {fieldsMissing ? (
+                  <p className="sm-warn">{l('Die Kontaktfelder Venue Token und Venue Link fehlen noch. Beim Anlegen versucht die Engine, sie zu erstellen. Klappt das nicht, lege beide als Textfelder in GHL an.', 'The contact fields Venue Token and Venue Link are missing. The engine tries to create them on the first sync. If that fails, create both as text fields in GHL.')}</p>
+                ) : null}
+                <div className="ve-actions">
+                  <button type="button" className="sm-btn sm-btn-primary" onClick={syncAll} disabled={busy}>
+                    {l('Alle Orte in GHL anlegen oder aktualisieren', 'Create or update all places in GHL')}
+                  </button>
+                  <span className="sm-muted sm-small">
+                    {inGhl} {l('von', 'of')} {venues.length} {l('Orten sind in GHL', 'places are in GHL')}
+                  </span>
+                </div>
+                <p className="ve-ghlline">
+                  {l('Tags: vendor, venue-partner, venue-<Kategorie>. Die Business-Nachricht startet mit dem Tag venue-outreach-send, die Erinnerung nach zwei Tagen läuft im GHL-Workflow und entfällt, sobald Fotos da sind (Tag venue-photos-received).', 'Tags: vendor, venue-partner, venue-<category>. The business message starts with the tag venue-outreach-send, the reminder after two days runs in the GHL workflow and is dropped as soon as photos are in (tag venue-photos-received).')}
+                </p>
+              </>
+            )}
+            {summary ? (
+              <details open={summary.failed > 0 || summary.skipped > 0}>
+                <summary>
+                  {summary.synced} {l('angelegt oder aktualisiert', 'created or updated')} · {summary.skipped} {l('übersprungen', 'skipped')} · {summary.failed} {l('fehlgeschlagen', 'failed')}
+                </summary>
+                <ul>
+                  {summary.items
+                    .filter((i) => !i.ok || i.reason)
+                    .map((i) => (
+                      <li key={i.id}>
+                        <strong>{i.name}</strong>: {noteText(i.reason, l)}
+                      </li>
+                    ))}
+                </ul>
+              </details>
+            ) : null}
+          </div>
+
           <div className="ve-filters" role="group">
-            <button type="button" className={`sm-btn ${filter === "all" ? "sm-btn-primary" : ""}`} onClick={() => setFilter("all")}>
-              {l("Alle", "All")} ({venues.length})
+            <button type="button" className={`sm-btn ${filter === 'all' ? 'sm-btn-primary' : ''}`} onClick={() => setFilter('all')}>
+              {l('Alle', 'All')} ({venues.length})
             </button>
-            <button type="button" className={`sm-btn ${filter === "review" ? "sm-btn-primary" : ""}`} onClick={() => setFilter("review")}>
-              {l("Fotos prüfen", "Photos to review")} ({counts.review})
+            <button type="button" className={`sm-btn ${filter === 'review' ? 'sm-btn-primary' : ''}`} onClick={() => setFilter('review')}>
+              {l('Fotos prüfen', 'Photos to review')} ({counts.review})
             </button>
-            <button type="button" className={`sm-btn ${filter === "waiting" ? "sm-btn-primary" : ""}`} onClick={() => setFilter("waiting")}>
-              {l("Warten auf Fotos", "Waiting for photos")} ({counts.waiting})
+            <button type="button" className={`sm-btn ${filter === 'waiting' ? 'sm-btn-primary' : ''}`} onClick={() => setFilter('waiting')}>
+              {l('Warten auf Fotos', 'Waiting for photos')} ({counts.waiting})
             </button>
-            <button type="button" className={`sm-btn ${filter === "ready" ? "sm-btn-primary" : ""}`} onClick={() => setFilter("ready")}>
-              {l("Für Beiträge bereit", "Ready for posts")} ({counts.ready})
+            <button type="button" className={`sm-btn ${filter === 'ready' ? 'sm-btn-primary' : ''}`} onClick={() => setFilter('ready')}>
+              {l('Für Beiträge bereit', 'Ready for posts')} ({counts.ready})
             </button>
-            <button type="button" className="sm-btn" onClick={seed} disabled={busy} title={l("Füllt fehlende Angaben nach, überschreibt nichts", "Fills in missing details, overwrites nothing")}>
-              {l("Angaben aus dem Guide ergänzen", "Add details from the guide")}
+            <button type="button" className="sm-btn" onClick={seed} disabled={busy} title={l('Füllt fehlende Angaben nach, überschreibt nichts', 'Fills in missing details, overwrites nothing')}>
+              {l('Angaben aus dem Guide ergänzen', 'Add details from the guide')}
             </button>
           </div>
           {msg ? <p className="sm-muted sm-small" role="status">{msg}</p> : null}
           <ul className="ve-list">
             {shown.map((v) => (
-              <VenueRow key={v.id} v={v} brand={brand} locale={locale} isOpen={open === v.id} onToggle={() => setOpen(open === v.id ? null : v.id)} onChanged={() => router.refresh()} />
+              <VenueRow
+                key={v.id}
+                v={v}
+                brand={brand}
+                locale={locale}
+                info={ghl?.infos[String(v.id)]}
+                ghlOk={Boolean(ghl?.status.configured)}
+                isOpen={open === v.id}
+                onToggle={() => setOpen(open === v.id ? null : v.id)}
+                onChanged={() => {
+                  router.refresh();
+                  void loadGhl();
+                }}
+              />
             ))}
           </ul>
         </>
@@ -141,16 +236,25 @@ export function SmVenues({ locale, data }: { locale: Locale; data: VenuesData | 
   );
 }
 
-const STATUS_DE: Record<string, string> = { new: "Neu", sent: "Versendet", opened: "Link geöffnet", uploaded: "Fotos da" };
-const STATUS_EN: Record<string, string> = { new: "New", sent: "Sent", opened: "Link opened", uploaded: "Photos in" };
+function noteText(note: string, l: (de: string, en: string) => string): string {
+  if (!note) return '';
+  if (note === 'landline') return l('Festnetznummer: WhatsApp ist so nicht möglich', 'Landline number: WhatsApp is not possible');
+  if (note === 'no_contact') return l('Weder Nummer noch E-Mail vorhanden', 'Neither number nor email');
+  if (note.startsWith('dup:')) return l(`Gleiche Nummer wie ${note.slice(4)}, darum nicht doppelt angelegt (gleiche Gruppe? Dann reicht ein Kontakt)`, `Same number as ${note.slice(4)}, so not created twice (same group? Then one contact is enough)`);
+  if (note.startsWith('error:')) return note.slice(6);
+  return note;
+}
 
-function VenueRow({ v, brand, locale, isOpen, onToggle, onChanged }: { v: VenueItem; brand: VenueBrand; locale: Locale; isOpen: boolean; onToggle: () => void; onChanged: () => void }) {
-  const l = (de: string, en: string) => (locale === "de" ? de : en);
+const STATUS_DE: Record<string, string> = { new: 'Neu', sent: 'Versendet', opened: 'Link geöffnet', uploaded: 'Fotos da' };
+const STATUS_EN: Record<string, string> = { new: 'New', sent: 'Sent', opened: 'Link opened', uploaded: 'Photos in' };
+
+function VenueRow({ v, brand, locale, info, ghlOk, isOpen, onToggle, onChanged }: { v: VenueItem; brand: VenueBrand; locale: Locale; info?: GhlInfo; ghlOk: boolean; isOpen: boolean; onToggle: () => void; onChanged: () => void }) {
+  const l = (de: string, en: string) => (locale === 'de' ? de : en);
   const [form, setForm] = useState({ contact_name: v.contactName, phone: v.phone, email: v.email, instagram: v.instagram, consent_ref: v.consentRef });
   const [consent, setConsent] = useState(Boolean(v.consentAt));
   const [photos, setPhotos] = useState<Photo[] | null>(null);
   const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState("");
+  const [msg, setMsg] = useState('');
 
   async function loadPhotos() {
     try {
@@ -167,86 +271,104 @@ function VenueRow({ v, brand, locale, isOpen, onToggle, onChanged }: { v: VenueI
 
   async function run(fn: () => Promise<{ ok: boolean; error?: string }>, okText: string) {
     setBusy(true);
-    setMsg("");
+    setMsg('');
     const r = await fn();
     setBusy(false);
-    setMsg(r.ok ? okText : `${l("Fehlgeschlagen", "Failed")}${r.error ? `: ${r.error}` : ""}`);
+    setMsg(r.ok ? okText : `${l('Fehlgeschlagen', 'Failed')}${r.error ? `: ${r.error}` : ''}`);
     if (r.ok) onChanged();
     return r.ok;
   }
 
   const save = () =>
-    run(() => call("PUT", `/api/sm-manager/venues/${v.id}`, { ...form, ...(consent && !v.consentAt ? { consent_confirmed: true } : {}) }), l("Gespeichert", "Saved"));
+    run(() => call('PUT', `/api/sm-manager/venues/${v.id}`, { ...form, ...(consent && !v.consentAt ? { consent_confirmed: true } : {}) }), l('Gespeichert', 'Saved'));
   const rotate = async () => {
-    if (!confirm(l("Neuen Link erzeugen? Der alte Link funktioniert dann nicht mehr.", "Create a new link? The old link will stop working."))) return;
-    await run(() => call("PUT", `/api/sm-manager/venues/${v.id}`, { rotate: true }), l("Neuer Link erzeugt", "New link created"));
+    if (!confirm(l('Neuen Link erzeugen? Der alte Link funktioniert dann nicht mehr.', 'Create a new link? The old link will stop working.'))) return;
+    await run(() => call('PUT', `/api/sm-manager/venues/${v.id}`, { rotate: true }), l('Neuer Link erzeugt', 'New link created'));
   };
-  const toggleLink = () => run(() => call("PUT", `/api/sm-manager/venues/${v.id}`, { token_active: !v.tokenActive }), v.tokenActive ? l("Link gesperrt", "Link blocked") : l("Link freigegeben", "Link enabled"));
-  const review = async (id: number, state: "approved" | "rejected" | "pending") => {
-    if (await run(() => call("PUT", `/api/sm-manager/venues/photos/${id}`, { review: state }), l("Gespeichert", "Saved"))) await loadPhotos();
+  const toggleLink = () => run(() => call('PUT', `/api/sm-manager/venues/${v.id}`, { token_active: !v.tokenActive }), v.tokenActive ? l('Link gesperrt', 'Link blocked') : l('Link freigegeben', 'Link enabled'));
+  const review = async (id: number, state: 'approved' | 'rejected' | 'pending') => {
+    if (await run(() => call('PUT', `/api/sm-manager/venues/photos/${id}`, { review: state }), l('Gespeichert', 'Saved'))) await loadPhotos();
   };
   const remove = async (id: number) => {
-    if (!confirm(l("Dieses Foto endgültig löschen?", "Delete this photo for good?"))) return;
-    if (await run(() => call("DELETE", `/api/sm-manager/venues/photos/${id}`), l("Gelöscht", "Deleted"))) await loadPhotos();
+    if (!confirm(l('Dieses Foto endgültig löschen?', 'Delete this photo for good?'))) return;
+    if (await run(() => call('DELETE', `/api/sm-manager/venues/photos/${id}`), l('Gelöscht', 'Deleted'))) await loadPhotos();
   };
   const copy = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
-      setMsg(l("Kopiert", "Copied"));
+      setMsg(l('Kopiert', 'Copied'));
     } catch {
-      setMsg(l("Kopieren nicht möglich", "Could not copy"));
+      setMsg(l('Kopieren nicht möglich', 'Could not copy'));
     }
   };
   // Der Klick öffnet WhatsApp Web; ob die Nachricht dort wirklich abgeschickt wird, weiß Orbit nicht.
   const markSent = () => {
-    void call("PUT", `/api/sm-manager/venues/${v.id}`, { mark_sent: "whatsapp" }).then((r) => {
+    void call('PUT', `/api/sm-manager/venues/${v.id}`, { mark_sent: 'whatsapp' }).then((r) => {
       if (r.ok) onChanged();
     });
   };
 
+  const optedIn = Boolean(info?.optInAt);
+  const canBusiness = ghlOk && optedIn && Boolean(info?.contactId) && v.tokenActive && Boolean(v.phone);
+  const setOptIn = (value: boolean) => run(() => call('POST', `/api/sm-manager/venues/${v.id}/ghl`, { action: 'optin', value }), value ? l('Zustimmung festgehalten', 'Opt-in recorded') : l('Zustimmung entfernt', 'Opt-in removed'));
+  const syncOne = () => run(() => call('POST', '/api/sm-manager/venues/ghl', { action: 'sync', ids: [v.id] }), l('In GHL abgeglichen', 'Synced to GHL'));
+  const sendBusiness = () => {
+    if (!confirm(l(`WhatsApp-Business-Nachricht an ${v.spotName} jetzt senden?`, `Send the WhatsApp Business message to ${v.spotName} now?`))) return;
+    void run(() => call('POST', `/api/sm-manager/venues/${v.id}/ghl`, { action: 'send' }), l('An GHL übergeben. Die Erinnerung geht nach zwei Tagen automatisch raus, falls keine Fotos kommen.', 'Handed to GHL. The reminder goes out automatically after two days if no photos arrive.'));
+  };
+
   const rowUrl = whatsappUrl(v.phone, messageFor(brand, v.contactName, v.spotName, v.link));
   // Erinnerung nur, wenn der Link raus ist und noch keine Fotos da sind
-  const remindable = (v.status === "sent" || v.status === "opened") && v.photos === 0;
-  const rowReminderUrl = remindable ? whatsappUrl(v.phone, messageFor(brand, v.contactName, v.spotName, v.link, "reminder")) : "";
+  const remindable = (v.status === 'sent' || v.status === 'opened') && v.photos === 0;
+  const rowReminderUrl = remindable ? whatsappUrl(v.phone, messageFor(brand, v.contactName, v.spotName, v.link, 'reminder')) : '';
   const panelText = messageFor(brand, form.contact_name, v.spotName, v.link);
   const panelUrl = whatsappUrl(form.phone, panelText);
-  const panelReminderUrl = remindable ? whatsappUrl(form.phone, messageFor(brand, form.contact_name, v.spotName, v.link, "reminder")) : "";
-  const status = (locale === "de" ? STATUS_DE : STATUS_EN)[v.status] ?? v.status;
-  const fmt = (iso: string | null) => (iso ? new Intl.DateTimeFormat(locale === "en" ? "en-GB" : "de-CH", { day: "numeric", month: "short" }).format(new Date(iso)) : "–");
+  const panelReminderUrl = remindable ? whatsappUrl(form.phone, messageFor(brand, form.contact_name, v.spotName, v.link, 'reminder')) : '';
+  const status = (locale === 'de' ? STATUS_DE : STATUS_EN)[v.status] ?? v.status;
+  const fmt = (iso: string | null) => (iso ? new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'de-CH', { day: 'numeric', month: 'short' }).format(new Date(iso)) : '–');
   const phoneNote =
-    v.phoneSource === "google"
-      ? l("Nummer aus Google Maps, bitte vor dem ersten Versand prüfen.", "Number from Google Maps, please check it before the first message.")
-      : v.phoneSource === "public"
-        ? l("Nummer aus öffentlichen Quellen (Website oder Verzeichnis).", "Number from public sources (website or directory).")
-        : v.phoneSource === "entered"
-          ? l("Nummer vom Betrieb oder von Hand eingetragen.", "Number entered by the venue or by hand.")
-          : "";
+    v.phoneSource === 'google'
+      ? l('Nummer aus Google Maps, bitte vor dem ersten Versand prüfen.', 'Number from Google Maps, please check it before the first message.')
+      : v.phoneSource === 'public'
+        ? l('Nummer aus öffentlichen Quellen (Website oder Verzeichnis).', 'Number from public sources (website or directory).')
+        : v.phoneSource === 'entered'
+          ? l('Nummer vom Betrieb oder von Hand eingetragen.', 'Number entered by the venue or by hand.')
+          : '';
 
   return (
-    <li className={`ve-item ${isOpen ? "ve-open" : ""}`}>
+    <li className={`ve-item ${isOpen ? 've-open' : ''}`}>
       <div className="ve-head">
         <button type="button" className="ve-toggle" onClick={onToggle} aria-expanded={isOpen}>
           <strong>{v.spotName}</strong>
           <span className="sm-badge">{status}</span>
-          {!v.tokenActive ? <span className="sm-badge">{l("Link gesperrt", "Link blocked")}</span> : null}
+          {!v.tokenActive ? <span className="sm-badge">{l('Link gesperrt', 'Link blocked')}</span> : null}
           <span className="sm-muted sm-small">
-            {v.photos === 0 ? l("keine Fotos", "no photos") : `${v.approved} ${l("freigegeben", "approved")} · ${v.pending} ${l("offen", "to review")}`}
+            {v.photos === 0 ? l('keine Fotos', 'no photos') : `${v.approved} ${l('freigegeben', 'approved')} · ${v.pending} ${l('offen', 'to review')}`}
           </span>
-          <span className={`sm-badge ${usable(v) ? "sm-badge-ok" : ""}`}>{usable(v) ? l("bereit", "ready") : v.consentAt ? l("Einwilligung ✓", "Consent ✓") : l("Einwilligung offen", "Consent open")}</span>
+          <span className={`sm-badge ${usable(v) ? 'sm-badge-ok' : ''}`}>{usable(v) ? l('bereit', 'ready') : v.consentAt ? l('Einwilligung ✓', 'Consent ✓') : l('Einwilligung offen', 'Consent open')}</span>
+          {info?.contactId ? <span className="sm-badge">GHL ✓</span> : null}
+          {optedIn ? <span className="sm-badge sm-badge-ok">{l('WhatsApp OK', 'WhatsApp OK')}</span> : null}
         </button>
-        {rowUrl && v.tokenActive ? (
+        {(rowUrl && v.tokenActive) || canBusiness ? (
           <span className="ve-send">
-            <a className="sm-btn ve-wa" href={rowUrl} target="_blank" rel="noreferrer" onClick={markSent} title={l("Öffnet WhatsApp Web mit dem fertigen Text und Link", "Opens WhatsApp Web with the finished text and link")}>
-              {v.phone} · WhatsApp
-            </a>
+            {canBusiness ? (
+              <button type="button" className="sm-btn sm-btn-primary" onClick={sendBusiness} disabled={busy} title={l('Schickt die Vorlage über GHL (WhatsApp Business) und startet die automatische Erinnerung', 'Sends the template through GHL (WhatsApp Business) and starts the automatic reminder')}>
+                {v.status === 'new' ? l('Business-WhatsApp senden', 'Send business WhatsApp') : l('Business-WhatsApp erneut senden', 'Send business WhatsApp again')}
+              </button>
+            ) : null}
+            {rowUrl && v.tokenActive ? (
+              <a className="sm-btn ve-wa" href={rowUrl} target="_blank" rel="noreferrer" onClick={markSent} title={l('Persönlich: öffnet WhatsApp Web mit dem fertigen Text und Link', 'Personal: opens WhatsApp Web with the finished text and link')}>
+                {v.phone} · WhatsApp Web
+              </a>
+            ) : null}
             {rowReminderUrl ? (
-              <a className="sm-btn ve-wa" href={rowReminderUrl} target="_blank" rel="noreferrer" onClick={markSent} title={l("Kurze Erinnerung, wenn noch keine Fotos da sind", "Short reminder while no photos are in")}>
-                {l("Erinnerung", "Reminder")}
+              <a className="sm-btn ve-wa" href={rowReminderUrl} target="_blank" rel="noreferrer" onClick={markSent} title={l('Kurze persönliche Erinnerung, wenn noch keine Fotos da sind', 'Short personal reminder while no photos are in')}>
+                {l('Erinnerung', 'Reminder')}
               </a>
             ) : null}
           </span>
         ) : (
-          <span className="sm-muted sm-small">{v.tokenActive ? l("Nummer fehlt (im Detail eintragen)", "No number (add it in the details)") : l("Link gesperrt", "Link blocked")}</span>
+          <span className="sm-muted sm-small">{v.tokenActive ? l('Nummer fehlt (im Detail eintragen)', 'No number (add it in the details)') : l('Link gesperrt', 'Link blocked')}</span>
         )}
       </div>
 
@@ -254,11 +376,11 @@ function VenueRow({ v, brand, locale, isOpen, onToggle, onChanged }: { v: VenueI
         <div className="ve-panel">
           <div className="ve-grid">
             <label>
-              {l("Ansprechperson", "Contact person")}
+              {l('Ansprechperson', 'Contact person')}
               <input value={form.contact_name} onChange={(e) => setForm({ ...form, contact_name: e.target.value })} maxLength={80} placeholder={`${v.spotName} team`} />
             </label>
             <label>
-              {l("Telefon / WhatsApp (mit Landesvorwahl)", "Phone / WhatsApp (with country code)")}
+              {l('Telefon / WhatsApp (mit Landesvorwahl)', 'Phone / WhatsApp (with country code)')}
               <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+62 …" inputMode="tel" />
             </label>
             <label>
@@ -270,7 +392,7 @@ function VenueRow({ v, brand, locale, isOpen, onToggle, onChanged }: { v: VenueI
               <input value={form.instagram} onChange={(e) => setForm({ ...form, instagram: e.target.value })} placeholder="@name" />
             </label>
             <label className="ve-wide">
-              {l("Nachweis der Einwilligung (der Betrieb setzt sie beim Upload selbst, hier optional)", "Proof of consent (the venue sets it on upload, optional here)")}
+              {l('Nachweis der Einwilligung (der Betrieb setzt sie beim Upload selbst, hier optional)', 'Proof of consent (the venue sets it on upload, optional here)')}
               <input value={form.consent_ref} onChange={(e) => setForm({ ...form, consent_ref: e.target.value })} maxLength={200} />
             </label>
           </div>
@@ -278,7 +400,7 @@ function VenueRow({ v, brand, locale, isOpen, onToggle, onChanged }: { v: VenueI
             {phoneNote}
             {v.website ? (
               <>
-                {phoneNote ? " · " : ""}
+                {phoneNote ? ' · ' : ''}
                 <a href={v.website} target="_blank" rel="noreferrer">
                   Website
                 </a>
@@ -286,7 +408,7 @@ function VenueRow({ v, brand, locale, isOpen, onToggle, onChanged }: { v: VenueI
             ) : null}
             {v.placeId ? (
               <>
-                {phoneNote || v.website ? " · " : ""}
+                {phoneNote || v.website ? ' · ' : ''}
                 <a href={`https://www.google.com/maps/place/?q=place_id:${encodeURIComponent(v.placeId)}`} target="_blank" rel="noreferrer">
                   Google Maps
                 </a>
@@ -297,69 +419,93 @@ function VenueRow({ v, brand, locale, isOpen, onToggle, onChanged }: { v: VenueI
             <input type="checkbox" checked={consent} disabled={Boolean(v.consentAt)} onChange={(e) => setConsent(e.target.checked)} />
             <span>
               {v.consentAt
-                ? `${l("Einwilligung bestätigt am", "Consent confirmed on")} ${fmt(v.consentAt)}`
-                : l("Einwilligung von Hand bestätigen (sonst setzt sie der Betrieb beim ersten Upload)", "Confirm consent by hand (otherwise the venue sets it on the first upload)")}
+                ? `${l('Einwilligung bestätigt am', 'Consent confirmed on')} ${fmt(v.consentAt)}`
+                : l('Einwilligung von Hand bestätigen (sonst setzt sie der Betrieb beim ersten Upload)', 'Confirm consent by hand (otherwise the venue sets it on the first upload)')}
             </span>
           </label>
           <div className="ve-actions">
             <button type="button" className="sm-btn sm-btn-primary" onClick={save} disabled={busy}>
-              {l("Speichern", "Save")}
+              {l('Speichern', 'Save')}
             </button>
           </div>
 
-          <h4>{l("Persönlicher Link", "Personal link")}</h4>
+          <h4>{l('WhatsApp Business (GHL)', 'WhatsApp Business (GHL)')}</h4>
+          <label className="ve-check">
+            <input type="checkbox" checked={optedIn} disabled={busy || !ghlOk} onChange={(e) => void setOptIn(e.target.checked)} />
+            <span>
+              {l('Der Betrieb hat zugestimmt, dass wir ihm per WhatsApp Business schreiben (zum Beispiel nach einem ersten persönlichen Kontakt). Ohne Zustimmung bleibt der Business-Knopf aus, damit die Nummer nicht gesperrt wird.', 'The venue has agreed that we write to them via WhatsApp Business (for example after a first personal contact). Without it the business button stays off, so the number does not get blocked.')}
+              {optedIn ? ` (${fmt(info?.optInAt ?? null)})` : ''}
+            </span>
+          </label>
+          <p className="ve-ghlline">
+            {info?.contactId ? `${l('GHL-Kontakt', 'GHL contact')} ${info.contactId.slice(0, 8)}… · ${l('abgeglichen', 'synced')} ${fmt(info.syncedAt)}` : l('Noch nicht in GHL angelegt.', 'Not in GHL yet.')}
+            {info?.note ? ` · ${noteText(info.note, l)}` : ''}
+          </p>
+          <div className="ve-actions">
+            <button type="button" className="sm-btn" onClick={syncOne} disabled={busy || !ghlOk}>
+              {l('In GHL anlegen oder aktualisieren', 'Create or update in GHL')}
+            </button>
+            {canBusiness ? (
+              <button type="button" className="sm-btn sm-btn-primary" onClick={sendBusiness} disabled={busy}>
+                {l('Business-WhatsApp senden', 'Send business WhatsApp')}
+              </button>
+            ) : null}
+          </div>
+          {info?.contactId ? <p className="ve-ghlline">{l('Die Erinnerung nach zwei Tagen ohne Fotos verschickt der GHL-Workflow automatisch.', 'The reminder after two days without photos is sent automatically by the GHL workflow.')}</p> : null}
+
+          <h4>{l('Persönlicher Link', 'Personal link')}</h4>
           <div className="ve-link">
             <code>{v.link}</code>
           </div>
           <div className="ve-actions">
             <button type="button" className="sm-btn" onClick={() => copy(v.link)}>
-              {l("Link kopieren", "Copy link")}
+              {l('Link kopieren', 'Copy link')}
             </button>
             <button type="button" className="sm-btn" onClick={() => copy(panelText)}>
-              {l("Nachricht kopieren", "Copy message")}
+              {l('Nachricht kopieren', 'Copy message')}
             </button>
             {panelUrl && v.tokenActive ? (
               <a className="sm-btn" href={panelUrl} target="_blank" rel="noreferrer" onClick={markSent}>
-                {l("In WhatsApp Web öffnen", "Open in WhatsApp Web")}
+                {l('In WhatsApp Web öffnen', 'Open in WhatsApp Web')}
               </a>
             ) : null}
             {panelReminderUrl && v.tokenActive ? (
               <a className="sm-btn" href={panelReminderUrl} target="_blank" rel="noreferrer" onClick={markSent}>
-                {l("Erinnerung in WhatsApp Web", "Reminder in WhatsApp Web")}
+                {l('Erinnerung in WhatsApp Web', 'Reminder in WhatsApp Web')}
               </a>
             ) : null}
             <button type="button" className="sm-btn" onClick={toggleLink} disabled={busy}>
-              {v.tokenActive ? l("Link sperren", "Block link") : l("Link freigeben", "Enable link")}
+              {v.tokenActive ? l('Link sperren', 'Block link') : l('Link freigeben', 'Enable link')}
             </button>
             <button type="button" className="sm-btn" onClick={rotate} disabled={busy}>
-              {l("Neuen Link erzeugen", "New link")}
+              {l('Neuen Link erzeugen', 'New link')}
             </button>
           </div>
           <p className="sm-muted sm-small">
-            {l("Link geöffnet:", "Link opened:")} {fmt(v.openedAt)} · {l("Versendet:", "Sent:")} {fmt(v.sentAt)}
+            {l('Link geöffnet:', 'Link opened:')} {fmt(v.openedAt)} · {l('Versendet:', 'Sent:')} {fmt(v.sentAt)}
           </p>
 
-          <h4>{l("Fotos", "Photos")}</h4>
+          <h4>{l('Fotos', 'Photos')}</h4>
           {photos === null ? (
-            <p className="sm-muted sm-small">{l("Lädt …", "Loading …")}</p>
+            <p className="sm-muted sm-small">{l('Lädt …', 'Loading …')}</p>
           ) : photos.length === 0 ? (
-            <p className="sm-muted sm-small">{l("Noch keine Fotos hochgeladen.", "No photos uploaded yet.")}</p>
+            <p className="sm-muted sm-small">{l('Noch keine Fotos hochgeladen.', 'No photos uploaded yet.')}</p>
           ) : (
             <ul className="ve-photos">
               {photos.map((p) => (
                 <li key={p.id} className={`ve-photo ve-${p.review}`}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={`/api/sm-manager/venues/photos/${p.id}`} alt={p.caption || p.filename} loading="lazy" />
-                  <p className="sm-small">{p.caption || <span className="sm-muted">{l("ohne Beschreibung", "no description")}</span>}</p>
+                  <p className="sm-small">{p.caption || <span className="sm-muted">{l('ohne Beschreibung', 'no description')}</span>}</p>
                   <div className="ve-actions">
-                    <button type="button" className={`sm-btn ${p.review === "approved" ? "sm-btn-primary" : ""}`} onClick={() => review(p.id, p.review === "approved" ? "pending" : "approved")} disabled={busy}>
-                      {p.review === "approved" ? l("Freigegeben ✓", "Approved ✓") : l("Freigeben", "Approve")}
+                    <button type="button" className={`sm-btn ${p.review === 'approved' ? 'sm-btn-primary' : ''}`} onClick={() => review(p.id, p.review === 'approved' ? 'pending' : 'approved')} disabled={busy}>
+                      {p.review === 'approved' ? l('Freigegeben ✓', 'Approved ✓') : l('Freigeben', 'Approve')}
                     </button>
-                    <button type="button" className="sm-btn" onClick={() => review(p.id, p.review === "rejected" ? "pending" : "rejected")} disabled={busy}>
-                      {p.review === "rejected" ? l("Abgelehnt", "Rejected") : l("Ablehnen", "Reject")}
+                    <button type="button" className="sm-btn" onClick={() => review(p.id, p.review === 'rejected' ? 'pending' : 'rejected')} disabled={busy}>
+                      {p.review === 'rejected' ? l('Abgelehnt', 'Rejected') : l('Ablehnen', 'Reject')}
                     </button>
                     <button type="button" className="sm-btn" onClick={() => remove(p.id)} disabled={busy}>
-                      {l("Löschen", "Delete")}
+                      {l('Löschen', 'Delete')}
                     </button>
                   </div>
                 </li>
