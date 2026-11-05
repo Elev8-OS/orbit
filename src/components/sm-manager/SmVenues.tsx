@@ -12,7 +12,7 @@ export type VenuesData = { venues: VenueItem[]; storage: boolean; brand: VenueBr
 
 type Locale = 'de' | 'en';
 type GhlInfo = { contactId: string; optInAt: string | null; syncedAt: string | null; note: string; waStatus: string; waStatusAt: string | null; waError: string; waReplied: boolean };
-type GhlData = { status: { configured: boolean; location?: string | null; fields?: { venue_token?: boolean; venue_link?: boolean }; error?: string | null }; infos: Record<string, GhlInfo> };
+type GhlData = { status: { configured: boolean; locationId?: string; location?: string | null; fields?: { venue_token?: boolean; venue_link?: boolean }; error?: string | null }; infos: Record<string, GhlInfo>; appUrl?: string };
 type SyncSummary = { synced: number; skipped: number; failed: number; items: { id: number; name: string; ok: boolean; reason: string }[] };
 
 export function venueTabLabel(locale: Locale): string {
@@ -24,6 +24,12 @@ const usable = (v: VenueItem) => Boolean(v.consentAt) && v.approved > 0;
 const notDelivered = (i?: GhlInfo) => i?.waStatus === 'failed' || i?.waStatus === 'none';
 /** Der Guide rät nur mit Einschränkung zu diesem Betrieb. */
 const cautious = (v: VenueItem) => /^nur mit hinweis/i.test(v.fit);
+
+/** Direktlink auf den Kontakt in GHL; leer, solange der Ort dort nicht angelegt ist oder die Location unbekannt ist. */
+function ghlContactUrl(ghl: GhlData | null, info?: GhlInfo): string {
+  const loc = ghl?.status.locationId;
+  return ghl?.appUrl && loc && info?.contactId ? `${ghl.appUrl}/v2/location/${encodeURIComponent(loc)}/contacts/detail/${encodeURIComponent(info.contactId)}` : '';
+}
 
 async function call<T = Record<string, unknown>>(method: string, url: string, body?: unknown): Promise<{ ok: boolean; error?: string; json?: T }> {
   try {
@@ -256,6 +262,7 @@ export function SmVenues({ locale, data }: { locale: Locale; data: VenuesData | 
                 locale={locale}
                 info={ghl?.infos[String(v.id)]}
                 ghlOk={Boolean(ghl?.status.configured)}
+                ghlUrl={ghlContactUrl(ghl, ghl?.infos[String(v.id)])}
                 isOpen={open === v.id}
                 onToggle={() => setOpen(open === v.id ? null : v.id)}
                 onChanged={() => {
@@ -282,7 +289,7 @@ function noteText(note: string, l: (de: string, en: string) => string): string {
 const STATUS_DE: Record<string, string> = { new: 'Neu', sent: 'Versendet', opened: 'Link geöffnet', uploaded: 'Fotos da' };
 const STATUS_EN: Record<string, string> = { new: 'New', sent: 'Sent', opened: 'Link opened', uploaded: 'Photos in' };
 
-function VenueRow({ v, brand, locale, info, ghlOk, isOpen, onToggle, onChanged }: { v: VenueItem; brand: VenueBrand; locale: Locale; info?: GhlInfo; ghlOk: boolean; isOpen: boolean; onToggle: () => void; onChanged: () => void }) {
+function VenueRow({ v, brand, locale, info, ghlOk, ghlUrl, isOpen, onToggle, onChanged }: { v: VenueItem; brand: VenueBrand; locale: Locale; info?: GhlInfo; ghlOk: boolean; ghlUrl: string; isOpen: boolean; onToggle: () => void; onChanged: () => void }) {
   const l = (de: string, en: string) => (locale === 'de' ? de : en);
   const [form, setForm] = useState({ contact_name: v.contactName, phone: v.phone, email: v.email, instagram: v.instagram, consent_ref: v.consentRef });
   const [consent, setConsent] = useState(Boolean(v.consentAt));
@@ -406,6 +413,11 @@ function VenueRow({ v, brand, locale, info, ghlOk, isOpen, onToggle, onChanged }
           {waBadge ? <span className={`sm-badge ${waBadge.cls}`}>{waBadge.text}</span> : null}
           {info?.waReplied ? <span className="sm-badge sm-badge-ok">{l('hat geantwortet', 'replied')}</span> : null}
         </button>
+        {ghlUrl ? (
+          <a className="sm-btn" href={ghlUrl} target="_blank" rel="noreferrer" title={l('Diesen Kontakt in GHL öffnen (neuer Tab)', 'Open this contact in GHL (new tab)')}>
+            {l('In GHL öffnen', 'Open in GHL')} ↗
+          </a>
+        ) : null}
         {(rowUrl && v.tokenActive) || canBusiness ? (
           <span className="ve-send">
             {canBusiness ? (
@@ -498,6 +510,14 @@ function VenueRow({ v, brand, locale, info, ghlOk, isOpen, onToggle, onChanged }
           <p className="ve-ghlline">
             {info?.contactId ? `${l('GHL-Kontakt', 'GHL contact')} ${info.contactId.slice(0, 8)}… · ${l('abgeglichen', 'synced')} ${fmt(info.syncedAt)}` : l('Noch nicht in GHL angelegt.', 'Not in GHL yet.')}
             {info?.note ? ` · ${noteText(info.note, l)}` : ''}
+            {ghlUrl ? (
+              <>
+                {' · '}
+                <a href={ghlUrl} target="_blank" rel="noreferrer">
+                  {l('In GHL öffnen', 'Open in GHL')} ↗
+                </a>
+              </>
+            ) : null}
           </p>
           {wa === 'failed' ? (
             <p className="sm-warn">
@@ -514,6 +534,11 @@ function VenueRow({ v, brand, locale, info, ghlOk, isOpen, onToggle, onChanged }
             <button type="button" className="sm-btn" onClick={syncOne} disabled={busy || !ghlOk}>
               {l('In GHL anlegen oder aktualisieren', 'Create or update in GHL')}
             </button>
+            {ghlUrl ? (
+              <a className="sm-btn" href={ghlUrl} target="_blank" rel="noreferrer">
+                {l('Kontakt in GHL öffnen', 'Open contact in GHL')} ↗
+              </a>
+            ) : null}
             {canBusiness ? (
               <button type="button" className="sm-btn sm-btn-primary" onClick={sendBusiness} disabled={busy}>
                 {l('Business-WhatsApp senden', 'Send business WhatsApp')}
