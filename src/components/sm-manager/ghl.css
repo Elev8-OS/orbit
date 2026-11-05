@@ -3,3 +3,4 @@
 .ve-ghl details { font-size: 13px; }
 .ve-ghl ul { margin: 6px 0 0; padding-left: 18px; }
 .ve-ghlline { font-size: 13px; opacity: 0.85; }
+.sm-badge.ve-bad { color: #c62828; border-color: #c62828; background: rgba(198, 40, 40, 0.08); font-weight: 600; }
