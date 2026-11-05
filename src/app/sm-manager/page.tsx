@@ -6,7 +6,7 @@ import { hasSmAccess, smConfigured } from "@/lib/sm-manager/access";
 import { engine, engineHealth } from "@/lib/sm-manager/client";
 import { smStrings } from "@/lib/sm-manager/i18n";
 import type { Post, Property } from "@/lib/sm-manager/types";
-import { tenantBrand } from "@/lib/venues/brand";
+import { resolveBrand } from "@/lib/venues/brand";
 import { storageConfigured } from "@/lib/venues/s3";
 import { listVenues } from "@/lib/venues/store";
 import { SmHome } from "@/components/sm-manager/SmHome";
@@ -87,11 +87,12 @@ export default async function SmManagerPage({ searchParams }: { searchParams: Pr
     const postHour = learningsData?.accepted.find((l) => l.action.type === "post_hour")?.action.hour ?? null;
 
     // Betriebe und ihre Fotos liegen in der Orbit-Datenbank, nicht in der Engine.
+    // Die Marke (Instagram-Name, Logo) kommt aus den Einstellungen, sonst aus Elev8.
     let venueData: VenuesData | null = null;
     if (view === "venues") {
       try {
         const base = (process.env.AUTH_URL ?? "https://myorbit.elev8-suite.com").replace(/\/$/, "");
-        const brand = tenantBrand();
+        const brand = await resolveBrand();
         venueData = {
           venues: (await listVenues()).map((v) => ({ ...v, link: `${base}/contribute/${v.token}` })),
           storage: storageConfigured(),

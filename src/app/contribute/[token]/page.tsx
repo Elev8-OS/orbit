@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { UploadForm } from "@/components/venues/UploadForm";
 import { VenueShell } from "@/components/venues/VenueShell";
-import { tenantBrand } from "@/lib/venues/brand";
+import { resolveBrand } from "@/lib/venues/brand";
 import { MAX_PHOTOS, countPhotos, getVenueByToken, markOpened } from "@/lib/venues/store";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata({ params }: { params: Promise<{ token: string }> }): Promise<Metadata> {
   const { token } = await params;
   const venue = await getVenueByToken(token).catch(() => null);
-  const brand = tenantBrand();
+  const brand = await resolveBrand();
   const title = venue ? `${venue.spotName}: a free Instagram feature from ${brand.name}` : `Photo upload · ${brand.name}`;
   const description = venue
     ? `We send our guests to ${venue.spotName}. Add 3 to 5 photos and we feature you, tagged. Takes 2 minutes.`
@@ -43,7 +43,7 @@ export default async function ContributePage({ params }: { params: Promise<{ tok
   const agent = (await headers()).get("user-agent") ?? "";
   if (!BOT.test(agent)) await markOpened(venue.id);
   const used = await countPhotos(venue.id);
-  const brand = tenantBrand();
+  const brand = await resolveBrand();
 
   return (
     <VenueShell brand={brand} label="Photo upload">
@@ -81,6 +81,23 @@ export default async function ContributePage({ params }: { params: Promise<{ tok
         </p>
       </div>
       <UploadForm token={token} venueName={venue.spotName} remaining={Math.max(0, MAX_PHOTOS - used)} prefill={{ contactName: venue.contactName, instagram: venue.instagram }} />
+
+      {brand.whatsapp || brand.website ? (
+        <p className="pub-muted" style={{ marginTop: 24 }}>
+          Questions?{" "}
+          {brand.whatsapp ? (
+            <a href={`https://wa.me/${brand.whatsapp}`} target="_blank" rel="noreferrer">
+              Message us on WhatsApp
+            </a>
+          ) : null}
+          {brand.whatsapp && brand.website ? " · " : null}
+          {brand.website ? (
+            <a href={brand.website} target="_blank" rel="noreferrer">
+              {brand.website.replace(/^https?:\/\//, "")}
+            </a>
+          ) : null}
+        </p>
+      ) : null}
     </VenueShell>
   );
 }
