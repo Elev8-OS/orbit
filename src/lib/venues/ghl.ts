@@ -1,10 +1,13 @@
 import { sql } from '@/lib/db';
 import { EngineError, engine } from '@/lib/sm-manager/client';
 import { ensureVenueTables, getVenue, listVenues, updateVenue } from './store';
+import { blockedUntil, waFailureKind } from './wa';
 
 // Verbindung der Orte zu GHL (WhatsApp Business). Die Engine legt die Kontakte an und setzt Tags; die Nachricht und die
 // Erinnerung nach zwei Tagen verschickt ein GHL-Workflow. Hier steht, was Orbit pro Ort dazu festhält, auch ob eine
 // WhatsApp-Nachricht zugestellt wurde. Festnetznummern werden nicht gesperrt: auch sie können WhatsApp haben.
+// Blockiert Meta eine Nachricht wegen des Limits pro Nutzer für Marketing-Vorlagen, ruht der Business-Versand an diesen
+// Ort einige Tage (siehe wa.ts); der persönliche Weg über WhatsApp Web bleibt offen.
 
 export type WaStatus = '' | 'sent' | 'delivered' | 'read' | 'failed' | 'none';
 export type GhlInfo = { contactId: string; optInAt: string | null; syncedAt: string | null; note: string; waStatus: WaStatus; waStatusAt: string | null; waError: string; waReplied: boolean };
@@ -153,6 +156,14 @@ export async function sendWhatsapp(id: number): Promise<void> {
   if (!info?.optInAt) throw new GhlError(409, 'Opt-in missing: tick that the venue agreed to WhatsApp messages first.');
   if (!v.tokenActive) throw new GhlError(409, 'The link of this venue is blocked.');
   if (!v.phone) throw new GhlError(409, 'The venue has no phone number.');
+  // Meta hat die letzte Nachricht wegen des Limits pro Nutzer blockiert: ein neuer Versuch in diesen Tagen hilft nicht
+  // und belastet die Qualitätsbewertung der Nummer. Persönlich über WhatsApp Web zu schreiben bleibt möglich.
+  if (info.waStatus === 'failed' && waFailureKind(info.waError) === 'limit') {
+    const until = blockedUntil(v.sentAt);
+    if (until && until.getTime() > Date.now()) {
+      throw new GhlError(409, `Meta blocked the last message (limit per user for marketing templates). Try again after ${until.toISOString().slice(0, 10)}, or write personally via WhatsApp Web.`);
+    }
+  }
   const sync = await syncToGhl([id]);
   const item = sync.items[0];
   if (!item?.ok) throw new GhlError(409, `Not synced to GHL: ${item?.reason || 'unknown'}`);
