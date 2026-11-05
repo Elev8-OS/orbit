@@ -1,0 +1,31 @@
+.ads { display: grid; gap: 20px; }
+.ads h2, .ads h3, .ads h4 { margin: 0; }
+.ads-panel { display: grid; gap: 12px; padding: 16px; border: 1px solid rgba(128, 128, 128, 0.3); border-radius: 12px; }
+.ads-setup { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.ads-setup > div { display: grid; gap: 6px; align-content: start; }
+.ads-kv { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; }
+.ads-bar { height: 8px; border-radius: 999px; background: rgba(128, 128, 128, 0.25); overflow: hidden; }
+.ads-bar > span { display: block; height: 100%; background: #f4b400; }
+.ads-toolbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.ads-card { display: grid; gap: 16px; padding: 16px; border: 1px solid rgba(128, 128, 128, 0.3); border-radius: 12px; }
+@media (min-width: 900px) { .ads-card { grid-template-columns: 280px 1fr; } }
+.ads-media video, .ads-media img { width: 100%; border-radius: 8px; display: block; }
+.ads-strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+.ads-body { display: grid; gap: 14px; min-width: 0; }
+.ads-top { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.ads-fields { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+.ads-fields label, .ads-wide { display: grid; gap: 4px; font-size: 13px; }
+.ads-wide { grid-column: 1 / -1; }
+.ads-fields input, .ads-fields select, .ads-fields textarea, .ads-wide textarea, .ads-wide input { width: 100%; font: inherit; padding: 8px; border: 1px solid rgba(128, 128, 128, 0.4); border-radius: 8px; background: transparent; color: inherit; }
+.ads-fields textarea, .ads-wide textarea { min-height: 120px; resize: vertical; }
+.ads-help { font-size: 12px; opacity: 0.7; }
+.ads-section { display: grid; gap: 8px; }
+.ads-checks { display: grid; gap: 6px; padding: 0; margin: 0; list-style: none; }
+.ads-checks li { display: grid; grid-template-columns: 22px 1fr; gap: 6px; font-size: 13px; }
+.ads-ok { color: #1a7f37; }
+.ads-block { color: #c62828; }
+.ads-warn { color: #b26a00; }
+.ads-insights { display: flex; flex-wrap: wrap; gap: 16px; font-size: 14px; }
+.ads-insights strong { display: block; font-size: 18px; }
+.ads-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.ads-link { overflow-wrap: anywhere; font-size: 12px; opacity: 0.8; }
