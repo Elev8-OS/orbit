@@ -18,6 +18,9 @@ export type Venue = {
   instagram: string;
   website: string;
   placeId: string;
+  area: string;
+  price: string;
+  fit: string;
   consentRef: string;
   consentAt: string | null;
   status: VenueStatus;
@@ -40,6 +43,9 @@ type VenueRow = {
   instagram: string | null;
   website: string | null;
   place_id: string | null;
+  area: string | null;
+  price: string | null;
+  fit: string | null;
   consent_ref: string | null;
   consent_at: Date | null;
   status: string;
@@ -74,6 +80,9 @@ export function ensureVenueTables(): Promise<void> {
     await sql`alter table venue_contacts add column if not exists phone_source text`;
     await sql`alter table venue_contacts add column if not exists website text`;
     await sql`alter table venue_contacts add column if not exists place_id text`;
+    await sql`alter table venue_contacts add column if not exists area text`;
+    await sql`alter table venue_contacts add column if not exists price text`;
+    await sql`alter table venue_contacts add column if not exists fit text`;
     await sql`create table if not exists venue_photos (
       id serial primary key,
       venue_id integer not null references venue_contacts(id) on delete cascade,
@@ -109,6 +118,9 @@ function toVenue(r: VenueRow): Venue {
     instagram: r.instagram ?? "",
     website: r.website ?? "",
     placeId: r.place_id ?? "",
+    area: r.area ?? "",
+    price: r.price ?? "",
+    fit: r.fit ?? "",
     consentRef: r.consent_ref ?? "",
     consentAt: iso(r.consent_at),
     status: (r.status as VenueStatus) ?? "new",
@@ -161,29 +173,37 @@ export function cleanEmail(input: string): string {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) ? v.slice(0, 120) : "";
 }
 
-export type SeedItem = { name: string; instagram?: string; phone?: string; phoneSource?: string; website?: string; placeId?: string };
+export type SeedItem = { name: string; aliases?: string[]; instagram?: string; phone?: string; phoneSource?: string; website?: string; placeId?: string; area?: string; price?: string; fit?: string };
 
 /**
  * Legt Betriebe an. Bestehende Betriebe werden nur ergänzt: was schon eingetragen ist (auch vom Betrieb selbst),
- * wird nie überschrieben.
+ * wird nie überschrieben. Ausnahme sind Ort, Preisklasse und Einstufung: sie stammen aus dem Guide und werden
+ * mit dem neuesten Stand aktualisiert.
+ * Ist der Betrieb unter einer anderen Schreibweise (aliases) schon da, wird dieser Eintrag ergänzt statt ein Duplikat anzulegen.
  */
 export async function createVenues(items: SeedItem[]): Promise<{ created: number; updated: number }> {
   await ensureVenueTables();
   let created = 0;
   let updated = 0;
   for (const it of items) {
-    const name = it.name.trim();
-    if (!name) continue;
+    const wanted = it.name.trim();
+    if (!wanted) continue;
+    const candidates = [wanted, ...(it.aliases ?? [])].map((n) => n.trim().toLowerCase()).filter(Boolean);
+    const hit = await sql<{ spot_name: string }[]>`select spot_name from venue_contacts where lower(spot_name) in ${sql(candidates)} order by (lower(spot_name) = ${candidates[0]}) desc limit 1`;
+    const name = hit[0]?.spot_name ?? wanted;
     const instagram = it.instagram ? cleanInstagram(it.instagram) || null : null;
     const phone = it.phone ? cleanPhone(it.phone) || null : null;
-    const rows = await sql<{ inserted: boolean }[]>`insert into venue_contacts (spot_name, token, instagram, phone, phone_source, website, place_id)
-      values (${name}, ${newToken(name)}, ${instagram}, ${phone}, ${phone ? (it.phoneSource ?? "public") : null}, ${it.website ?? null}, ${it.placeId ?? null})
+    const rows = await sql<{ inserted: boolean }[]>`insert into venue_contacts (spot_name, token, instagram, phone, phone_source, website, place_id, area, price, fit)
+      values (${name}, ${newToken(name)}, ${instagram}, ${phone}, ${phone ? (it.phoneSource ?? "public") : null}, ${it.website ?? null}, ${it.placeId ?? null}, ${it.area ?? null}, ${it.price ?? null}, ${it.fit ?? null})
       on conflict (spot_name) do update set
         instagram = coalesce(nullif(venue_contacts.instagram, ''), excluded.instagram),
         phone_source = case when coalesce(venue_contacts.phone, '') = '' then excluded.phone_source else venue_contacts.phone_source end,
         phone = coalesce(nullif(venue_contacts.phone, ''), excluded.phone),
         website = coalesce(nullif(venue_contacts.website, ''), excluded.website),
-        place_id = coalesce(nullif(venue_contacts.place_id, ''), excluded.place_id)
+        place_id = coalesce(nullif(venue_contacts.place_id, ''), excluded.place_id),
+        area = coalesce(excluded.area, venue_contacts.area),
+        price = coalesce(excluded.price, venue_contacts.price),
+        fit = coalesce(excluded.fit, venue_contacts.fit)
       returning (xmax = 0) as inserted`;
     if (rows[0]?.inserted) created++;
     else updated++;
