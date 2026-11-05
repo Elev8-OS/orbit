@@ -3,16 +3,20 @@ type P = Record<string, unknown>;
 const num = (v: unknown) => Number(v) || 0;
 const txt = (v: unknown) => String(v ?? '');
 const list = (v: unknown) => (Array.isArray(v) ? v.map(String).join(', ') : '');
+const nf = (locale: string) => (v: unknown) => Number(v).toLocaleString(locale, { maximumFractionDigits: 2 });
+const nfDe = nf('de-CH');
+const nfEn = nf('en-GB');
 
 const de = {
   tabAds: 'Ads',
   title: 'Anzeigen (Meta Ads)',
   intro:
-    'Hier planst und gibst du bezahlte Anzeigen frei. Die Engine macht aus einem freigegebenen Reel oder Karussell einen Entwurf. Du prüfst Budget, Zielgruppe, Text und die Prüfungen. Nach «Freigeben» und «An Meta senden» liegt die Anzeige bei Meta, aber pausiert. Geld wird erst ausgegeben, wenn du sie einschaltest.',
+    'Hier planst und gibst du bezahlte Anzeigen frei. Die Engine macht aus einem freigegebenen Reel oder Karussell einen Entwurf. Du prüfst Budget, Zielgruppe, Text und die Prüfungen. Nach «Freigeben» und «An Meta senden» liegt die Anzeige bei Meta, aber pausiert. Geld wird erst ausgegeben, wenn du sie einschaltest. Geplant wird in USD. Das Werbekonto und die Villen dürfen in anderen Währungen laufen: Die Engine rechnet beim Senden um und zeigt dir jeden Betrag in allen Währungen.',
   unavailableTitle: 'Anzeigen',
   unavailable: 'Die Anzeigen konnten gerade nicht von der Engine geladen werden.',
   setupTitle: 'Anbindung an Meta',
   account: 'Werbekonto',
+  currency: 'Kontowährung',
   pixel: 'Pixel',
   lastFired: 'Zuletzt gefeuert',
   never: 'noch nie',
@@ -23,6 +27,10 @@ const de = {
   accountInactive: 'nicht aktiv',
   budgetTitle: 'Monatsbudget',
   budgetLine: (committed: string, monthly: string) => `${committed} von ${monthly} verplant`,
+  fxTitle: 'Währungen',
+  fxMissing: 'Kein Wechselkurs verfügbar',
+  currencies: (plan: string, account: string, property: string) => `Planung in ${plan} · Werbekonto in ${account} · Villen in ${property}`,
+  rateLine: (parts: string, date: string, stale: boolean) => `${parts} (Kurs vom ${date}${stale ? ', veraltet, Kursdienst nicht erreichbar' : ''})`,
   missing: (list: string) => `In Railway fehlt noch: ${list}.`,
   metaError: 'Meta meldet',
   createDrafts: 'Entwürfe aus freigegebenen Posts erstellen',
@@ -42,6 +50,12 @@ const de = {
   fBudget: 'Tagesbudget (USD)',
   fStart: 'Start',
   fEnd: 'Ende',
+  convBudget: 'Tagesbudget entspricht',
+  convMaxCpa: 'Max. Preis pro Buchung entspricht',
+  convStop: 'Pause ohne InitiateCheckout ab',
+  convEstimate: 'Höchstens ausgegeben',
+  convHelp: (account: string, property: string) => `Geplant wird in USD. Das Werbekonto läuft in ${account}, die Villen in ${property}. Beim Senden an Meta und beim Einschalten wird mit dem Tageskurs umgerechnet. Die Abbruchregel rechnet die Ausgaben zurück in USD.`,
+  atMeta: (amount: string, rate: string, date: string) => `Bei Meta eingestellt: ${amount} pro Tag (Kurs 1 USD = ${rate}, ${date}). Schau den Betrag im Ads Manager an, bevor du einschaltest.`,
   fCountries: 'Länder (Codes mit Komma)',
   countriesHelp: 'zum Beispiel AU, GB',
   fAgeMin: 'Alter ab',
@@ -86,6 +100,8 @@ const de = {
   iCheckouts: 'Buchungen gestartet',
   iPurchases: 'Käufe',
   iCpa: 'Preis pro Kauf',
+  iValue: 'Buchungswert',
+  iRoas: 'Wert pro Ausgabe',
   asOf: 'Stand',
   note: 'Hinweis',
   checkTitles: {
@@ -93,10 +109,11 @@ const de = {
     media: 'Medien vorhanden',
     meta_setup: 'Meta-Zugang komplett',
     account_ok: 'Werbekonto aktiv',
-    currency: 'Konto in USD',
+    currency: 'Währung umgerechnet',
     budget_cap: 'Monatsbudget eingehalten',
     account_spend_cap: 'Ausgabenlimit des Kontos',
     free_nights: 'Freie Nächte',
+    budget_units: 'Betragseinheit sicher',
     pixel_events: 'Pixel meldet InitiateCheckout',
     pixel_purchase: 'Pixel meldet Käufe'
   } as Record<string, string>,
@@ -111,17 +128,26 @@ const de = {
       case 'account_ok':
         return ok ? 'Das Konto ist aktiv.' : p.error ? `Meta antwortet nicht: ${txt(p.error)}` : `Das Konto hat den Status ${txt(p.status) || 'unbekannt'} (1 wäre aktiv).`;
       case 'currency':
-        return ok ? 'USD: Budget und Planung stimmen eins zu eins überein.' : `Das Konto läuft in ${txt(p.currency) || 'unbekannter Währung'}. Die Planung rechnet in USD, darum ist das Senden gesperrt.`;
+        if (!ok) return p.error ? `Für ${txt(p.currency) || 'die Kontowährung'} ist kein Wechselkurs verfügbar (${txt(p.error)}). Setze in Railway FX_USD_${txt(p.currency) || 'IDR'} als festen Kurs (Einheiten pro 1 USD).` : 'Das Werbekonto ist nicht erreichbar, darum ist die Währung unbekannt.';
+        return txt(p.currency) === 'USD'
+          ? 'Das Konto läuft in USD: Planung und Konto stimmen eins zu eins überein.'
+          : `Planung in USD, Konto in ${txt(p.currency)}, Villen in ${txt(p.propertyCurrency)}. Kurs: 1 USD = ${nfDe(p.rate)} ${txt(p.currency)}${p.date ? ` (${txt(p.date)})` : ''}. Das Tagesbudget wird beim Senden umgerechnet.`;
       case 'budget_cap':
         return ok ? `${num(p.committed) + num(p.thisAd)} von ${num(p.cap)} USD im Monat verplant.` : `Mit dieser Anzeige wären es ${num(p.committed) + num(p.thisAd)} USD im Monat. Erlaubt sind ${num(p.cap)} USD.`;
       case 'account_spend_cap':
         return ok
           ? p.cap == null
-            ? 'Am Konto ist kein Ausgabenlimit gesetzt. Empfohlen: 500 USD im Ads Manager.'
-            : `Das Limit des Kontos (${num(p.cap)} USD) reicht noch.`
-          : `Das Limit des Kontos (${num(p.cap)} USD, schon ausgegeben ${num(p.spent)} USD) reicht nicht für diese Anzeige.`;
+            ? 'Am Konto ist kein Ausgabenlimit gesetzt. Empfohlen: ein Limit entsprechend 500 USD, im Ads Manager in der Kontowährung eingetragen.'
+            : `Das Limit des Kontos (${nfDe(p.cap)} ${txt(p.currency)}) reicht noch.`
+          : `Das Limit des Kontos (${nfDe(p.cap)} ${txt(p.currency)}, schon ausgegeben ${nfDe(p.spent)}) lässt nur noch rund ${nfDe(p.remainingUsd)} USD zu. Diese Anzeige braucht ${nfDe(p.monthlyUsd)} USD im Monat.`;
       case 'free_nights':
         return ok ? `${num(p.freeNights)} freie Nächte in den nächsten ${num(p.days)} Tagen.` : p.freeNights == null ? 'Die freien Nächte konnten nicht geladen werden.' : 'Keine freien Nächte in nächster Zeit. Die Anzeige würde ins Leere laufen.';
+      case 'budget_units': {
+        const src: Record<string, string> = { env: 'von dir bestätigt', known: 'für diese Währung sicher bekannt', measured: 'aus den bisherigen Ausgaben des Kontos gemessen', assumed: 'nur angenommen' };
+        return ok
+          ? `Beträge in ${txt(p.currency)} gehen mit dem Faktor ${num(p.offset)} an Meta (${src[txt(p.source)] ?? txt(p.source)}).`
+          : `Für ${txt(p.currency)} ist der Faktor ${num(p.offset)} nur angenommen. Ein falscher Faktor würde das Budget um das Hundertfache verschieben. Sende die Anzeige an Meta und prüfe im Ads Manager, dass das Tagesbudget der Kampagne dem oben angezeigten Betrag entspricht. Stimmt es, setze in Railway META_CURRENCY_OFFSET=${num(p.offset)}. Erst dann lässt sich die Anzeige einschalten.`;
+      }
       case 'pixel_events':
         return ok
           ? `${num(p.initiateCheckout)} InitiateCheckout in den letzten 7 Tagen.`
@@ -140,11 +166,12 @@ const en: typeof de = {
   tabAds: 'Ads',
   title: 'Ads (Meta Ads)',
   intro:
-    'Plan and approve paid ads here. The engine turns an approved reel or carousel into a draft. You check budget, audience, text and the checks. After "Approve" and "Send to Meta" the ad sits at Meta, but paused. No money is spent until you switch it on.',
+    'Plan and approve paid ads here. The engine turns an approved reel or carousel into a draft. You check budget, audience, text and the checks. After "Approve" and "Send to Meta" the ad sits at Meta, but paused. No money is spent until you switch it on. Planning is in USD. The ad account and the villas may run in other currencies: the engine converts when sending and shows every amount in all currencies.',
   unavailableTitle: 'Ads',
   unavailable: 'The ads could not be loaded from the engine right now.',
   setupTitle: 'Connection to Meta',
   account: 'Ad account',
+  currency: 'Account currency',
   pixel: 'Pixel',
   lastFired: 'Last fired',
   never: 'never',
@@ -155,6 +182,10 @@ const en: typeof de = {
   accountInactive: 'not active',
   budgetTitle: 'Monthly budget',
   budgetLine: (committed, monthly) => `${committed} of ${monthly} planned`,
+  fxTitle: 'Currencies',
+  fxMissing: 'No exchange rate available',
+  currencies: (plan, account, property) => `Planning in ${plan} · ad account in ${account} · villas in ${property}`,
+  rateLine: (parts, date, stale) => `${parts} (rate of ${date}${stale ? ', outdated, rate service not reachable' : ''})`,
   missing: (list) => `Still missing in Railway: ${list}.`,
   metaError: 'Meta reports',
   createDrafts: 'Create drafts from approved posts',
@@ -174,6 +205,12 @@ const en: typeof de = {
   fBudget: 'Daily budget (USD)',
   fStart: 'Start',
   fEnd: 'End',
+  convBudget: 'Daily budget equals',
+  convMaxCpa: 'Max. price per booking equals',
+  convStop: 'Pause without InitiateCheckout from',
+  convEstimate: 'At most spent',
+  convHelp: (account, property) => `Planning is in USD. The ad account runs in ${account}, the villas in ${property}. When sending to Meta and when switching on, today's rate is used. The stop rule converts spend back to USD.`,
+  atMeta: (amount, rate, date) => `Set at Meta: ${amount} per day (rate 1 USD = ${rate}, ${date}). Look at the amount in Ads Manager before you switch on.`,
   fCountries: 'Countries (codes, comma separated)',
   countriesHelp: 'for example AU, GB',
   fAgeMin: 'Age from',
@@ -218,6 +255,8 @@ const en: typeof de = {
   iCheckouts: 'Bookings started',
   iPurchases: 'Purchases',
   iCpa: 'Price per purchase',
+  iValue: 'Booking value',
+  iRoas: 'Value per spend',
   asOf: 'As of',
   note: 'Note',
   checkTitles: {
@@ -225,10 +264,11 @@ const en: typeof de = {
     media: 'Media available',
     meta_setup: 'Meta access complete',
     account_ok: 'Ad account active',
-    currency: 'Account in USD',
+    currency: 'Currency converted',
     budget_cap: 'Monthly budget respected',
     account_spend_cap: 'Spend limit of the account',
     free_nights: 'Free nights',
+    budget_units: 'Amount unit confirmed',
     pixel_events: 'Pixel reports InitiateCheckout',
     pixel_purchase: 'Pixel reports purchases'
   },
@@ -243,17 +283,26 @@ const en: typeof de = {
       case 'account_ok':
         return ok ? 'The account is active.' : p.error ? `Meta does not answer: ${txt(p.error)}` : `The account has the status ${txt(p.status) || 'unknown'} (1 would be active).`;
       case 'currency':
-        return ok ? 'USD: budget and planning match one to one.' : `The account runs in ${txt(p.currency) || 'an unknown currency'}. Planning is in USD, so sending is blocked.`;
+        if (!ok) return p.error ? `No exchange rate for ${txt(p.currency) || 'the account currency'} (${txt(p.error)}). Set FX_USD_${txt(p.currency) || 'IDR'} in Railway as a fixed rate (units per 1 USD).` : 'The ad account cannot be reached, so the currency is unknown.';
+        return txt(p.currency) === 'USD'
+          ? 'The account runs in USD: planning and account match one to one.'
+          : `Planning in USD, account in ${txt(p.currency)}, villas in ${txt(p.propertyCurrency)}. Rate: 1 USD = ${nfEn(p.rate)} ${txt(p.currency)}${p.date ? ` (${txt(p.date)})` : ''}. The daily budget is converted when sending.`;
       case 'budget_cap':
         return ok ? `${num(p.committed) + num(p.thisAd)} of ${num(p.cap)} USD planned per month.` : `With this ad it would be ${num(p.committed) + num(p.thisAd)} USD per month. ${num(p.cap)} USD is allowed.`;
       case 'account_spend_cap':
         return ok
           ? p.cap == null
-            ? 'No spend limit is set on the account. Recommended: 500 USD in Ads Manager.'
-            : `The account limit (${num(p.cap)} USD) is still enough.`
-          : `The account limit (${num(p.cap)} USD, already spent ${num(p.spent)} USD) is not enough for this ad.`;
+            ? 'No spend limit is set on the account. Recommended: a limit equal to 500 USD, entered in Ads Manager in the account currency.'
+            : `The account limit (${nfEn(p.cap)} ${txt(p.currency)}) is still enough.`
+          : `The account limit (${nfEn(p.cap)} ${txt(p.currency)}, already spent ${nfEn(p.spent)}) leaves only about ${nfEn(p.remainingUsd)} USD. This ad needs ${nfEn(p.monthlyUsd)} USD per month.`;
       case 'free_nights':
         return ok ? `${num(p.freeNights)} free nights in the next ${num(p.days)} days.` : p.freeNights == null ? 'The free nights could not be loaded.' : 'No free nights soon. The ad would run into nothing.';
+      case 'budget_units': {
+        const src: Record<string, string> = { env: 'confirmed by you', known: 'certain for this currency', measured: 'measured from the account\'s past spend', assumed: 'only assumed' };
+        return ok
+          ? `Amounts in ${txt(p.currency)} go to Meta with the factor ${num(p.offset)} (${src[txt(p.source)] ?? txt(p.source)}).`
+          : `For ${txt(p.currency)} the factor ${num(p.offset)} is only assumed. A wrong factor would move the budget by a factor of 100. Send the ad to Meta and check in Ads Manager that the daily budget of the campaign matches the amount shown above. If it does, set META_CURRENCY_OFFSET=${num(p.offset)} in Railway. Only then can the ad be switched on.`;
+      }
       case 'pixel_events':
         return ok
           ? `${num(p.initiateCheckout)} InitiateCheckout in the last 7 days.`
