@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { putObject, storageConfigured } from "@/lib/venues/s3";
+import { notifyPhotosReceived } from "@/lib/venues/ghl";
 import { MAX_PHOTOS, addPhoto, cleanEmail, cleanInstagram, cleanPhone, countPhotos, getVenueByToken, markUploaded, updateVenue } from "@/lib/venues/store";
 
 export const dynamic = "force-dynamic";
@@ -64,5 +65,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
     ...(email ? { email } : {})
   });
   await markUploaded(venue.id);
+  // Beim ersten Foto GHL Bescheid geben, damit die Erinnerung nach zwei Tagen entfällt. Der Upload wartet nicht darauf.
+  if (venue.status !== "uploaded") void notifyPhotosReceived(venue.id);
   return Response.json({ id }, { status: 201 });
 }
