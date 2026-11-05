@@ -3,11 +3,14 @@
 //   "Greater Canggu: Restaurants, Cafés, Bars & Nachtleben" (45 Betriebe, ohne Nummern)
 //   "Bali-Guide-Patuha", Kapitel 10 Sport, Fitness und Wellness, mit Nummern aus Google Places und den Websites der Betriebe
 // ergänzt um die früheren Einträge aus dem Guide der Villa Samalas, die dort nicht mehr vorkommen. Nichts wird gelöscht.
+// Weitere Betriebe und Nummern aus der Orts-Recherche für Patuha (Google Places, November 2026) stehen in spots-extra.ts.
 // Alle Angaben sind Vorbelegung und werden vom Betrieb beim Upload überschrieben.
 // Instagram-Namen stammen aus Verzeichnissen und Magazinen und sind NICHT bestätigt; der Betrieb korrigiert sie beim Upload.
 // phoneSource: "google" = aus Google Maps oder Verzeichnis, vor dem ersten Versand prüfen. "public" = Website.
 // area, price, fit: Ort (oder Art und Entfernung zur Villa), Preisklasse und Einstufung ("Top-Empfehlung", "Nur mit Hinweis empfehlen" ...) laut Guide.
 // aliases: andere Schreibweisen, unter denen der Betrieb schon angelegt sein kann; so entsteht kein Duplikat.
+
+import { EXTRA_SPOTS, PHONE_FILL } from "./spots-extra";
 
 export type Spot = {
   name: string;
@@ -23,7 +26,7 @@ export type Spot = {
   fit?: string;
 };
 
-export const VENUE_SPOTS: Spot[] = [
+const BASE_SPOTS: Spot[] = [
   // Restaurants
   { name: "HOME by Chef Wayan", area: "Pererenan", price: "gehoben", fit: "Top-Empfehlung" },
   { name: "Santanera", area: "Canggu (Batu Bolong)", price: "gehoben", fit: "Top-Empfehlung" },
@@ -60,7 +63,8 @@ export const VENUE_SPOTS: Spot[] = [
 
   // Bars, Beach Clubs, Nachtleben
   { name: "La Brisa Bali", instagram: "labrisabali", phone: "+628113946666", phoneSource: "google", placeId: "ChIJrfg6aXY40i0RKbzqxLedkoY", area: "Canggu (Echo Beach)", price: "gehoben", fit: "Top-Empfehlung für Sunset" },
-  { name: "FINNS Beach Club", instagram: "finnsbeachclub", phone: "+628113946666", phoneSource: "public", placeId: "ChIJSRrSTuNH0i0RX7GpKfK5k0k", area: "Berawa", price: "gehoben bis luxuriös", fit: "Top-Empfehlung für Beach-Club-Fans" },
+  // FINNS: +628113946666 war die Nummer von La Brisa. Richtig laut Google Places (Nov. 2026): +62 361 8446327 (Festnetz).
+  { name: "FINNS Beach Club", instagram: "finnsbeachclub", phone: "+623618446327", phoneSource: "google", placeId: "ChIJSRrSTuNH0i0RX7GpKfK5k0k", area: "Berawa", price: "gehoben bis luxuriös", fit: "Top-Empfehlung für Beach-Club-Fans" },
   { name: "The Lawn Canggu", area: "Canggu (Batu Bolong)", price: "gehoben", fit: "Nur mit Hinweis empfehlen" },
   { name: "Black Sand Brewery", area: "Canggu (Batu Bolong)", price: "mittel", fit: "Top-Empfehlung für Craft Beer" },
   { name: "Segno Bali", area: "Canggu", price: "gehoben", fit: "Top-Empfehlung für Cocktails" },
@@ -148,4 +152,10 @@ export const VENUE_SPOTS: Spot[] = [
   { name: "ZALI Pererenan" },
   { name: "Riviera Trattoria Pererenan" },
   { name: "Kilo Kitchen Pererenan" }
+];
+
+// Fehlende Nummern aus PHONE_FILL ergänzen (ein vorhandener Wert bleibt), danach die zusätzlichen Betriebe anhängen.
+export const VENUE_SPOTS: Spot[] = [
+  ...BASE_SPOTS.map((s): Spot => (s.phone || !PHONE_FILL[s.name] ? s : { ...s, phone: PHONE_FILL[s.name], phoneSource: "google" })),
+  ...EXTRA_SPOTS
 ];
