@@ -1,5 +1,5 @@
 import { ImageResponse } from "next/og";
-import { tenantBrand } from "@/lib/venues/brand";
+import { resolveBrand } from "@/lib/venues/brand";
 import { getVenueByToken } from "@/lib/venues/store";
 
 // Vorschaubild des Links (WhatsApp, Instagram, Slack …): pro Betrieb, vom Betreiber, ohne Elev8-Marke.
@@ -36,7 +36,7 @@ function nameSize(name: string): number {
 export default async function Image({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   const venue = await getVenueByToken(token).catch(() => null);
-  const brand = tenantBrand();
+  const brand = await resolveBrand();
   const logo = await logoData(brand.logoUrl);
   const headline = venue ? venue.spotName : "Your photos on our Instagram";
   const points = ["Free feature", "Tagged to you", "2 minutes"];
