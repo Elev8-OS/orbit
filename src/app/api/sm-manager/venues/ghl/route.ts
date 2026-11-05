@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { requireUser } from '@/lib/platform/access';
 import { hasSmAccess } from '@/lib/sm-manager/access';
 import { engine } from '@/lib/sm-manager/client';
-import { ghlInfoMap, syncToGhl, type GhlStatus } from '@/lib/venues/ghl';
+import { checkDelivery, ghlInfoMap, syncToGhl, type GhlStatus } from '@/lib/venues/ghl';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 120;
@@ -15,15 +15,17 @@ export async function GET() {
   return Response.json({ status, infos });
 }
 
-const body = z.object({ action: z.literal('sync'), ids: z.array(z.number().int().positive()).max(60).optional() });
+const ids = z.array(z.number().int().positive()).max(60).optional();
+const body = z.discriminatedUnion('action', [z.object({ action: z.literal('sync'), ids }), z.object({ action: z.literal('delivery'), ids })]);
 
-/** Alle Orte (oder einzelne) als Kontakte in GHL anlegen oder aktualisieren. */
+/** Alle Orte (oder einzelne) in GHL anlegen oder aktualisieren; oder den Zustellstatus der WhatsApp-Nachrichten abfragen. */
 export async function POST(req: Request) {
   const gate = await requireUser(hasSmAccess);
   if ('response' in gate) return gate.response;
   const parsed = body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return Response.json({ error: 'invalid' }, { status: 400 });
   try {
+    if (parsed.data.action === 'delivery') return Response.json(await checkDelivery(parsed.data.ids));
     return Response.json(await syncToGhl(parsed.data.ids));
   } catch (e) {
     return Response.json({ error: e instanceof Error ? e.message : 'failed' }, { status: 502 });

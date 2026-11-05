@@ -11,7 +11,7 @@ export type VenueBrand = { name: string; instagram: string; sender: string; hasL
 export type VenuesData = { venues: VenueItem[]; storage: boolean; brand: VenueBrand };
 
 type Locale = 'de' | 'en';
-type GhlInfo = { contactId: string; optInAt: string | null; syncedAt: string | null; note: string };
+type GhlInfo = { contactId: string; optInAt: string | null; syncedAt: string | null; note: string; waStatus: string; waStatusAt: string | null; waError: string; waReplied: boolean };
 type GhlData = { status: { configured: boolean; location?: string | null; fields?: { venue_token?: boolean; venue_link?: boolean }; error?: string | null }; infos: Record<string, GhlInfo> };
 type SyncSummary = { synced: number; skipped: number; failed: number; items: { id: number; name: string; ok: boolean; reason: string }[] };
 
@@ -20,6 +20,8 @@ export function venueTabLabel(locale: Locale): string {
 }
 
 const usable = (v: VenueItem) => Boolean(v.consentAt) && v.approved > 0;
+/** Die Business-WhatsApp-Nachricht kam nicht an (oder GHL hat gar keine gefunden). */
+const notDelivered = (i?: GhlInfo) => i?.waStatus === 'failed' || i?.waStatus === 'none';
 
 async function call<T = Record<string, unknown>>(method: string, url: string, body?: unknown): Promise<{ ok: boolean; error?: string; json?: T }> {
   try {
@@ -57,7 +59,7 @@ export function SmVenues({ locale, data }: { locale: Locale; data: VenuesData | 
   const router = useRouter();
   const l = (de: string, en: string) => (locale === 'de' ? de : en);
   const [open, setOpen] = useState<number | null>(null);
-  const [filter, setFilter] = useState<'all' | 'review' | 'waiting' | 'ready'>('all');
+  const [filter, setFilter] = useState<'all' | 'review' | 'waiting' | 'ready' | 'failed'>('all');
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
   const [ghl, setGhl] = useState<GhlData | null>(null);
@@ -71,23 +73,32 @@ export function SmVenues({ locale, data }: { locale: Locale; data: VenuesData | 
       /* bleibt leer */
     }
   }
+  // Beim Öffnen: Stand laden, dann bei GHL nachfragen, ob verschickte Nachrichten angekommen sind, und neu laden.
   useEffect(() => {
-    void loadGhl();
+    void (async () => {
+      await loadGhl();
+      const r = await call<{ checked: number }>('POST', '/api/sm-manager/venues/ghl', { action: 'delivery' });
+      if (r.ok && (r.json?.checked ?? 0) > 0) await loadGhl();
+    })();
   }, []);
 
   if (!data) return <p className="sm-empty">{l('Die Orte konnten nicht geladen werden.', 'The places could not be loaded.')}</p>;
 
   const venues = data.venues;
   const brand = data.brand;
+  const failedCount = venues.filter((v) => notDelivered(ghl?.infos[String(v.id)])).length;
   const counts = {
     ready: venues.filter(usable).length,
     review: venues.filter((v) => v.pending > 0).length,
     waiting: venues.filter((v) => v.photos === 0).length
   };
-  const shown = venues.filter((v) => (filter === 'all' ? true : filter === 'review' ? v.pending > 0 : filter === 'waiting' ? v.photos === 0 : usable(v)));
+  const shown = venues.filter((v) =>
+    filter === 'all' ? true : filter === 'review' ? v.pending > 0 : filter === 'waiting' ? v.photos === 0 : filter === 'failed' ? notDelivered(ghl?.infos[String(v.id)]) : usable(v)
+  );
   const missing = [!brand.instagram ? 'TENANT_INSTAGRAM' : '', !brand.hasLogo ? 'TENANT_LOGO_URL' : ''].filter(Boolean);
   const inGhl = ghl ? Object.values(ghl.infos).filter((i) => i.contactId).length : 0;
   const fieldsMissing = ghl?.status.configured && ghl.status.fields && (!ghl.status.fields.venue_token || !ghl.status.fields.venue_link);
+  const businessSent = venues.filter((v) => v.lastChannel === 'whatsapp_business' && v.sentAt);
 
   async function seed() {
     setBusy(true);
@@ -116,12 +127,21 @@ export function SmVenues({ locale, data }: { locale: Locale; data: VenuesData | 
     router.refresh();
   }
 
+  async function checkAll() {
+    setBusy(true);
+    setMsg(l('Zustellung wird bei GHL abgefragt …', 'Asking GHL about delivery ...'));
+    const r = await call<{ checked: number }>('POST', '/api/sm-manager/venues/ghl', { action: 'delivery', ids: businessSent.map((v) => v.id) });
+    setBusy(false);
+    setMsg(r.ok ? l(`${r.json?.checked ?? 0} Nachrichten geprüft.`, `${r.json?.checked ?? 0} messages checked.`) : `${l('Fehlgeschlagen', 'Failed')}${r.error ? `: ${r.error}` : ''}`);
+    await loadGhl();
+  }
+
   return (
     <section className="ve">
       <p className="sm-muted">
         {l(
-          'Betriebe aus dem Umgebungs-Guide, mit Nummer, Instagram und Website vorbelegt, soweit gefunden. Jeder hat einen persönlichen Link, über den er Fotos hochlädt und seine Daten selbst einträgt. Der erste Kontakt läuft persönlich: ein Klick auf die Nummer öffnet WhatsApp Web mit dem fertigen Text. Hat ein Betrieb zugestimmt, per WhatsApp Business zu schreiben, schickt ein Knopf die Vorlage über GHL. Kommen nach zwei Tagen keine Fotos, geht die Erinnerung automatisch raus. Für Beiträge zählt ein Ort nur, wenn die Einwilligung bestätigt ist und mindestens ein Foto freigegeben wurde.',
-          'Venues from the area guide, prefilled with number, Instagram and website where found. Each has a personal link to upload photos and enter their own details. The first contact is personal: clicking the number opens WhatsApp Web with the finished text. Once a venue has agreed to WhatsApp Business messages, a button sends the template through GHL. If no photos arrive after two days, the reminder goes out automatically. A place is only used in posts when consent is confirmed and at least one photo is approved.'
+          'Betriebe aus dem Umgebungs-Guide, mit Nummer, Instagram und Website vorbelegt, soweit gefunden. Jeder hat einen persönlichen Link, über den er Fotos hochlädt und seine Daten selbst einträgt. Der erste Kontakt läuft persönlich: ein Klick auf die Nummer öffnet WhatsApp Web mit dem fertigen Text. Hat ein Betrieb zugestimmt, per WhatsApp Business zu schreiben, schickt ein Knopf die Vorlage über GHL. Kommen nach zwei Tagen keine Fotos, geht die Erinnerung automatisch raus. Kommt eine Nachricht nicht an, wird der Betrieb rot markiert. Für Beiträge zählt ein Ort nur, wenn die Einwilligung bestätigt ist und mindestens ein Foto freigegeben wurde.',
+          'Venues from the area guide, prefilled with number, Instagram and website where found. Each has a personal link to upload photos and enter their own details. The first contact is personal: clicking the number opens WhatsApp Web with the finished text. Once a venue has agreed to WhatsApp Business messages, a button sends the template through GHL. If no photos arrive after two days, the reminder goes out automatically. If a message does not arrive, the venue is marked red. A place is only used in posts when consent is confirmed and at least one photo is approved.'
         )}
       </p>
 
@@ -163,9 +183,17 @@ export function SmVenues({ locale, data }: { locale: Locale; data: VenuesData | 
                 {fieldsMissing ? (
                   <p className="sm-warn">{l('Die Kontaktfelder Venue Token und Venue Link fehlen noch. Beim Anlegen versucht die Engine, sie zu erstellen. Klappt das nicht, lege beide als Textfelder in GHL an.', 'The contact fields Venue Token and Venue Link are missing. The engine tries to create them on the first sync. If that fails, create both as text fields in GHL.')}</p>
                 ) : null}
+                {failedCount > 0 ? (
+                  <p className="sm-warn">
+                    {l(`${failedCount} Betrieb(e) haben die WhatsApp-Nachricht nicht erhalten. Sie sind rot markiert, der Filter «Nicht zugestellt» zeigt sie.`, `${failedCount} venue(s) did not receive the WhatsApp message. They are marked red, the filter "Not delivered" shows them.`)}
+                  </p>
+                ) : null}
                 <div className="ve-actions">
                   <button type="button" className="sm-btn sm-btn-primary" onClick={syncAll} disabled={busy}>
                     {l('Alle Orte in GHL anlegen oder aktualisieren', 'Create or update all places in GHL')}
+                  </button>
+                  <button type="button" className="sm-btn" onClick={checkAll} disabled={busy || businessSent.length === 0} title={l('Fragt bei GHL nach, ob die Business-Nachrichten angekommen sind', 'Asks GHL whether the business messages arrived')}>
+                    {l('Zustellung prüfen', 'Check delivery')}
                   </button>
                   <span className="sm-muted sm-small">
                     {inGhl} {l('von', 'of')} {venues.length} {l('Orten sind in GHL', 'places are in GHL')}
@@ -207,6 +235,11 @@ export function SmVenues({ locale, data }: { locale: Locale; data: VenuesData | 
             <button type="button" className={`sm-btn ${filter === 'ready' ? 'sm-btn-primary' : ''}`} onClick={() => setFilter('ready')}>
               {l('Für Beiträge bereit', 'Ready for posts')} ({counts.ready})
             </button>
+            {failedCount > 0 || filter === 'failed' ? (
+              <button type="button" className={`sm-btn ${filter === 'failed' ? 'sm-btn-primary' : ''}`} onClick={() => setFilter('failed')}>
+                {l('Nicht zugestellt', 'Not delivered')} ({failedCount})
+              </button>
+            ) : null}
             <button type="button" className="sm-btn" onClick={seed} disabled={busy} title={l('Füllt fehlende Angaben nach, überschreibt nichts', 'Fills in missing details, overwrites nothing')}>
               {l('Angaben aus dem Guide ergänzen', 'Add details from the guide')}
             </button>
@@ -238,7 +271,6 @@ export function SmVenues({ locale, data }: { locale: Locale; data: VenuesData | 
 
 function noteText(note: string, l: (de: string, en: string) => string): string {
   if (!note) return '';
-  if (note === 'landline') return l('Festnetznummer: WhatsApp ist so nicht möglich', 'Landline number: WhatsApp is not possible');
   if (note === 'no_contact') return l('Weder Nummer noch E-Mail vorhanden', 'Neither number nor email');
   if (note.startsWith('dup:')) return l(`Gleiche Nummer wie ${note.slice(4)}, darum nicht doppelt angelegt (gleiche Gruppe? Dann reicht ein Kontakt)`, `Same number as ${note.slice(4)}, so not created twice (same group? Then one contact is enough)`);
   if (note.startsWith('error:')) return note.slice(6);
@@ -312,6 +344,7 @@ function VenueRow({ v, brand, locale, info, ghlOk, isOpen, onToggle, onChanged }
   const canBusiness = ghlOk && optedIn && Boolean(info?.contactId) && v.tokenActive && Boolean(v.phone);
   const setOptIn = (value: boolean) => run(() => call('POST', `/api/sm-manager/venues/${v.id}/ghl`, { action: 'optin', value }), value ? l('Zustimmung festgehalten', 'Opt-in recorded') : l('Zustimmung entfernt', 'Opt-in removed'));
   const syncOne = () => run(() => call('POST', '/api/sm-manager/venues/ghl', { action: 'sync', ids: [v.id] }), l('In GHL abgeglichen', 'Synced to GHL'));
+  const checkOne = () => run(() => call('POST', '/api/sm-manager/venues/ghl', { action: 'delivery', ids: [v.id] }), l('Zustellung geprüft', 'Delivery checked'));
   const sendBusiness = () => {
     if (!confirm(l(`WhatsApp-Business-Nachricht an ${v.spotName} jetzt senden?`, `Send the WhatsApp Business message to ${v.spotName} now?`))) return;
     void run(() => call('POST', `/api/sm-manager/venues/${v.id}/ghl`, { action: 'send' }), l('An GHL übergeben. Die Erinnerung geht nach zwei Tagen automatisch raus, falls keine Fotos kommen.', 'Handed to GHL. The reminder goes out automatically after two days if no photos arrive.'));
@@ -335,6 +368,21 @@ function VenueRow({ v, brand, locale, info, ghlOk, isOpen, onToggle, onChanged }
           ? l('Nummer vom Betrieb oder von Hand eingetragen.', 'Number entered by the venue or by hand.')
           : '';
 
+  // Zustellung der Business-WhatsApp-Nachricht, wie GHL sie meldet
+  const wa = info?.waStatus ?? '';
+  const waBadge =
+    wa === 'failed'
+      ? { cls: 've-bad', text: l('WhatsApp nicht zugestellt', 'WhatsApp not delivered') }
+      : wa === 'none'
+        ? { cls: 've-bad', text: l('Keine Nachricht in GHL gefunden', 'No message found in GHL') }
+        : wa === 'read'
+          ? { cls: 'sm-badge-ok', text: l('WhatsApp gelesen', 'WhatsApp read') }
+          : wa === 'delivered'
+            ? { cls: 'sm-badge-ok', text: l('WhatsApp zugestellt', 'WhatsApp delivered') }
+            : wa === 'sent'
+              ? { cls: '', text: l('WhatsApp gesendet', 'WhatsApp sent') }
+              : null;
+
   return (
     <li className={`ve-item ${isOpen ? 've-open' : ''}`}>
       <div className="ve-head">
@@ -348,6 +396,8 @@ function VenueRow({ v, brand, locale, info, ghlOk, isOpen, onToggle, onChanged }
           <span className={`sm-badge ${usable(v) ? 'sm-badge-ok' : ''}`}>{usable(v) ? l('bereit', 'ready') : v.consentAt ? l('Einwilligung ✓', 'Consent ✓') : l('Einwilligung offen', 'Consent open')}</span>
           {info?.contactId ? <span className="sm-badge">GHL ✓</span> : null}
           {optedIn ? <span className="sm-badge sm-badge-ok">{l('WhatsApp OK', 'WhatsApp OK')}</span> : null}
+          {waBadge ? <span className={`sm-badge ${waBadge.cls}`}>{waBadge.text}</span> : null}
+          {info?.waReplied ? <span className="sm-badge sm-badge-ok">{l('hat geantwortet', 'replied')}</span> : null}
         </button>
         {(rowUrl && v.tokenActive) || canBusiness ? (
           <span className="ve-send">
@@ -441,6 +491,17 @@ function VenueRow({ v, brand, locale, info, ghlOk, isOpen, onToggle, onChanged }
             {info?.contactId ? `${l('GHL-Kontakt', 'GHL contact')} ${info.contactId.slice(0, 8)}… · ${l('abgeglichen', 'synced')} ${fmt(info.syncedAt)}` : l('Noch nicht in GHL angelegt.', 'Not in GHL yet.')}
             {info?.note ? ` · ${noteText(info.note, l)}` : ''}
           </p>
+          {wa === 'failed' ? (
+            <p className="sm-warn">
+              {l('Die WhatsApp-Nachricht konnte nicht zugestellt werden', 'The WhatsApp message could not be delivered')}
+              {info?.waError ? `: ${info.waError}` : ''}. {l('Häufige Gründe: Die Nummer hat kein WhatsApp, die Nummer ist falsch oder die Vorlage ist bei Meta noch nicht genehmigt. Prüfe die Nummer (Google Maps) oder schreibe persönlich über WhatsApp Web.', 'Common reasons: the number has no WhatsApp, the number is wrong, or the template is not approved by Meta yet. Check the number (Google Maps) or write personally via WhatsApp Web.')}
+            </p>
+          ) : null}
+          {wa === 'none' ? (
+            <p className="sm-warn">{l('In GHL ist keine ausgehende WhatsApp-Nachricht zu finden. Prüfe, ob die Vorlage genehmigt und der Workflow aktiv ist (Auslöser: Tag venue-outreach-send).', 'No outgoing WhatsApp message can be found in GHL. Check that the template is approved and the workflow is active (trigger: tag venue-outreach-send).')}</p>
+          ) : null}
+          {wa === 'sent' ? <p className="ve-ghlline">{l('Gesendet, GHL hat noch keine Zustellung gemeldet.', 'Sent, GHL has not reported delivery yet.')}</p> : null}
+          {info?.waStatusAt && wa ? <p className="ve-ghlline">{l('Stand der Prüfung', 'Checked')}: {fmt(info.waStatusAt)}</p> : null}
           <div className="ve-actions">
             <button type="button" className="sm-btn" onClick={syncOne} disabled={busy || !ghlOk}>
               {l('In GHL anlegen oder aktualisieren', 'Create or update in GHL')}
@@ -448,6 +509,11 @@ function VenueRow({ v, brand, locale, info, ghlOk, isOpen, onToggle, onChanged }
             {canBusiness ? (
               <button type="button" className="sm-btn sm-btn-primary" onClick={sendBusiness} disabled={busy}>
                 {l('Business-WhatsApp senden', 'Send business WhatsApp')}
+              </button>
+            ) : null}
+            {info?.contactId && v.sentAt && v.lastChannel === 'whatsapp_business' ? (
+              <button type="button" className="sm-btn" onClick={checkOne} disabled={busy || !ghlOk}>
+                {l('Zustellung prüfen', 'Check delivery')}
               </button>
             ) : null}
           </div>
