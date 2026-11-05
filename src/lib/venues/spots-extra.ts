@@ -7,6 +7,8 @@
 import type { Spot } from "./spots";
 
 // Nummern für bestehende Einträge, die bisher keine hatten. Gilt nur, wenn im Eintrag keine Nummer steht.
+// Stand: Google Places, November 2026. Zwei sind Festnetz (Nook Umalas, Atlas Beach Club) und gehen nicht per WhatsApp.
+// Nicht aufgenommen, bis bestätigt: Muda By/Suka, Luna Beach Club, IWA Restaurant at Hotel Tugu Bali, Organic Ocean Restaurant.
 export const PHONE_FILL: Record<string, string> = {
   "Brunch Club Pererenan": "+6281138312906",
   "Gather | brunch café": "+628132001598",
@@ -19,7 +21,32 @@ export const PHONE_FILL: Record<string, string> = {
   "Day by Day Coffee & Eatery": "+6282220612361",
   "Old Man's Bali": "+623618469158",
   "Motel Mexicola Canggu": "+6281138898000",
-  "Bar Vera Bistro & Wine Bar": "+6282342713110"
+  "Bar Vera Bistro & Wine Bar": "+6282342713110",
+  "HOME by Chef Wayan": "+6281237593530",
+  "Santanera": "+6281246658896",
+  "Ulekan Bali": "+6282145948624",
+  "Sa'Mesa Canggu": "+6281353035411",
+  "Nook Umalas": "+623618475625",
+  "Riviera Cafe Cemagi": "+6282340670942",
+  "Ji Restaurant Bali": "+6282321328483",
+  "BAKED. Berawa": "+6287787627769",
+  "The Avocado Factory": "+6281337382521",
+  "Satu-Satu Coffee Company": "+6287862077011",
+  "Touché Café & Restaurant": "+6282341850363",
+  "ST. ALi Bali": "+6281139416656",
+  "Seseh General Store": "+6281246594003",
+  "7AM Bakers Umalas": "+628113850303",
+  "The Lawn Canggu": "+6281138004951",
+  "Black Sand Brewery": "+628113858991",
+  "Segno Bali": "+6282119995288",
+  "Atlas Beach Club": "+623613007222",
+  "Pigstone Taphouse": "+6282135721849",
+  "The Forge Bali": "+6281909988885",
+  "The Plumbers Arms": "+6285100449132",
+  "The Hula": "+6281246341688",
+  "Cinta Pererenan": "+6281238172422",
+  "LOOP cafe": "+628133793786",
+  "Kilo Kitchen Pererenan": "+6287763390757"
 };
 
 export const EXTRA_SPOTS: Spot[] = [
