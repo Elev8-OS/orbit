@@ -173,7 +173,7 @@ export function cleanEmail(input: string): string {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) ? v.slice(0, 120) : "";
 }
 
-export type SeedItem = { name: string; aliases?: string[]; instagram?: string; phone?: string; phoneSource?: string; website?: string; placeId?: string; area?: string; price?: string; fit?: string };
+export type SeedItem = { name: string; aliases?: string[]; instagram?: string; phone?: string; phoneSource?: string; email?: string; website?: string; placeId?: string; area?: string; price?: string; fit?: string };
 
 /**
  * Legt Betriebe an. Bestehende Betriebe werden nur ergänzt: was schon eingetragen ist (auch vom Betrieb selbst),
@@ -193,12 +193,14 @@ export async function createVenues(items: SeedItem[]): Promise<{ created: number
     const name = hit[0]?.spot_name ?? wanted;
     const instagram = it.instagram ? cleanInstagram(it.instagram) || null : null;
     const phone = it.phone ? cleanPhone(it.phone) || null : null;
-    const rows = await sql<{ inserted: boolean }[]>`insert into venue_contacts (spot_name, token, instagram, phone, phone_source, website, place_id, area, price, fit)
-      values (${name}, ${newToken(name)}, ${instagram}, ${phone}, ${phone ? (it.phoneSource ?? "public") : null}, ${it.website ?? null}, ${it.placeId ?? null}, ${it.area ?? null}, ${it.price ?? null}, ${it.fit ?? null})
+    const email = it.email ? cleanEmail(it.email) || null : null;
+    const rows = await sql<{ inserted: boolean }[]>`insert into venue_contacts (spot_name, token, instagram, phone, phone_source, email, website, place_id, area, price, fit)
+      values (${name}, ${newToken(name)}, ${instagram}, ${phone}, ${phone ? (it.phoneSource ?? "public") : null}, ${email}, ${it.website ?? null}, ${it.placeId ?? null}, ${it.area ?? null}, ${it.price ?? null}, ${it.fit ?? null})
       on conflict (spot_name) do update set
         instagram = coalesce(nullif(venue_contacts.instagram, ''), excluded.instagram),
         phone_source = case when coalesce(venue_contacts.phone, '') = '' then excluded.phone_source else venue_contacts.phone_source end,
         phone = coalesce(nullif(venue_contacts.phone, ''), excluded.phone),
+        email = coalesce(nullif(venue_contacts.email, ''), excluded.email),
         website = coalesce(nullif(venue_contacts.website, ''), excluded.website),
         place_id = coalesce(nullif(venue_contacts.place_id, ''), excluded.place_id),
         area = coalesce(excluded.area, venue_contacts.area),
