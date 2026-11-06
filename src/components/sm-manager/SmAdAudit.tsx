@@ -65,6 +65,11 @@ function textDe(c: Check, nf: Intl.NumberFormat): string {
     case 'server_events': return `Ereignisse nach Quelle (7 Tage): ${list(p.sources).join(', ') || 'keine'}.${c.level === 'warn' ? ' Noch kein Server-Ereignis gesehen.' : ''}`;
     case 'value_events': return `Ereignisse mit Wert-Angabe: ${Object.entries((p.events ?? {}) as Record<string, unknown>).map(([k, n]) => `${k} ${nr(n)}`).join(', ')}.`;
     case 'hosts': return `Ereignisse kamen auch von anderen Adressen: ${Object.entries((p.hosts ?? {}) as Record<string, unknown>).map(([k, n]) => `${k} ${nr(n)}`).join(', ')}. Meist Tests oder Vorschauen.`;
+    case 'no_value': return 'Keines der Ereignisse sendet einen Wert mit. Meta kann nicht lernen, welche Villen und Aufenthalte mehr wert sind, und kann keinen Umsatz pro Anzeige ausweisen.';
+    case 'meta_recommendations': {
+      const recs = Array.isArray(p.recommendations) ? (p.recommendations as { title?: unknown }[]).map((r) => str(r.title)).filter(Boolean) : [];
+      return `Potenzialbewertung von Meta: ${p.score == null ? 'nicht gelesen' : `${nr(p.score)} von 100`}.${recs.length ? ` Empfehlungen (${nr(p.total)}): ${recs.join('; ')}.` : ''} Anwenden kannst du sie im Ads Manager.`;
+    }
     case 'lpv_ratio': return `Nur ${nr(p.pct)} Prozent der Link-Klicks werden zu Seitenaufrufen. Die Seite lädt zu langsam, oder der Pixel feuert zu spät.`;
     default: return c.text;
   }
@@ -86,6 +91,7 @@ const FIX_DE: Record<string, string> = {
   no_viewcontent: 'ViewContent auf jeder Villenseite senden, mit content_ids (villa-patuha und so weiter) und Wert.',
   no_purchase: 'Jede Direktbuchung aus Elev8 als Purchase über die Conversions API senden (gehashte E-Mail und Telefon, Wert, Währung, event_id), auch die, die nicht über die Website kommen.',
   server_events: 'Der Kauf über die Conversions API sollte hier auftauchen, sobald es eine Buchung gibt.',
+  no_value: 'Wert und Währung bei ViewContent, InitiateCheckout und Purchase mitsenden (der Preis des Aufenthalts), dazu die Villa als content_ids.',
   lpv_ratio: 'Die Ladezeit der Seite auf dem Handy prüfen.'
 };
 
