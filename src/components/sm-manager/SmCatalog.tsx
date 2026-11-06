@@ -6,9 +6,9 @@ import './catalog.css';
 
 type Locale = 'de' | 'en';
 
-export type CatalogRow = { retailer_id: string; property_key: string; price: number | null; currency: string | null; availability: string | null; free_nights: number | null; status: string | null; error: string | null; synced_at: string | null };
+export type CatalogRow = { retailer_id: string; property_key: string; price: number | null; currency: string | null; availability: string | null; status: string | null; error: string | null; synced_at: string | null };
 type Base = { amount: number; currency: string; rate: number; date: string | null; source: string | null; stale: boolean };
-type Item = { retailerId: string; villa: string; title: string; price: string; amount: number; currency: string; base: Base | null; availability: string; freeNights: number; priceSource: string; link: string; mainImage: string; images: number; description: string; warnings: string[] };
+type Item = { retailerId: string; villa: string; title: string; price: string; amount: number; currency: string; base: Base | null; availability: string; priceSource: string; link: string; mainImage: string; images: number; description: string; warnings: string[] };
 type RunResult = { dryRun?: boolean; at?: string; sent?: number; status?: string; batchErrors?: number; items: Item[]; errors: { villa: string; error: string }[]; notes?: string[]; batch?: { errors: string[] } };
 export type CatalogData = {
   configured: { token: boolean; businessId: boolean; wabaId: boolean; phoneId: boolean; pricelabsVillas: string[] };
@@ -87,9 +87,9 @@ export function SmCatalog({ locale, data }: { locale: Locale; data: CatalogData 
   const money = (amount: number | null | undefined, cur: string | null | undefined) => (amount == null ? '–' : `${cur ?? ''} ${nf.format(amount)}`.trim());
 
   async function act(action: 'create' | 'connect' | 'preview' | 'sync', ok: string) {
-    if (action === 'sync' && !confirm(l('Die Villen jetzt an den Katalog bei Meta senden?', 'Send the villas to the catalog at Meta now?'))) return;
+    if (action === 'sync' && !confirm(l('Die Objekte jetzt an den Katalog bei Meta senden?', 'Send the properties to the catalog at Meta now?'))) return;
     setBusy(action);
-    setMsg(action === 'preview' ? l('Vorschau wird gebaut … das dauert bis zu einer halben Minute.', 'Building the preview ... this takes up to half a minute.') : l('Läuft …', 'Working ...'));
+    setMsg(action === 'preview' ? l('Vorschau wird gebaut … das dauert bis zu einer Minute.', 'Building the preview ... this takes up to a minute.') : l('Läuft …', 'Working ...'));
     const r = await call<Record<string, unknown>>('POST', { action });
     if (!r.ok) {
       setBusy('');
@@ -123,8 +123,8 @@ export function SmCatalog({ locale, data }: { locale: Locale; data: CatalogData 
     <section className="cat">
       <p className="sm-muted">
         {l(
-          'Ein Produkt pro Villa im WhatsApp-Katalog bei Meta. Titel und Text kommen aus den geprüften Fakten, die Fotos aus der Elev8-Galerie, der Preis ist der günstigste freie Nachtpreis der nächsten 90 Tage, umgerechnet in IDR (Kurs des Tages, auf 10’000 gerundet). Zuerst die Vorschau prüfen, dann senden. Es wird nichts geraten: Fehlt für eine Villa der Preis oder der Kurs, wird sie nicht gesendet.',
-          'One product per villa in the WhatsApp catalog at Meta. Title and text come from the verified facts, the photos from the Elev8 gallery, the price is the lowest free nightly price over the next 90 days, converted to IDR (rate of the day, rounded to 10,000). Check the preview first, then send. Nothing is guessed: if a villa has no price or no rate, it is not sent.'
+          'Ein Produkt pro Villa, pro Apartment-Kategorie und für die Shared Villa Merapi im WhatsApp-Katalog bei Meta. Titel und Text kommen aus den geprüften Fakten, die Fotos aus der Elev8-Galerie, der Preis ist der günstigste freie Nachtpreis der nächsten 90 Tage, umgerechnet in IDR (Kurs des Tages, auf 10’000 gerundet). Ist ein Objekt ausgebucht, steht der PriceLabs-Basispreis im Katalog und „Ausgebucht“ im Text. Zuerst die Vorschau prüfen, dann senden. Es wird nichts geraten: Fehlt der Preis oder der Kurs, wird das Objekt nicht gesendet.',
+          'One product per villa, per apartment category and for the shared villa Merapi in the WhatsApp catalog at Meta. Title and text come from the verified facts, the photos from the Elev8 gallery, the price is the lowest free nightly price over the next 90 days, converted to IDR (rate of the day, rounded to 10,000). When a property is fully booked, the catalog shows the PriceLabs base price and says "Fully booked" in the text. Check the preview first, then send. Nothing is guessed: if a property has no price or no rate, it is not sent.'
         )}
       </p>
 
@@ -151,7 +151,7 @@ export function SmCatalog({ locale, data }: { locale: Locale; data: CatalogData 
             {state.auto ? '' : <span className="sm-muted sm-small"> · {l('einschalten mit WA_CATALOG_AUTO=on, sobald der erste Abgleich stimmt', 'switch on with WA_CATALOG_AUTO=on once the first sync is right')}</span>}
           </li>
           <li>
-            <span className="sm-badge">{state.villas.length}</span> {l('Villen', 'Villas')}: {state.villas.join(', ')}
+            <span className="sm-badge">{state.villas.length}</span> {l('Objekte', 'Properties')}: {state.villas.join(', ')}
           </li>
           <li>
             <span className="sm-badge">{state.lastSync ? '✓' : '–'}</span> {l('Letzter Abgleich', 'Last sync')}: {state.lastSync ? `${date(state.lastSync.at)} · ${state.lastSync.sent} ${l('gesendet', 'sent')}${state.lastSync.batchErrors || state.lastSync.villaErrors ? ` · ${state.lastSync.batchErrors + state.lastSync.villaErrors} ${l('Probleme', 'problems')}` : ''}` : l('noch keiner', 'none yet')}
@@ -226,7 +226,7 @@ export function SmCatalog({ locale, data }: { locale: Locale; data: CatalogData 
                     </div>
                   ) : null}
                   <div className="sm-muted sm-small">
-                    <span className={`sm-badge ${i.availability === 'in stock' ? 'sm-badge-ok' : 've-bad'}`}>{i.availability === 'in stock' ? l('verfügbar', 'available') : l('nicht verfügbar', 'unavailable')}</span> {i.freeNights} {l('freie Nächte in 90 Tagen', 'free nights in 90 days')} · {i.images} {l('Fotos', 'photos')}
+                    <span className={`sm-badge ${i.availability === 'in stock' ? 'sm-badge-ok' : 've-bad'}`}>{i.availability === 'in stock' ? l('verfügbar', 'available') : l('ausgebucht', 'fully booked')}</span> {i.images} {l('Fotos', 'photos')}
                   </div>
                   {i.warnings.map((w) => (
                     <p key={w} className="sm-warn">{w}</p>
@@ -251,7 +251,7 @@ export function SmCatalog({ locale, data }: { locale: Locale; data: CatalogData 
           <table className="sm-table">
             <thead>
               <tr>
-                <th>{l('Villa', 'Villa')}</th>
+                <th>{l('Objekt', 'Property')}</th>
                 <th>{l('Preis ab', 'Price from')}</th>
                 <th>{l('Verfügbarkeit', 'Availability')}</th>
                 <th>{l('Status', 'Status')}</th>
@@ -263,7 +263,7 @@ export function SmCatalog({ locale, data }: { locale: Locale; data: CatalogData 
                 <tr key={r.retailer_id}>
                   <td className="sm-cell-title">{r.property_key}</td>
                   <td data-label={l('Preis ab', 'Price from')}>{money(r.price, r.currency)}</td>
-                  <td data-label={l('Verfügbarkeit', 'Availability')}>{r.availability === 'in stock' ? l('verfügbar', 'available') : r.availability === 'out of stock' ? l('nicht verfügbar', 'unavailable') : '–'}</td>
+                  <td data-label={l('Verfügbarkeit', 'Availability')}>{r.availability === 'in stock' ? l('verfügbar', 'available') : r.availability === 'out of stock' ? l('ausgebucht', 'fully booked') : '–'}</td>
                   <td data-label={l('Status', 'Status')}>
                     {statusOf(r.status)}
                     {r.error ? <div className="sm-warn sm-small">{r.error}</div> : null}
