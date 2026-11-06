@@ -17,6 +17,7 @@ import { SmSourceCompare, type SourceCompare } from "@/components/sm-manager/SmS
 import { SmDrafting, type DraftingData } from "@/components/sm-manager/SmDrafting";
 import { SmAudience, type AudiencePlan } from "@/components/sm-manager/SmAudience";
 import { SmAds, type AdsData } from "@/components/sm-manager/SmAds";
+import { SmAdAudit } from "@/components/sm-manager/SmAdAudit";
 import { SmCompetitors, type CompetitorsData } from "@/components/sm-manager/SmCompetitors";
 import { SmMusic, type MusicData } from "@/components/sm-manager/SmMusic";
 import { SmVenues, type VenuesData } from "@/components/sm-manager/SmVenues";
@@ -31,6 +32,8 @@ const REVIEW = ["rendered", "draft_created"];
 const DONE = ["approved", "scheduled", "published", "rejected", "failed"];
 const INQUIRY_OPEN = ["draft_ready", "failed"];
 const RANGES = ["30", "90", "365", "alle"];
+// Anzeigen, die bei Meta liegen und sich dort lesen lassen (für den Audit)
+const AT_META = ["pushed", "paused", "active", "ended"];
 
 export default async function SmManagerPage({ searchParams }: { searchParams: Promise<{ ansicht?: string; zeitraum?: string }> }) {
   const params = await searchParams;
@@ -141,7 +144,17 @@ export default async function SmManagerPage({ searchParams }: { searchParams: Pr
           music={view === "music" ? <SmMusic locale={locale} data={musicData} /> : null}
           venues={view === "venues" ? <SmVenues locale={locale} data={venueData} /> : null}
           catalog={view === "catalog" ? <SmCatalog locale={locale} data={catalogData} /> : null}
-          ads={view === "ads" ? <SmAds locale={locale} data={adsData} /> : null}
+          ads={
+            view === "ads" ? (
+              <>
+                <SmAds locale={locale} data={adsData} />
+                <SmAdAudit
+                  locale={locale}
+                  ads={(adsData?.campaigns ?? []).filter((a) => a.meta?.campaignId && AT_META.includes(a.status)).map((a) => ({ id: a.id, name: a.name, status: a.status }))}
+                />
+              </>
+            ) : null
+          }
           drafting={view === "review" ? <SmDrafting locale={locale} data={draftingData} /> : null}
           learningCount={learningCount}
           postHour={typeof postHour === "number" ? postHour : null}
