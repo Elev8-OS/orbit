@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { putObject, storageConfigured } from "@/lib/venues/s3";
 import { notifyPhotosReceived } from "@/lib/venues/ghl";
+import { saveProfile } from "@/lib/venues/profile";
 import { MAX_PHOTOS, addPhoto, cleanEmail, cleanInstagram, cleanPhone, countPhotos, getVenueByToken, markUploaded, updateVenue } from "@/lib/venues/store";
 
 export const dynamic = "force-dynamic";
@@ -52,18 +53,24 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
   const id = await addPhoto({ venueId: venue.id, storageKey: key, filename: file.name.slice(0, 120), contentType: kind.mime, bytes: file.size, caption, rightsOk: true });
 
   // Der Betrieb trägt seine Daten selbst ein: das hat Vorrang vor allem, was wir vorbelegt haben.
-  // Die Einwilligung wird beim ersten Upload mit Datum festgehalten.
+  // Die Einwilligung wird beim ersten Upload mit Datum festgehalten. Fassung 2 (6. Nov. 2026) umfasst auch die Zustimmung der abgebildeten Personen und die Einladung als Mit-Autor.
   const instagram = cleanInstagram(String(form.get("instagram") ?? ""));
   const contactName = String(form.get("contact_name") ?? "").trim().slice(0, 80);
   const phone = cleanPhone(String(form.get("phone") ?? ""));
   const email = cleanEmail(String(form.get("email") ?? ""));
   await updateVenue(venue.id, {
-    ...(venue.consentAt ? {} : { consent_ref: "Confirmed by the venue on the upload page", consent_at: new Date() }),
+    ...(venue.consentAt ? {} : { consent_ref: "Confirmed by the venue on the upload page (v2: people shown, collaborator invitation)", consent_at: new Date() }),
     ...(instagram ? { instagram } : {}),
     ...(contactName ? { contact_name: contactName } : {}),
     ...(phone ? { phone, phone_source: "entered" } : {}),
     ...(email ? { email } : {})
   });
+  // Die zwei freien Angaben gehören zum Betrieb, nicht zum Foto. Ein Fehler hier darf den Upload nicht scheitern lassen.
+  try {
+    await saveProfile(venue.id, { about: String(form.get("about") ?? ""), tip: String(form.get("tip") ?? "") });
+  } catch (e) {
+    console.error("Venue profile could not be saved:", e);
+  }
   await markUploaded(venue.id);
   // Beim ersten Foto GHL Bescheid geben, damit die Erinnerung nach zwei Tagen entfällt. Der Upload wartet nicht darauf.
   if (venue.status !== "uploaded") void notifyPhotosReceived(venue.id);

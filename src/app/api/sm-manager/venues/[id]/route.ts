@@ -1,5 +1,6 @@
 import { requireUser } from "@/lib/platform/access";
 import { hasSmAccess } from "@/lib/sm-manager/access";
+import { getProfile } from "@/lib/venues/profile";
 import { cleanEmail, cleanInstagram, cleanPhone, getVenue, listPhotos, rotateToken, updateVenue } from "@/lib/venues/store";
 
 export const dynamic = "force-dynamic";
@@ -11,14 +12,15 @@ async function idOf(ctx: Ctx): Promise<number | null> {
   return Number.isInteger(n) && n > 0 ? n : null;
 }
 
-// Ein Betrieb mit seinen Fotos
+// Ein Betrieb mit seinen Fotos und den freien Angaben, die er selbst gemacht hat
 export async function GET(_req: Request, ctx: Ctx) {
   const gate = await requireUser(hasSmAccess);
   if ("response" in gate) return gate.response;
   const id = await idOf(ctx);
   const venue = id ? await getVenue(id) : null;
   if (!id || !venue) return Response.json({ error: "Not found" }, { status: 404 });
-  return Response.json({ venue, photos: await listPhotos(id) });
+  const profile = await getProfile(id).catch(() => ({ about: "", tip: "" }));
+  return Response.json({ venue, photos: await listPhotos(id), profile });
 }
 
 // Kontaktdaten und Einwilligung ändern; { rotate: true } erneuert den Link, { token_active: false } sperrt ihn,
