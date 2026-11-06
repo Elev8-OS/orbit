@@ -70,6 +70,13 @@ function textDe(c: Check, nf: Intl.NumberFormat): string {
       const recs = Array.isArray(p.recommendations) ? (p.recommendations as { title?: unknown }[]).map((r) => str(r.title)).filter(Boolean) : [];
       return `Potenzialbewertung von Meta: ${p.score == null ? 'nicht gelesen' : `${nr(p.score)} von 100`}.${recs.length ? ` Empfehlungen (${nr(p.total)}): ${recs.join('; ')}.` : ''} Anwenden kannst du sie im Ads Manager.`;
     }
+    case 'instagram_placements':
+      return c.level === 'warn'
+        ? `Instagram ist nicht unter den Plätzen (${list(p.platforms).join(', ')}).`
+        : p.automatic
+          ? 'Die Plätze sind automatisch, Instagram (Feed, Reels, Stories) ist also dabei.'
+          : `Instagram ist dabei (${list(p.platforms).join(', ')}).`;
+    case 'creative_changed': return 'Die Anzeige wurde nach dem Senden im Ads Manager geändert. Der Audit liest die aktuelle Fassung.';
     case 'lpv_ratio': return `Nur ${nr(p.pct)} Prozent der Link-Klicks werden zu Seitenaufrufen. Die Seite lädt zu langsam, oder der Pixel feuert zu spät.`;
     default: return c.text;
   }
@@ -92,6 +99,7 @@ const FIX_DE: Record<string, string> = {
   no_purchase: 'Jede Direktbuchung aus Elev8 als Purchase über die Conversions API senden (gehashte E-Mail und Telefon, Wert, Währung, event_id), auch die, die nicht über die Website kommen.',
   server_events: 'Der Kauf über die Conversions API sollte hier auftauchen, sobald es eine Buchung gibt.',
   no_value: 'Wert und Währung bei ViewContent, InitiateCheckout und Purchase mitsenden (der Preis des Aufenthalts), dazu die Villa als content_ids.',
+  instagram_placements: 'Beim Anzeigensatz unter Platzierungen Instagram hinzufügen.',
   lpv_ratio: 'Die Ladezeit der Seite auf dem Handy prüfen.'
 };
 
