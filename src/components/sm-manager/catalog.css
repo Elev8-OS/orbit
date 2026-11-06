@@ -1,0 +1,9 @@
+.cat h3 { margin: 1.4rem 0 0.5rem; }
+.cat-box { border: 1px solid var(--sm-line, #d9e2e1); border-radius: 12px; padding: 0.9rem 1rem; margin: 0.8rem 0; }
+.cat-list { list-style: none; margin: 0.6rem 0; padding: 0; display: grid; gap: 0.35rem; }
+.cat-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.6rem; }
+.cat-cards { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.9rem; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+.cat-card { border: 1px solid var(--sm-line, #d9e2e1); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; }
+.cat-card img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; display: block; }
+.cat-card-body { padding: 0.7rem 0.8rem; display: grid; gap: 0.3rem; }
+.cat-price { font-weight: 600; }
