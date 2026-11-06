@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { UploadForm } from "@/components/venues/UploadForm";
 import { VenueShell } from "@/components/venues/VenueShell";
 import { resolveBrand } from "@/lib/venues/brand";
+import { getProfile } from "@/lib/venues/profile";
 import { MAX_PHOTOS, countPhotos, getVenueByToken, markOpened } from "@/lib/venues/store";
 
 export const dynamic = "force-dynamic";
@@ -44,6 +45,8 @@ export default async function ContributePage({ params }: { params: Promise<{ tok
   if (!BOT.test(agent)) await markOpened(venue.id);
   const used = await countPhotos(venue.id);
   const brand = await resolveBrand();
+  // Was der Betrieb schon geschrieben hat, steht beim nächsten Öffnen wieder da. Ein Fehler hier darf die Seite nie sperren.
+  const profile = await getProfile(venue.id).catch(() => ({ about: "", tip: "" }));
 
   return (
     <VenueShell brand={brand} label="Photo upload">
@@ -54,7 +57,7 @@ export default async function ContributePage({ params }: { params: Promise<{ tok
 
         <ul className="vp-list">
           <li>
-            <strong>A free feature</strong> on our Instagram{brand.instagram ? <> (@{brand.instagram})</> : null}, as one of our local tips around Pererenan
+            <strong>A free feature</strong> on our Instagram{brand.instagram ? <> (@{brand.instagram})</> : null}, as one of our local tips around Pererenan and Canggu
           </li>
           <li>
             <strong>A tag to your account</strong>, so people who see the post find you
@@ -65,7 +68,7 @@ export default async function ContributePage({ params }: { params: Promise<{ tok
         </ul>
 
         <p className="pub-muted">
-          Landscape and portrait photos both work, the originals from your phone or camera are best.{" "}
+          Vertical (portrait) photos look best on Instagram. Leave a little space around what you want to show. The originals from your phone or camera are best.{" "}
           {brand.instagram ? (
             <>
               If you tag{" "}
@@ -79,8 +82,9 @@ export default async function ContributePage({ params }: { params: Promise<{ tok
           )}
           we keep sending guests your way. Together we are stronger. 🤝
         </p>
+        <p className="pub-muted">We may invite you as a collaborator on the post, so it also appears on your profile. You decide whether to accept.</p>
       </div>
-      <UploadForm token={token} venueName={venue.spotName} remaining={Math.max(0, MAX_PHOTOS - used)} prefill={{ contactName: venue.contactName, instagram: venue.instagram }} />
+      <UploadForm token={token} venueName={venue.spotName} remaining={Math.max(0, MAX_PHOTOS - used)} prefill={{ contactName: venue.contactName, instagram: venue.instagram, about: profile.about, tip: profile.tip }} />
 
       {brand.whatsapp || brand.website ? (
         <p className="pub-muted" style={{ marginTop: 24 }}>

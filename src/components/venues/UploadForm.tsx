@@ -8,11 +8,13 @@ type Item = { key: string; file: File; preview: string; caption: string; state: 
 const MAX_BYTES = 15 * 1024 * 1024;
 const ALLOWED = ["image/jpeg", "image/png", "image/webp"];
 
-export function UploadForm({ token, venueName, remaining, prefill }: { token: string; venueName: string; remaining: number; prefill: { contactName: string; instagram: string } }) {
+export function UploadForm({ token, venueName, remaining, prefill }: { token: string; venueName: string; remaining: number; prefill: { contactName: string; instagram: string; about: string; tip: string } }) {
   const input = useRef<HTMLInputElement>(null);
   const [items, setItems] = useState<Item[]>([]);
   const [contactName, setContactName] = useState(prefill.contactName);
   const [instagram, setInstagram] = useState(prefill.instagram);
+  const [about, setAbout] = useState(prefill.about);
+  const [tip, setTip] = useState(prefill.tip);
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [rights, setRights] = useState(false);
@@ -58,6 +60,8 @@ export function UploadForm({ token, venueName, remaining, prefill }: { token: st
       form.set("contact_name", contactName);
       form.set("phone", phone);
       form.set("email", email);
+      form.set("about", about);
+      form.set("tip", tip);
       try {
         const res = await fetch(`/api/venues/public/${encodeURIComponent(token)}/photos`, { method: "POST", body: form });
         if (res.ok) patch(it.key, { state: "done" });
@@ -80,7 +84,7 @@ export function UploadForm({ token, venueName, remaining, prefill }: { token: st
     return (
       <section className="pub-card up-done">
         <h2>Thank you!</h2>
-        <p className="pub-muted">Your photos for {venueName} have arrived. We will review them and tag you when we post. If you want to add more, simply open this link again.</p>
+        <p className="pub-muted">Your photos for {venueName} have arrived. We will review them and, if you gave us your Instagram name, tag you when we post. If you want to add more, simply open this link again.</p>
       </section>
     );
   }
@@ -96,12 +100,25 @@ export function UploadForm({ token, venueName, remaining, prefill }: { token: st
 
   return (
     <section className="pub-card up-card">
-      <h2>Your photos</h2>
+      <h2>About {venueName}</h2>
+      <p className="pub-muted up-hint">Optional. A line or two in your own words helps us write about you.</p>
+      <div className="up-fields">
+        <label>
+          One sentence about you
+          <input type="text" className="up-text" placeholder="For example: a family-run warung, known for its grilled fish" maxLength={200} value={about} disabled={busy} onChange={(e) => setAbout(e.target.value)} />
+        </label>
+        <label>
+          What should guests not miss?
+          <input type="text" className="up-text" placeholder="Your best dish, class or spot" maxLength={160} value={tip} disabled={busy} onChange={(e) => setTip(e.target.value)} />
+        </label>
+      </div>
+
+      <h2 className="up-sub">Your photos</h2>
       <input ref={input} type="file" accept="image/jpeg,image/png,image/webp" multiple hidden onChange={(e) => pick(e.target.files)} />
       <button type="button" className="pub-button up-pick" onClick={() => input.current?.click()} disabled={busy || room <= 0}>
         Choose photos
       </button>
-      <p className="pub-muted up-hint">JPG, PNG or WebP, up to 15 MB each. The original files from your camera or phone are best.</p>
+      <p className="pub-muted up-hint">JPG, PNG or WebP, up to 15 MB each. Vertical photos look best. The original files from your camera or phone are best.</p>
 
       {items.length > 0 && (
         <ul className="up-list">
@@ -141,6 +158,7 @@ export function UploadForm({ token, venueName, remaining, prefill }: { token: st
         <label>
           Instagram name to tag
           <input type="text" className="up-text" placeholder="@yourname" maxLength={40} value={instagram} disabled={busy} onChange={(e) => setInstagram(e.target.value)} />
+          <small className="pub-muted">Without it we can’t tag you or invite you as a collaborator.</small>
         </label>
         <label>
           WhatsApp or phone number
@@ -155,7 +173,7 @@ export function UploadForm({ token, venueName, remaining, prefill }: { token: st
       <label className="up-rights">
         <input type="checkbox" checked={rights} disabled={busy} onChange={(e) => setRights(e.target.checked)} />
         <span>
-          I confirm that {venueName} owns these photos or has the right to share them, and allows The R Villas Bali to use them in posts and reels on its Instagram and Facebook accounts, with a tag to {venueName}.
+          I confirm that {venueName} owns these photos or has the right to share them, allows The R Villas Bali to use them in posts and reels on its Instagram and Facebook accounts, with a tag to {venueName}, and confirms that everyone recognisable in the photos has agreed to be shown.
         </span>
       </label>
 
