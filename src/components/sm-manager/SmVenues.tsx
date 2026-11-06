@@ -321,13 +321,18 @@ function VenueRow({ v, brand, locale, info, ghlOk, ghlUrl, isOpen, onToggle, onC
   const [form, setForm] = useState({ contact_name: v.contactName, phone: v.phone, email: v.email, instagram: v.instagram, consent_ref: v.consentRef });
   const [consent, setConsent] = useState(Boolean(v.consentAt));
   const [photos, setPhotos] = useState<Photo[] | null>(null);
+  const [profile, setProfile] = useState<{ about: string; tip: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
 
   async function loadPhotos() {
     try {
       const res = await fetch(`/api/sm-manager/venues/${v.id}`);
-      if (res.ok) setPhotos(((await res.json()) as { photos: Photo[] }).photos);
+      if (res.ok) {
+        const data = (await res.json()) as { photos: Photo[]; profile?: { about: string; tip: string } };
+        setPhotos(data.photos);
+        setProfile(data.profile ?? null);
+      }
     } catch {
       /* bleibt leer */
     }
@@ -444,6 +449,7 @@ function VenueRow({ v, brand, locale, info, ghlOk, ghlUrl, isOpen, onToggle, onC
             {v.photos === 0 ? l('keine Fotos', 'no photos') : `${v.approved} ${l('freigegeben', 'approved')} · ${v.pending} ${l('offen', 'to review')}`}
           </span>
           <span className={`sm-badge ${usable(v) ? 'sm-badge-ok' : ''}`}>{usable(v) ? l('bereit', 'ready') : v.consentAt ? l('Einwilligung ✓', 'Consent ✓') : l('Einwilligung offen', 'Consent open')}</span>
+          {usable(v) && !v.instagram ? <span className="sm-badge ve-bad">{l('Kein Instagram-Name: kein Tag', 'No Instagram name: no tag')}</span> : null}
           {info?.contactId ? <span className="sm-badge">GHL ✓</span> : null}
           {optedIn ? <span className="sm-badge sm-badge-ok">{l('WhatsApp OK', 'WhatsApp OK')}</span> : null}
           {waBadge ? <span className={`sm-badge ${waBadge.cls}`}>{waBadge.text}</span> : null}
@@ -639,6 +645,22 @@ function VenueRow({ v, brand, locale, info, ghlOk, ghlUrl, isOpen, onToggle, onC
           <p className="sm-muted sm-small">
             {l('Link geöffnet:', 'Link opened:')} {fmt(v.openedAt)} · {l('Versendet:', 'Sent:')} {fmt(v.sentAt)}
           </p>
+
+          {profile && (profile.about || profile.tip) ? (
+            <>
+              <h4>{l('Vom Betrieb', 'From the venue')}</h4>
+              {profile.about ? (
+                <p className="sm-small">
+                  <strong>{l('Über uns', 'About')}:</strong> {profile.about}
+                </p>
+              ) : null}
+              {profile.tip ? (
+                <p className="sm-small">
+                  <strong>{l('Nicht verpassen', 'Not to miss')}:</strong> {profile.tip}
+                </p>
+              ) : null}
+            </>
+          ) : null}
 
           <h4>{l('Fotos', 'Photos')}</h4>
           {photos === null ? (
