@@ -20,6 +20,7 @@ import { SmAds, type AdsData } from "@/components/sm-manager/SmAds";
 import { SmCompetitors, type CompetitorsData } from "@/components/sm-manager/SmCompetitors";
 import { SmMusic, type MusicData } from "@/components/sm-manager/SmMusic";
 import { SmVenues, type VenuesData } from "@/components/sm-manager/SmVenues";
+import { SmCatalog, type CatalogData } from "@/components/sm-manager/SmCatalog";
 import { SmLearnings, type LearningsData } from "@/components/sm-manager/SmLearnings";
 import { SmPromos, type PromosData } from "@/components/sm-manager/SmPromos";
 import "@/components/sm-manager/responsive.css";
@@ -59,14 +60,16 @@ export default async function SmManagerPage({ searchParams }: { searchParams: Pr
                     ? "music"
                     : params.ansicht === "orte"
                       ? "venues"
-                      : params.ansicht === "ads"
-                        ? "ads"
-                        : params.ansicht === "learnings"
-                          ? "learnings"
-                          : "review";
+                      : params.ansicht === "katalog"
+                        ? "catalog"
+                        : params.ansicht === "ads"
+                          ? "ads"
+                          : params.ansicht === "learnings"
+                            ? "learnings"
+                            : "review";
   const range = RANGES.includes(params.zeitraum ?? "") ? (params.zeitraum as string) : "90";
   try {
-    const [health, list, props, social, clicks, inq, agent, insights, audiencePlan, learningsData, promoData, competitorData, musicData, compareData, draftingData, adsData] = await Promise.all([
+    const [health, list, props, social, clicks, inq, agent, insights, audiencePlan, learningsData, promoData, competitorData, musicData, compareData, draftingData, adsData, catalogData] = await Promise.all([
       engineHealth(),
       engine<{ posts: Post[] }>("/posts?limit=80"),
       view === "properties" || view === "promos" ? engine<{ properties: Property[] }>("/properties") : Promise.resolve({ properties: [] as Property[] }),
@@ -82,7 +85,8 @@ export default async function SmManagerPage({ searchParams }: { searchParams: Pr
       view === "music" ? engine<MusicData>("/music").catch(() => null) : Promise.resolve(null),
       view === "stats" ? engine<SourceCompare>(`/stats/compare?days=${range}`).catch(() => null) : Promise.resolve(null),
       view === "review" ? engine<DraftingData>("/drafting").catch(() => null) : Promise.resolve(null),
-      view === "ads" ? engine<AdsData>("/ads").catch(() => null) : Promise.resolve(null)
+      view === "ads" ? engine<AdsData>("/ads").catch(() => null) : Promise.resolve(null),
+      view === "catalog" ? engine<CatalogData>("/wa-catalog").catch(() => null) : Promise.resolve(null)
     ]);
     const reviewCount = list.posts.filter((p) => REVIEW.includes(p.status)).length;
     const inquiryCount = inq.inquiries.filter((i) => INQUIRY_OPEN.includes(i.status)).length;
@@ -136,6 +140,7 @@ export default async function SmManagerPage({ searchParams }: { searchParams: Pr
           competitors={view === "competitors" ? <SmCompetitors locale={locale} data={competitorData} /> : null}
           music={view === "music" ? <SmMusic locale={locale} data={musicData} /> : null}
           venues={view === "venues" ? <SmVenues locale={locale} data={venueData} /> : null}
+          catalog={view === "catalog" ? <SmCatalog locale={locale} data={catalogData} /> : null}
           ads={view === "ads" ? <SmAds locale={locale} data={adsData} /> : null}
           drafting={view === "review" ? <SmDrafting locale={locale} data={draftingData} /> : null}
           learningCount={learningCount}
