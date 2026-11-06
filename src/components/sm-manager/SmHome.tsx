@@ -16,11 +16,12 @@ import { competitorTabLabel } from "./SmCompetitors";
 import { musicTabLabel } from "./SmMusic";
 import { venueTabLabel } from "./SmVenues";
 import { adsTabLabel } from "./SmAds";
+import { catalogTabLabel } from "./SmCatalog";
 import { Tip } from "./Tip";
 import "./sm.css";
 import "./nav.css";
 
-type View = "review" | "done" | "properties" | "stats" | "inquiries" | "audience" | "learnings" | "promos" | "competitors" | "music" | "venues" | "ads";
+type View = "review" | "done" | "properties" | "stats" | "inquiries" | "audience" | "learnings" | "promos" | "competitors" | "music" | "venues" | "catalog" | "ads";
 
 type Props = {
   locale: "de" | "en";
@@ -41,6 +42,7 @@ type Props = {
   competitors?: ReactNode;
   music?: ReactNode;
   venues?: ReactNode;
+  catalog?: ReactNode;
   ads?: ReactNode;
   drafting?: ReactNode;
   learningCount?: number;
@@ -75,7 +77,7 @@ function defaultWhen(baliHour?: number | null) {
 type NavItem = { view: View; href: string; label: string; count?: number };
 type NavGroup = { key: string; label: string; items: NavItem[] };
 
-export function SmHome({ locale, view, posts, properties, reviewCount, ghlReady, social = null, clicks = null, bioLink = "", inquiries = [], inquiryCount = 0, agentEnabled = false, audience = null, learnings = null, promos = null, competitors = null, music = null, venues = null, ads = null, drafting = null, learningCount = 0, postHour = null }: Props) {
+export function SmHome({ locale, view, posts, properties, reviewCount, ghlReady, social = null, clicks = null, bioLink = "", inquiries = [], inquiryCount = 0, agentEnabled = false, audience = null, learnings = null, promos = null, competitors = null, music = null, venues = null, catalog = null, ads = null, drafting = null, learningCount = 0, postHour = null }: Props) {
   const s = smStrings(locale);
   const tp = tipStrings(locale);
   const navRef = useRef<HTMLElement>(null);
@@ -115,6 +117,7 @@ export function SmHome({ locale, view, posts, properties, reviewCount, ghlReady,
       label: l("Inhalte", "Content"),
       items: [
         { view: "venues", href: "/sm-manager?ansicht=orte", label: venueTabLabel(locale) },
+        { view: "catalog", href: "/sm-manager?ansicht=katalog", label: catalogTabLabel(locale) },
         { view: "promos", href: "/sm-manager?ansicht=aktionen", label: promoStrings(locale).tabPromos },
         { view: "music", href: "/sm-manager?ansicht=musik", label: musicTabLabel(locale) },
         { view: "properties", href: "/sm-manager?ansicht=objekte", label: s.tabProperties }
@@ -183,6 +186,8 @@ export function SmHome({ locale, view, posts, properties, reviewCount, ghlReady,
         music
       ) : view === "venues" ? (
         venues
+      ) : view === "catalog" ? (
+        catalog
       ) : view === "stats" ? (
         <SmStats locale={locale} social={social} clicks={clicks} bioLink={bioLink} />
       ) : view === "properties" ? (
