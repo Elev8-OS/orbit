@@ -123,8 +123,8 @@ export function SmCatalog({ locale, data }: { locale: Locale; data: CatalogData 
     <section className="cat">
       <p className="sm-muted">
         {l(
-          'Ein Produkt pro Villa, pro Apartment-Kategorie und für die Shared Villa Merapi im WhatsApp-Katalog bei Meta. Titel und Text kommen aus den geprüften Fakten, die Fotos aus der Elev8-Galerie, der Preis ist der günstigste freie Nachtpreis der nächsten 90 Tage, umgerechnet in IDR (Kurs des Tages, auf 10’000 gerundet). Ist ein Objekt ausgebucht, steht der PriceLabs-Basispreis im Katalog und „Ausgebucht“ im Text. Zuerst die Vorschau prüfen, dann senden. Es wird nichts geraten: Fehlt der Preis oder der Kurs, wird das Objekt nicht gesendet.',
-          'One product per villa, per apartment category and for the shared villa Merapi in the WhatsApp catalog at Meta. Title and text come from the verified facts, the photos from the Elev8 gallery, the price is the lowest free nightly price over the next 90 days, converted to IDR (rate of the day, rounded to 10,000). When a property is fully booked, the catalog shows the PriceLabs base price and says "Fully booked" in the text. Check the preview first, then send. Nothing is guessed: if a property has no price or no rate, it is not sent.'
+          'Ein Produkt pro Villa, pro Apartment-Kategorie und für die Shared Villa Merapi im WhatsApp-Katalog bei Meta. Titel und Text kommen aus den geprüften Fakten, die Fotos aus der Elev8-Galerie, der Preis ist der günstigste freie Nachtpreis der nächsten 90 Tage, umgerechnet in IDR (Kurs des Tages, auf 10’000 gerundet, mit USD daneben). Ist ein Objekt ausgebucht, steht der PriceLabs-Basispreis im Katalog und „Currently not available“ im Text. Zuerst die Vorschau prüfen, dann senden. Es wird nichts geraten: Fehlt der Preis oder der Kurs, wird das Objekt nicht gesendet.',
+          'One product per villa, per apartment category and for the shared villa Merapi in the WhatsApp catalog at Meta. Title and text come from the verified facts, the photos from the Elev8 gallery, the price is the lowest free nightly price over the next 90 days, converted to IDR (rate of the day, rounded to 10,000, with USD beside it). When a property is fully booked, the catalog shows the PriceLabs base price and says "Currently not available" in the text. Check the preview first, then send. Nothing is guessed: if a property has no price or no rate, it is not sent.'
         )}
       </p>
 
@@ -147,7 +147,7 @@ export function SmCatalog({ locale, data }: { locale: Locale; data: CatalogData 
             <span className="sm-muted sm-small"> · {c.wabaId && c.phoneId ? l('IDs sind gesetzt', 'IDs are set') : l('optional: META_WABA_ID und META_WA_PHONE_ID setzen, sonst den Katalog einmal von Hand in Meta Commerce Manager mit dem WhatsApp-Konto verbinden', 'optional: set META_WABA_ID and META_WA_PHONE_ID, otherwise link the catalog once by hand in Meta Commerce Manager')}</span>
           </li>
           <li>
-            <span className={`sm-badge ${state.auto ? 'sm-badge-ok' : ''}`}>{state.auto ? l('an', 'on') : l('aus', 'off')}</span> {l('Nachtlauf (alle 22 Stunden)', 'Nightly sync (every 22 hours)')}
+            <span className={`sm-badge ${state.auto ? 'sm-badge-ok' : ''}`}>{state.auto ? l('an', 'on') : l('aus', 'off')}</span> {l('Automatischer Abgleich (alle 6 Stunden)', 'Automatic sync (every 6 hours)')}
             {state.auto ? '' : <span className="sm-muted sm-small"> · {l('einschalten mit WA_CATALOG_AUTO=on, sobald der erste Abgleich stimmt', 'switch on with WA_CATALOG_AUTO=on once the first sync is right')}</span>}
           </li>
           <li>
@@ -233,7 +233,7 @@ export function SmCatalog({ locale, data }: { locale: Locale; data: CatalogData 
                   ))}
                   <details>
                     <summary>{l('Text und Link', 'Text and link')}</summary>
-                    <p className="sm-small">{i.description}</p>
+                    <p className="sm-small" style={{ whiteSpace: 'pre-line' }}>{i.description}</p>
                     <p className="sm-small sm-muted">{i.link}</p>
                   </details>
                 </div>
