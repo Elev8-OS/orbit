@@ -43,6 +43,27 @@ export type PromosData = { today: string; autopilot?: boolean; promos: Promo[] }
 export type SuggestionsData = { today: string; days: number; suggestions: Suggestion[]; error?: string };
 type Prop = { key: string; name: string };
 
+/** One code can be for several villas: the engine keeps one row per villa. Rows with the same code, source and status are one card. */
+type Group = { promo: Promo; keys: string[] };
+
+function groupByCode(list: Promo[]): Group[] {
+  const out: Group[] = [];
+  const byCode = new Map<string, Group>();
+  for (const p of list) {
+    const k = p.code ? `${p.source}|${p.status}|${p.code}` : "";
+    const g = k ? byCode.get(k) : undefined;
+    if (g) {
+      if (!g.keys.includes(p.property_key)) g.keys.push(p.property_key);
+      if (p.live && !g.promo.live) g.promo = { ...g.promo, live: true };
+      continue;
+    }
+    const fresh: Group = { promo: p, keys: [p.property_key] };
+    out.push(fresh);
+    if (k) byCode.set(k, fresh);
+  }
+  return out;
+}
+
 async function call(method: string, url: string, body?: unknown): Promise<{ ok: boolean; error?: string }> {
   try {
     const res = await fetch(url, { method, headers: body ? { "Content-Type": "application/json" } : undefined, body: body ? JSON.stringify(body) : undefined });
@@ -53,13 +74,15 @@ async function call(method: string, url: string, body?: unknown): Promise<{ ok: 
   }
 }
 
-function Card({ locale, promo, villa }: { locale: "de" | "en"; promo: Promo; villa: string }) {
+function Card({ locale, promo, villas }: { locale: "de" | "en"; promo: Promo; villas: string[] }) {
   const l = (de: string, en: string) => (locale === "de" ? de : en);
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const proposal = promo.source === "engine" && promo.status === "draft";
   const handMade = promo.source !== "elev8" && promo.source !== "engine";
+  const many = villas.length > 1;
+  const forVillas = many ? l(` für ${villas.length} Villen`, ` for ${villas.length} villas`) : "";
 
   const badge = promo.status === "ended" ? l("beendet", "ended") : proposal ? l("Vorschlag der Engine", "Engine proposal") : promo.live ? l("läuft", "running") : l("aktiv, ausserhalb des Zeitraums", "active, outside its window");
   const bits = [
@@ -78,11 +101,11 @@ function Card({ locale, promo, villa }: { locale: "de" | "en"; promo: Promo; vil
   }
 
   const activate = () => {
-    if (!window.confirm(l(`Den Code ${promo.code} jetzt in Elev8 anlegen? Er ist dort sofort einlösbar und lässt sich nur in Elev8 wieder ausschalten.`, `Create the code ${promo.code} in Elev8 now? It can be redeemed there at once and can only be switched off in Elev8.`))) return;
+    if (!window.confirm(l(`Den Code ${promo.code}${forVillas} jetzt in Elev8 anlegen? Er ist dort sofort einlösbar und lässt sich nur in Elev8 wieder ausschalten.`, `Create the code ${promo.code}${forVillas} in Elev8 now? It can be redeemed there at once and can only be switched off in Elev8.`))) return;
     run(l("Der Code wird in Elev8 angelegt …", "Creating the code in Elev8 ..."), () => call("PUT", `/api/sm-manager/promos/${promo.id}`, { status: "active" }));
   };
   const reject = () => {
-    if (!window.confirm(l("Diesen Vorschlag ablehnen und entfernen?", "Reject and remove this proposal?"))) return;
+    if (!window.confirm(l(`Diesen Vorschlag${forVillas} ablehnen und entfernen?`, `Reject and remove this proposal${forVillas}?`))) return;
     run(l("Wird entfernt …", "Removing ..."), () => call("DELETE", `/api/sm-manager/promos/${promo.id}`));
   };
   const endIt = () => {
@@ -95,12 +118,13 @@ function Card({ locale, promo, villa }: { locale: "de" | "en"; promo: Promo; vil
       <div className="pr-card-head">
         <span className={`sm-badge ${promo.live ? "sm-badge-ok" : ""}`}>{badge}</span>
         <span className="sm-muted sm-small">
-          {villa} · {promo.source === "elev8" ? l("aus Elev8", "from Elev8") : promo.source === "engine" ? l("von der Engine", "by the engine") : l("von Hand eingetragen", "entered by hand")}
+          {many ? l(`${villas.length} Villen`, `${villas.length} villas`) : villas[0]} · {promo.source === "elev8" ? l("aus Elev8", "from Elev8") : promo.source === "engine" ? l("von der Engine", "by the engine") : l("von Hand eingetragen", "entered by hand")}
         </span>
       </div>
       <h3>
         {promo.title} <code className="pr-code">{promo.code}</code>
       </h3>
+      {many ? <p className="sm-muted sm-small">{villas.join(", ")}</p> : null}
       <p>{promo.terms.length > 280 ? `${promo.terms.slice(0, 280).replace(/\s+\S*$/, "")} …` : promo.terms}</p>
       {bits.length ? <p className="sm-muted sm-small">{bits.join(" · ")}</p> : null}
       {promo.note ? <p className="sm-muted sm-small">{proposal ? `${l("Begründung", "Reason")}: ` : ""}{promo.note}</p> : null}
@@ -131,21 +155,22 @@ function Card({ locale, promo, villa }: { locale: "de" | "en"; promo: Promo; vil
   );
 }
 
-/** Tab Aktionen: Vorschläge der Engine zum Freigeben und die Codes aus Elev8. Codes werden hier nicht von Hand angelegt. */
+/** Tab Aktionen: Vorschläge der Engine zum Freigeben und die Codes aus Elev8. Ein Code für mehrere Villen ist eine Karte. Codes werden hier nicht von Hand angelegt. */
 export function SmPromos({ locale, promos, properties }: { locale: "de" | "en"; promos: PromosData | null; properties: Prop[] }) {
   const l = (de: string, en: string) => (locale === "de" ? de : en);
   const list = promos?.promos ?? [];
   const villa = (key: string) => (key === "all" ? l("alle Villen", "all villas") : properties.find((p) => p.key === key)?.name ?? key);
-  const proposals = list.filter((p) => p.source === "engine" && p.status === "draft");
-  const rest = list.filter((p) => !(p.source === "engine" && p.status === "draft"));
+  const villasOf = (g: Group) => (g.keys.includes("all") ? [villa("all")] : g.keys.map(villa));
+  const proposals = groupByCode(list.filter((p) => p.source === "engine" && p.status === "draft"));
+  const rest = groupByCode(list.filter((p) => !(p.source === "engine" && p.status === "draft")));
 
   return (
     <section className="pr">
       <div>
         <p className="sm-muted">
           {l(
-            "Codes entstehen nur an zwei Orten: Du legst sie in Elev8 an, dann erscheinen sie hier innerhalb weniger Minuten und gelten sofort für den Assistenten, den Katalog und die Posts. Oder die Engine schlägt selbst eine Aktion vor, passend zur Villa und zu den freien Nächten, und legt den Code nach deiner Freigabe in Elev8 an. Von Hand lassen sich hier keine Codes anlegen.",
-            "Codes come from two places only: you create them in Elev8, then they appear here within a few minutes and apply at once to the assistant, the catalog and the posts. Or the engine proposes a promotion itself, fitted to the villa and its open nights, and creates the code in Elev8 once you approve it. Codes cannot be created by hand here."
+            "Codes entstehen nur an zwei Orten: Du legst sie in Elev8 an, dann erscheinen sie hier innerhalb weniger Minuten und gelten sofort für den Assistenten, den Katalog und die Posts. Oder die Engine schlägt selbst eine Aktion vor, passend zur Villa und zu den freien Nächten, und legt den Code nach deiner Freigabe in Elev8 an. Ein Code kann für mehrere Villen gelten. Von Hand lassen sich hier keine Codes anlegen.",
+            "Codes come from two places only: you create them in Elev8, then they appear here within a few minutes and apply at once to the assistant, the catalog and the posts. Or the engine proposes a promotion itself, fitted to the villa and its open nights, and creates the code in Elev8 once you approve it. One code can apply to several villas. Codes cannot be created by hand here."
           )}
         </p>
         <p className="sm-muted sm-small">
@@ -159,8 +184,8 @@ export function SmPromos({ locale, promos, properties }: { locale: "de" | "en"; 
         <h2>{l("Vorschläge der Engine", "Proposals of the engine")}</h2>
         {proposals.length === 0 ? <p className="sm-muted">{l("Im Moment gibt es keinen Vorschlag. Die Engine prüft die freien Nächte mehrmals täglich.", "There is no proposal right now. The engine checks the open nights several times a day.")}</p> : null}
         <div className="pr-cards">
-          {proposals.map((p) => (
-            <Card key={p.id} locale={locale} promo={p} villa={villa(p.property_key)} />
+          {proposals.map((g) => (
+            <Card key={g.promo.id} locale={locale} promo={g.promo} villas={villasOf(g)} />
           ))}
         </div>
       </div>
@@ -169,8 +194,8 @@ export function SmPromos({ locale, promos, properties }: { locale: "de" | "en"; 
         <h2>{l("Codes", "Codes")}</h2>
         {rest.length === 0 ? <p className="sm-muted">{l("Noch keine Codes.", "No codes yet.")}</p> : null}
         <div className="pr-cards">
-          {rest.map((p) => (
-            <Card key={p.id} locale={locale} promo={p} villa={villa(p.property_key)} />
+          {rest.map((g) => (
+            <Card key={g.promo.id} locale={locale} promo={g.promo} villas={villasOf(g)} />
           ))}
         </div>
       </div>
