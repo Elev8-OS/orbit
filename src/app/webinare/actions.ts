@@ -21,7 +21,7 @@ import {
 import { applyStatusTags } from "@/lib/webinare/ghl";
 import { teamsAttendance, teamsConfigured, teamsWebinar } from "@/lib/webinare/teams";
 import { decodeReport, parseTeamsReport, plausibility } from "@/lib/webinare/attendance";
-import { generateContent, loadFireflies, translateTranscript } from "@/lib/webinare/content";
+import { generateContent, loadFireflies, translateToEnglish, translateTranscript } from "@/lib/webinare/content";
 import { parseTranscriptFile } from "@/lib/webinare/transcript-file";
 import { bunnyConfigured, bunnyMp4Url, bunnyVideo } from "@/lib/webinare/bunny";
 import { dubbingStatus, elevenConfigured, startDubbing, transferDubbing } from "@/lib/webinare/dubbing";
@@ -52,6 +52,31 @@ function fail(err: unknown): FormState {
   return { error: err instanceof Error ? err.message : String(err) };
 }
 
+/**
+ * Deutsch wird gepflegt, Englisch entsteht automatisch. Übersetzt nur, was sich geändert hat oder noch fehlt.
+ * Klappt die Übersetzung nicht, wird trotzdem gespeichert; das Portal zeigt dann Deutsch.
+ */
+type Pair = { de: string; oldDe?: string; oldEn?: string };
+async function autoEnglish(pairs: Pair[]): Promise<{ en: string[]; failed: boolean }> {
+  const need = pairs.map((p) => Boolean(p.de.trim()) && (p.de !== p.oldDe || !p.oldEn));
+  const en = pairs.map((p, i) => (need[i] ? "" : p.de.trim() ? p.oldEn ?? "" : ""));
+  if (!need.some(Boolean)) return { en, failed: false };
+  try {
+    const done = await translateToEnglish(pairs.map((p, i) => (need[i] ? p.de : "")));
+    done.forEach((t, i) => {
+      if (need[i]) en[i] = t;
+    });
+    return { en, failed: false };
+  } catch (err) {
+    console.error("Übersetzung:", err instanceof Error ? err.message : err);
+    pairs.forEach((p, i) => {
+      if (need[i]) en[i] = p.oldEn ?? "";
+    });
+    return { en, failed: true };
+  }
+}
+const TRANSLATE_FAILED = " Die englische Fassung konnte gerade nicht erstellt werden; beim nächsten Speichern wird es erneut versucht.";
+
 function refresh(id?: string) {
   revalidatePath("/webinare");
   if (id) revalidatePath(`/webinare/${id}`);
@@ -68,6 +93,8 @@ export async function createWebinarAction(_: FormState, form: FormData): Promise
     if (!titleDe) return { error: "Titel fehlt." };
     if (!startsAt) return { error: "Datum und Uhrzeit fehlen." };
     id = await createWebinar({ titleDe, startsAt, tagTopic: str(form, "tagTopic", 40) });
+    const { en } = await autoEnglish([{ de: titleDe }]);
+    if (en[0]) await updateWebinar(id, { titleEn: en[0] });
   } catch (err) {
     return fail(err);
   }
@@ -81,11 +108,18 @@ export async function saveDetailsAction(_: FormState, form: FormData): Promise<F
     const startsAt = localInputToDate(str(form, "startsAt"), ZONE);
     if (!startsAt) return { error: "Datum und Uhrzeit fehlen." };
     const tag = str(form, "ghlTagBase", 80).toLowerCase().replace(/[^a-z0-9-]+/g, "-");
+    const old = await getWebinar(id);
+    const titleDe = str(form, "titleDe", 200);
+    const descriptionDe = long(form, "descriptionDe");
+    const tr = await autoEnglish([
+      { de: titleDe, oldDe: old?.titleDe, oldEn: old?.titleEn },
+      { de: descriptionDe, oldDe: old?.descriptionDe, oldEn: old?.descriptionEn }
+    ]);
     await updateWebinar(id, {
-      titleDe: str(form, "titleDe", 200),
-      titleEn: str(form, "titleEn", 200),
-      descriptionDe: long(form, "descriptionDe"),
-      descriptionEn: long(form, "descriptionEn"),
+      titleDe,
+      titleEn: tr.en[0],
+      descriptionDe,
+      descriptionEn: tr.en[1],
       speaker: str(form, "speaker", 200),
       startsAt,
       durationMin: Math.max(15, Math.min(480, Number(str(form, "durationMin")) || 60)),
@@ -96,7 +130,7 @@ export async function saveDetailsAction(_: FormState, form: FormData): Promise<F
       teamsJoinUrl: str(form, "teamsJoinUrl", 1000) || null
     });
     refresh(id);
-    return { ok: "Gespeichert." };
+    return { ok: tr.failed ? `Gespeichert.${TRANSLATE_FAILED}` : "Gespeichert, Englisch ist aktuell." };
   } catch (err) {
     return fail(err);
   }
@@ -339,7 +373,7 @@ function parseChapters(text: string): Chapter[] {
     .split("\n")
     .map((l) => l.split("|").map((p) => p.trim()))
     .filter((p) => p.length >= 2 && p[1])
-    .map((p) => ({ start: toSeconds(p[0]) ?? 0, de: p[1], en: p[2] ?? "" }))
+    .map((p) => ({ start: toSeconds(p[0]) ?? 0, de: p[1], en: "" }))
     .sort((a, b) => a.start - b.start);
 }
 
@@ -347,15 +381,37 @@ export async function saveContentAction(_: FormState, form: FormData): Promise<F
   try {
     await requireWebinarUser("edit");
     const id = str(form, "id");
+    const old = await getWebinar(id);
+    const chapters = parseChapters(long(form, "chapters"));
+    const summaryDe = long(form, "summaryDe");
+    const takeaways = lines(form, "takeawaysDe");
+    const checklist = lines(form, "checklistDe");
+    // Bisherige Übersetzungen nach deutschem Text wiederverwenden, damit nur Neues übersetzt wird
+    const known = new Map<string, string>();
+    const remember = (de: string[], en: string[]) => de.forEach((d, i) => en[i] && known.set(d, en[i]));
+    if (old) {
+      remember(old.chapters.map((c) => c.de), old.chapters.map((c) => c.en));
+      remember(old.takeaways.de, old.takeaways.en);
+      remember(old.checklist.de, old.checklist.en);
+    }
+    const items = [...chapters.map((c) => c.de), ...takeaways, ...checklist];
+    const tr = await autoEnglish([
+      { de: summaryDe, oldDe: old?.summaryDe, oldEn: old?.summaryEn },
+      ...items.map((de) => ({ de, oldDe: known.has(de) ? de : undefined, oldEn: known.get(de) }))
+    ]);
+    const [summaryEn, ...rest] = tr.en;
+    const chEn = rest.slice(0, chapters.length);
+    const tkEn = rest.slice(chapters.length, chapters.length + takeaways.length);
+    const clEn = rest.slice(chapters.length + takeaways.length);
     await updateWebinar(id, {
-      chapters: parseChapters(long(form, "chapters")),
-      summaryDe: long(form, "summaryDe"),
-      summaryEn: long(form, "summaryEn"),
-      takeaways: { de: lines(form, "takeawaysDe"), en: lines(form, "takeawaysEn") },
-      checklist: { de: lines(form, "checklistDe"), en: lines(form, "checklistEn") }
+      chapters: chapters.map((c, i) => ({ ...c, en: chEn[i] ?? "" })),
+      summaryDe,
+      summaryEn,
+      takeaways: { de: takeaways, en: tkEn },
+      checklist: { de: checklist, en: clEn }
     });
     refresh(id);
-    return { ok: "Inhalte gespeichert." };
+    return { ok: tr.failed ? `Inhalte gespeichert.${TRANSLATE_FAILED}` : "Inhalte gespeichert, Englisch ist aktuell." };
   } catch (err) {
     return fail(err);
   }
@@ -434,31 +490,35 @@ export async function createPollAction(_: FormState, form: FormData): Promise<Fo
     const kind = str(form, "kind") === "date" ? "date" : "topic";
     const titleDe = str(form, "titleDe", 200);
     if (!titleDe) return { error: "Titel fehlt." };
-    const options =
-      kind === "date"
-        ? lines(form, "options").map((l) => {
-            const d = localInputToDate(l.replace(" ", "T"), ZONE);
-            return { labelDe: "", labelEn: "", startsAt: d };
-          })
-        : lines(form, "options").map((l) => {
-            const [de, en] = l.split("|").map((p) => p.trim());
-            return { labelDe: de, labelEn: en ?? "", startsAt: null };
-          });
-    if (kind === "date" && options.some((o) => !o.startsAt)) return { error: "Termine bitte als JJJJ-MM-TT HH:MM, einer pro Zeile." };
-    if (options.length < 2 && !(kind === "topic" && form.get("allowSuggestions") === "on")) return { error: "Mindestens zwei Optionen." };
+    const descriptionDe = long(form, "descriptionDe");
+    let options: { labelDe: string; labelEn: string; startsAt: Date | null }[];
+    if (kind === "date") {
+      const days = form.getAll("optDate").map((v) => String(v).trim());
+      const times = form.getAll("optTime").map((v) => String(v).trim());
+      const picked = days.map((d, i) => (d ? localInputToDate(`${d}T${times[i] || "16:00"}`, ZONE) : null));
+      if (days.some((d, i) => d && !picked[i])) return { error: "Ein Termin ist ungültig. Bitte Datum und Uhrzeit prüfen." };
+      const unique = [...new Map(picked.filter((d): d is Date => Boolean(d)).map((d) => [d.getTime(), d])).values()].sort((a, b) => a.getTime() - b.getTime());
+      options = unique.map((d) => ({ labelDe: "", labelEn: "", startsAt: d }));
+    } else {
+      const topics = form.getAll("optTopic").map((v) => String(v).trim().slice(0, 200)).filter(Boolean);
+      options = topics.map((t) => ({ labelDe: t, labelEn: "", startsAt: null }));
+    }
+    if (options.length < 2 && !(kind === "topic" && form.get("allowSuggestions") === "on")) return { error: kind === "date" ? "Mindestens zwei Termine wählen." : "Mindestens zwei Themen." };
+    const tr = await autoEnglish([{ de: titleDe }, { de: descriptionDe }, ...options.map((o) => ({ de: o.labelDe }))]);
+    options.forEach((o, i) => (o.labelEn = tr.en[i + 2] ?? ""));
     await createPoll({
       kind,
       titleDe,
-      titleEn: str(form, "titleEn", 200),
-      descriptionDe: long(form, "descriptionDe"),
-      descriptionEn: long(form, "descriptionEn"),
+      titleEn: tr.en[0],
+      descriptionDe,
+      descriptionEn: tr.en[1],
       allowSuggestions: form.get("allowSuggestions") === "on",
       showResults: form.get("showResults") === "on",
       createdBy: user.email,
       options
     });
     revalidatePath("/webinare/umfragen");
-    return { ok: "Abstimmung ist online." };
+    return { ok: tr.failed ? `Abstimmung ist online.${TRANSLATE_FAILED}` : "Abstimmung ist online, auch auf Englisch." };
   } catch (err) {
     return fail(err);
   }
@@ -479,7 +539,12 @@ export async function optionAction(_: FormState, form: FormData): Promise<FormSt
   try {
     await requireWebinarUser("moderate");
     const status = str(form, "status") === "active" ? "active" : "rejected";
-    await setOptionStatus(str(form, "optionId"), status, form.has("labelEn") ? str(form, "labelEn", 200) : undefined);
+    let labelEn: string | undefined;
+    if (status === "active") {
+      const label = str(form, "label", 200);
+      if (label) labelEn = (await autoEnglish([{ de: label }])).en[0] || undefined;
+    }
+    await setOptionStatus(str(form, "optionId"), status, labelEn);
     revalidatePath("/webinare/umfragen");
     return { ok: status === "active" ? "Freigegeben." : "Abgelehnt." };
   } catch (err) {
@@ -495,6 +560,8 @@ export async function webinarFromOptionAction(_: FormState, form: FormData): Pro
     const at = str(form, "startsAt");
     const startsAt = at ? new Date(at) : new Date(Date.now() + 21 * 86400_000);
     id = await createWebinar({ titleDe: title, startsAt });
+    const { en } = await autoEnglish([{ de: title }]);
+    if (en[0]) await updateWebinar(id, { titleEn: en[0] });
   } catch (err) {
     return fail(err);
   }
