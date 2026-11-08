@@ -25,7 +25,8 @@ export default async function WebinareLayout({ children }: { children: React.Rea
             group="Webinare"
             items={[
               { href: "/webinare", label: "Alle Webinare", icon: "events" },
-              { href: "/webinare/umfragen", label: "Abstimmungen", icon: "pipeline" }
+              { href: "/webinare/umfragen", label: "Abstimmungen", icon: "pipeline" },
+              ...(user.canEdit ? [{ href: "/webinare/logins", label: "Logins", icon: "history" }] : [])
             ]}
           />
           <div className="ap-side-foot">

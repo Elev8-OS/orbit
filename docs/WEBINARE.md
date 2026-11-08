@@ -74,3 +74,12 @@ auch von Hand ergänzen, als „entfällt“ markieren oder löschen. Pro Punkt 
 Im Portal erscheinen erledigte Punkte auf der Aufzeichnungsseite unter „Unterlagen zum Webinar“, mit demselben Zugang wie
 das Video (`/api/unterlagen/<id>`). Ohne Zugang sieht man nur die Titel mit Schloss. Das Portal braucht dafür die
 S3-Variablen von Orbit (`S3_ENDPOINT`, `S3_BUCKET`, `S3_REGION`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`).
+
+## Logins
+
+Unter *Webinare → Logins* (nur Rolle `App.Webinar`) steht, wer sich wann im Portal eingeloggt hat: als Liste aller Logins
+oder zusammengefasst pro Person (Anzahl, erster und letzter Login, Archiv-Schlüssel, Kunde). Das Portal schreibt bei
+jedem erfolgreichen Login per E-Mail-Code einen Eintrag in `webinar_logins` (Migration 025): E-Mail, Zeitpunkt und grob
+das Gerät (z. B. „iPhone · Safari“), keine IP-Adresse. Logins vor der Einführung sind aus den benutzten Login-Codes
+nachgetragen. Einträge älter als 12 Monate löscht Orbit beim Anzeigen. Ein Login gilt 30 Tage; wer eingeloggt bleibt,
+erscheint in dieser Zeit nicht erneut.
