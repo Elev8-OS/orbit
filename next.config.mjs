@@ -11,6 +11,8 @@ const nextConfig = {
   poweredByHeader: false,
   // PDF- und Excel-Erzeugung laufen nur auf dem Server und laden Schriften/Streams zur Laufzeit
   serverExternalPackages: ["@react-pdf/renderer", "exceljs"],
+  // Datei-Uploads über Server Actions (z. B. Teams-Transkript und Anwesenheitsbericht in Webinare); Standard wäre 1 MB
+  experimental: { serverActions: { bodySizeLimit: "30mb" } },
   async headers() {
     const common = [
       { key: "X-Content-Type-Options", value: "nosniff" },
