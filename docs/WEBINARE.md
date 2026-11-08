@@ -63,3 +63,14 @@ Der Webinar-Link ist der persönliche Teilnahmelink. Die Sprache (`de`/`en`) ste
 | Fireflies, Claude, GHL: bestehende Variablen | wie Offerten |
 
 Code: `src/lib/webinare`, `src/app/webinare`.
+
+## Nachlieferungen
+
+Auf der Webinar-Seite (Schritt „Nachlieferungen“) sucht Claude im Transkript alles, was das Team den Teilnehmenden
+nachzuliefern versprochen hat (Folien, Vorlagen, Links, offene Antworten), mit Zitat und Zeitstempel. Punkte lassen sich
+auch von Hand ergänzen, als „entfällt“ markieren oder löschen. Pro Punkt eine Datei (bis 25 MB, Railway-Bucket unter
+`webinare/<webinar>/<punkt>/…`) oder ein https-Link. Tabelle: `webinar_deliverables` (Migration 024).
+
+Im Portal erscheinen erledigte Punkte auf der Aufzeichnungsseite unter „Unterlagen zum Webinar“, mit demselben Zugang wie
+das Video (`/api/unterlagen/<id>`). Ohne Zugang sieht man nur die Titel mit Schloss. Das Portal braucht dafür die
+S3-Variablen von Orbit (`S3_ENDPOINT`, `S3_BUCKET`, `S3_REGION`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`).

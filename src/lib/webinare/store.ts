@@ -375,3 +375,82 @@ export async function pollContacts(pollId: string, optionId?: string): Promise<{
     : await sql`SELECT email, lang FROM webinar_poll_contacts WHERE poll_id = ${pollId}`;
   return rows.map((r) => ({ email: r.email, lang: r.lang }));
 }
+
+/* ── Nachlieferungen ─────────────────────────────────────── */
+
+export type Deliverable = {
+  id: string;
+  webinarId: string;
+  titleDe: string;
+  titleEn: string;
+  quote: string;
+  atSec: number | null;
+  source: "transcript" | "manual";
+  status: "open" | "done" | "dismissed";
+  fileKey: string | null;
+  fileName: string | null;
+  fileType: string | null;
+  fileSize: number | null;
+  linkUrl: string | null;
+  deliveredAt: Date | null;
+};
+
+const toDeliverable = (r: Record<string, unknown>): Deliverable => ({
+  id: r.id as string,
+  webinarId: r.webinar_id as string,
+  titleDe: r.title_de as string,
+  titleEn: r.title_en as string,
+  quote: r.quote as string,
+  atSec: r.at_sec == null ? null : Number(r.at_sec),
+  source: r.source as Deliverable["source"],
+  status: r.status as Deliverable["status"],
+  fileKey: (r.file_key as string) ?? null,
+  fileName: (r.file_name as string) ?? null,
+  fileType: (r.file_type as string) ?? null,
+  fileSize: r.file_size == null ? null : Number(r.file_size),
+  linkUrl: (r.link_url as string) ?? null,
+  deliveredAt: (r.delivered_at as Date) ?? null
+});
+
+export async function listDeliverables(webinarId: string): Promise<Deliverable[]> {
+  const rows = await sql`SELECT * FROM webinar_deliverables WHERE webinar_id = ${webinarId} ORDER BY sort_order, at_sec NULLS LAST, created_at`;
+  return rows.map(toDeliverable);
+}
+
+export async function getDeliverable(id: string): Promise<Deliverable | null> {
+  const [r] = await sql`SELECT * FROM webinar_deliverables WHERE id = ${id}`;
+  return r ? toDeliverable(r) : null;
+}
+
+export async function addDeliverables(
+  webinarId: string,
+  items: { titleDe: string; titleEn: string; quote: string; atSec: number | null; source: Deliverable["source"] }[],
+  createdBy: string
+): Promise<number> {
+  const [{ max }] = await sql`SELECT COALESCE(MAX(sort_order), 0)::int AS max FROM webinar_deliverables WHERE webinar_id = ${webinarId}`;
+  let i = Number(max);
+  for (const it of items) {
+    await sql`INSERT INTO webinar_deliverables (webinar_id, title_de, title_en, quote, at_sec, source, sort_order, created_by)
+      VALUES (${webinarId}, ${it.titleDe}, ${it.titleEn}, ${it.quote}, ${it.atSec}, ${it.source}, ${++i}, ${createdBy})`;
+  }
+  return items.length;
+}
+
+export async function setDeliverableFile(
+  id: string,
+  f: { fileKey: string | null; fileName: string | null; fileType: string | null; fileSize: number | null; linkUrl: string | null }
+): Promise<void> {
+  const done = Boolean(f.fileKey || f.linkUrl);
+  await sql`UPDATE webinar_deliverables SET file_key = ${f.fileKey}, file_name = ${f.fileName}, file_type = ${f.fileType}, file_size = ${f.fileSize},
+    link_url = ${f.linkUrl}, status = ${done ? "done" : "open"}, delivered_at = ${done ? new Date() : null} WHERE id = ${id}`;
+}
+
+export async function updateDeliverable(id: string, patch: { titleDe?: string; titleEn?: string; status?: Deliverable["status"] }): Promise<void> {
+  if (patch.titleDe !== undefined) await sql`UPDATE webinar_deliverables SET title_de = ${patch.titleDe}, title_en = ${patch.titleEn ?? ""} WHERE id = ${id}`;
+  if (patch.status !== undefined) await sql`UPDATE webinar_deliverables SET status = ${patch.status} WHERE id = ${id}`;
+}
+
+export async function deleteDeliverable(id: string): Promise<string | null> {
+  const [r] = await sql`DELETE FROM webinar_deliverables WHERE id = ${id} RETURNING file_key`;
+  return (r?.file_key as string) ?? null;
+}
