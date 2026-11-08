@@ -57,6 +57,41 @@ export function bunnyMp4Url(id: string, height = 720): string {
   return `https://${process.env.BUNNY_CDN_HOST}/${id}/play_${height}p.mp4`;
 }
 
+/**
+ * Sucht eine öffentlich abrufbare MP4-Datei des Videos (MP4 Fallback), bevorzugt eine kleine Auflösung,
+ * denn ElevenLabs braucht nur den Ton. Prüft jede Adresse ohne Referrer, so wie ElevenLabs sie abholt.
+ * Liefert die Adresse oder eine verständliche Erklärung, warum keine erreichbar ist.
+ */
+export async function findMp4(id: string): Promise<{ url: string } | { error: string }> {
+  const v = await bunnyVideo(id);
+  if (v.status !== 4) return { error: `Das Video ist in Bunny noch nicht fertig (${BUNNY_STATUS[v.status] ?? v.status}). Bitte warten, bis es „bereit“ ist.` };
+  const heights = (v.availableResolutions || "")
+    .split(",")
+    .map((r) => parseInt(r, 10))
+    .filter((h) => Number.isFinite(h) && h > 0);
+  const order = [480, 360, 720, 240, 1080, ...heights].filter((h, i, a) => a.indexOf(h) === i);
+  const statuses: string[] = [];
+  for (const h of order) {
+    const url = bunnyMp4Url(id, h);
+    try {
+      const res = await fetch(url, { method: "HEAD", cache: "no-store", signal: AbortSignal.timeout(10_000) });
+      if (res.ok) return { url };
+      statuses.push(`${h}p: ${res.status}`);
+      if (res.status === 403) {
+        return {
+          error:
+            "Bunny sperrt den direkten Abruf der MP4-Datei (403). In der Video-Bibliothek unter Security die erlaubten Domains leeren oder „Block direct URL file access“ ausschalten, sonst kann ElevenLabs das Video nicht holen."
+        };
+      }
+    } catch {
+      statuses.push(`${h}p: nicht erreichbar`);
+    }
+  }
+  return {
+    error: `Bunny hat für dieses Video keine MP4-Datei (${statuses.slice(0, 4).join(", ")}). In der Video-Bibliothek unter Encoding „MP4 Fallback“ einschalten und das Video danach neu umwandeln lassen (Video öffnen, „Re-encode video“). MP4-Dateien entstehen nur beim Umwandeln.`
+  };
+}
+
 export function bunnyThumb(id: string): string {
   return `https://${process.env.BUNNY_CDN_HOST}/${id}/thumbnail.jpg`;
 }
