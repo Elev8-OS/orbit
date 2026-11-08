@@ -61,7 +61,7 @@ export default async function WebinarPage({ params }: { params: Promise<{ id: st
   }
   const [stateDe, stateEn] = await Promise.all([videoState(w.bunnyVideoDe), videoState(w.bunnyVideoEn)]);
   const translated = w.transcript.filter((s) => s.en).length;
-  const chaptersText = w.chapters.map((c) => `${mmss(c.start)} | ${c.de} | ${c.en}`).join("\n");
+  const chaptersText = w.chapters.map((c) => `${mmss(c.start)} | ${c.de}`).join("\n");
   const ro = !user.canEdit;
 
   return (
@@ -93,26 +93,17 @@ export default async function WebinarPage({ params }: { params: Promise<{ id: st
           <StatefulForm action={saveDetailsAction} submit="Speichern" pending="Speichert …" className="me-form">
             <input type="hidden" name="id" value={w.id} />
             <fieldset disabled={ro} style={{ border: 0, margin: 0, padding: 0 }}>
-              <div className="me-row">
-                <label className="me-field">
-                  <span>Titel Deutsch</span>
-                  <input name="titleDe" defaultValue={w.titleDe} required maxLength={200} />
-                </label>
-                <label className="me-field">
-                  <span>Titel Englisch</span>
-                  <input name="titleEn" defaultValue={w.titleEn} maxLength={200} />
-                </label>
-              </div>
-              <div className="me-row">
-                <label className="me-field wb-field">
-                  <span>Beschreibung Deutsch</span>
-                  <textarea name="descriptionDe" rows={3} defaultValue={w.descriptionDe} />
-                </label>
-                <label className="me-field wb-field">
-                  <span>Beschreibung Englisch</span>
-                  <textarea name="descriptionEn" rows={3} defaultValue={w.descriptionEn} />
-                </label>
-              </div>
+              <p className="wb-hint">Du schreibst Deutsch. Die englische Fassung fürs Portal entsteht beim Speichern automatisch.</p>
+              <label className="me-field">
+                <span>Titel</span>
+                <input name="titleDe" defaultValue={w.titleDe} required maxLength={200} />
+                <EnPreview text={w.titleEn} />
+              </label>
+              <label className="me-field wb-field">
+                <span>Beschreibung</span>
+                <textarea name="descriptionDe" rows={3} defaultValue={w.descriptionDe} />
+                <EnPreview text={w.descriptionEn} />
+              </label>
               <div className="me-row">
                 <label className="me-field">
                   <span>Datum und Uhrzeit (Schweizer Zeit)</span>
@@ -397,40 +388,54 @@ export default async function WebinarPage({ params }: { params: Promise<{ id: st
           <StatefulForm action={saveContentAction} submit="Inhalte speichern" pending="Speichert …" className="me-form">
             <input type="hidden" name="id" value={w.id} />
             <fieldset disabled={ro} style={{ border: 0, margin: 0, padding: 0 }}>
+              <p className="wb-hint">Du bearbeitest Deutsch. Was sich ändert, wird beim Speichern automatisch ins Englische übersetzt.</p>
               <label className="me-field wb-field">
-                <span>Kapitel (Zeit | Deutsch | Englisch, eines pro Zeile)</span>
-                <textarea name="chapters" rows={6} defaultValue={chaptersText} placeholder="0:00 | Begrüssung | Welcome" />
+                <span>Kapitel (Zeit | Titel, eines pro Zeile)</span>
+                <textarea name="chapters" rows={6} defaultValue={chaptersText} placeholder="0:00 | Begrüssung" />
+              </label>
+              <label className="me-field wb-field">
+                <span>Zusammenfassung</span>
+                <textarea name="summaryDe" rows={6} defaultValue={w.summaryDe} />
               </label>
               <div className="me-row">
                 <label className="me-field wb-field">
-                  <span>Zusammenfassung Deutsch</span>
-                  <textarea name="summaryDe" rows={6} defaultValue={w.summaryDe} />
+                  <span>3 Kernaussagen (eine pro Zeile)</span>
+                  <textarea name="takeawaysDe" rows={4} defaultValue={w.takeaways.de.join("\n")} />
                 </label>
                 <label className="me-field wb-field">
-                  <span>Zusammenfassung Englisch</span>
-                  <textarea name="summaryEn" rows={6} defaultValue={w.summaryEn} />
+                  <span>Checkliste «So setzt du das um» (ein Punkt pro Zeile)</span>
+                  <textarea name="checklistDe" rows={4} defaultValue={w.checklist.de.join("\n")} />
                 </label>
               </div>
-              <div className="me-row">
-                <label className="me-field wb-field">
-                  <span>3 Kernaussagen Deutsch (eine pro Zeile)</span>
-                  <textarea name="takeawaysDe" rows={3} defaultValue={w.takeaways.de.join("\n")} />
-                </label>
-                <label className="me-field wb-field">
-                  <span>3 Kernaussagen Englisch</span>
-                  <textarea name="takeawaysEn" rows={3} defaultValue={w.takeaways.en.join("\n")} />
-                </label>
-              </div>
-              <div className="me-row">
-                <label className="me-field wb-field">
-                  <span>Checkliste «So setzt du das um» Deutsch</span>
-                  <textarea name="checklistDe" rows={5} defaultValue={w.checklist.de.join("\n")} />
-                </label>
-                <label className="me-field wb-field">
-                  <span>Checkliste Englisch</span>
-                  <textarea name="checklistEn" rows={5} defaultValue={w.checklist.en.join("\n")} />
-                </label>
-              </div>
+              {(w.summaryEn || w.takeaways.en.length > 0) && (
+                <details className="wb-en">
+                  <summary>Englische Fassung ansehen</summary>
+                  {w.chapters.some((c) => c.en) && (
+                    <ul>
+                      {w.chapters.map((c, i) => (
+                        <li key={i}>
+                          {mmss(c.start)} {c.en}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {w.summaryEn && <p>{w.summaryEn}</p>}
+                  {w.takeaways.en.length > 0 && (
+                    <ul>
+                      {w.takeaways.en.map((x, i) => (
+                        <li key={i}>{x}</li>
+                      ))}
+                    </ul>
+                  )}
+                  {w.checklist.en.length > 0 && (
+                    <ul>
+                      {w.checklist.en.map((x, i) => (
+                        <li key={i}>{x}</li>
+                      ))}
+                    </ul>
+                  )}
+                </details>
+              )}
             </fieldset>
           </StatefulForm>
           {user.canEdit && (
@@ -491,5 +496,14 @@ export default async function WebinarPage({ params }: { params: Promise<{ id: st
         )}
       </div>
     </div>
+  );
+}
+
+function EnPreview({ text }: { text: string }) {
+  if (!text) return null;
+  return (
+    <small className="wb-en-line">
+      <span>EN</span> {text}
+    </small>
   );
 }
