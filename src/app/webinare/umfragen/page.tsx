@@ -2,6 +2,7 @@ import { currentWebinarUser, portalUrl } from "@/lib/webinare/access";
 import { listPolls, type Poll } from "@/lib/webinare/store";
 import { formatInZone } from "@/lib/messen/time";
 import { ActionButton, CopyCode, StatefulForm } from "@/components/messen/MessenForms";
+import { PollFields } from "@/components/webinare/PollFields";
 import { createPollAction, optionAction, pollStatusAction, webinarFromOptionAction } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -29,48 +30,8 @@ export default async function UmfragenPage() {
         <section className="me-card">
           <h2>Neue Abstimmung</h2>
           <StatefulForm action={createPollAction} submit="Abstimmung starten" pending="Startet …" className="me-form">
-            <div className="me-row">
-              <label className="me-field">
-                <span>Art</span>
-                <select name="kind" defaultValue="date">
-                  <option value="date">Terminwahl (mehrere Termine ankreuzen)</option>
-                  <option value="topic">Themenwahl (Upvotes, eigene Vorschläge)</option>
-                </select>
-              </label>
-              <span />
-            </div>
-            <div className="me-row">
-              <label className="me-field">
-                <span>Titel Deutsch</span>
-                <input name="titleDe" required maxLength={200} placeholder="Wann passt dir das nächste Webinar?" />
-              </label>
-              <label className="me-field">
-                <span>Titel Englisch</span>
-                <input name="titleEn" maxLength={200} placeholder="When suits you for the next webinar?" />
-              </label>
-            </div>
-            <div className="me-row">
-              <label className="me-field wb-field">
-                <span>
-                  Beschreibung Deutsch <em>optional</em>
-                </span>
-                <textarea name="descriptionDe" rows={2} />
-              </label>
-              <label className="me-field wb-field">
-                <span>
-                  Beschreibung Englisch <em>optional</em>
-                </span>
-                <textarea name="descriptionEn" rows={2} />
-              </label>
-            </div>
-            <label className="me-field wb-field">
-              <span>Optionen, eine pro Zeile</span>
-              <textarea name="options" rows={5} placeholder={"Terminwahl: 2026-12-01 16:00\nThemenwahl: Preise mit PriceLabs | Pricing with PriceLabs"} />
-              <small>Termine in Schweizer Zeit als JJJJ-MM-TT HH:MM. Themen als „Deutsch | Englisch“.</small>
-            </label>
-            <label className="me-switch">
-              <input type="checkbox" name="allowSuggestions" defaultChecked /> Eigene Themen vorschlagen erlauben (nur Themenwahl, mit Freigabe)
-            </label>
+            <p className="wb-hint">Du schreibst Deutsch. Die englische Fassung fürs Portal entsteht beim Starten automatisch.</p>
+            <PollFields />
             <label className="me-switch" style={{ marginTop: "0.5rem" }}>
               <input type="checkbox" name="showResults" defaultChecked /> Ergebnisse nach der eigenen Stimme zeigen
             </label>
@@ -130,7 +91,7 @@ export default async function UmfragenPage() {
                     <StatefulForm action={optionAction} submit="Freigeben" pending="…">
                       <input type="hidden" name="optionId" value={o.id} />
                       <input type="hidden" name="status" value="active" />
-                      <input name="labelEn" placeholder="Englischer Text" aria-label="Englischer Text" style={{ width: "16rem" }} />
+                      <input type="hidden" name="label" value={o.labelDe} />
                     </StatefulForm>
                     <ActionButton action={optionAction} fields={{ optionId: o.id, status: "rejected" }} label="Ablehnen" pending="…" variant="danger" />
                   </div>

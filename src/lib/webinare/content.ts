@@ -189,3 +189,34 @@ export async function translateTranscript(segments: Segment[], onBatch?: (done: 
   }
   return out;
 }
+
+/**
+ * Übersetzt kurze Texte (Titel, Beschreibungen, Kapitel, Listen) ins Englische. Leere Texte bleiben leer.
+ * Ist der Text schon Englisch, kommt er unverändert zurück. Reihenfolge und Anzahl bleiben gleich.
+ */
+export async function translateToEnglish(texts: string[]): Promise<string[]> {
+  const out = texts.map(() => "");
+  const todo = texts.map((t, i) => ({ t: t.trim(), i })).filter((x) => x.t);
+  if (!todo.length) return out;
+  if (!claudeConfigured()) throw new Error("ANTHROPIC_API_KEY fehlt.");
+  for (let k = 0; k < todo.length; k += 60) {
+    const batch = todo.slice(k, k + 60);
+    const input = (await callClaudeTool({
+      system: `${SYSTEM}\nÜbersetze die nummerierten Texte ins Englische: natürlich, freundlich, kurz wie das Original, Du-Form wird zu \"you\". Produktnamen (Elev8, Journey, PriceLabs …) bleiben. Zeilenumbrüche innerhalb eines Textes bleiben erhalten. Ist ein Text schon Englisch, gib ihn unverändert zurück.`,
+      user: batch.map((x) => `#${x.i}:\n${x.t}`).join("\n\n"),
+      maxTokens: 6000,
+      timeoutMs: 120_000,
+      tool: {
+        name: "uebersetzung",
+        description: "Englische Übersetzung je Text",
+        input_schema: {
+          type: "object",
+          required: ["items"],
+          properties: { items: { type: "array", items: { type: "object", required: ["i", "en"], properties: { i: { type: "number" }, en: { type: "string" } } } } }
+        }
+      }
+    })) as { items?: { i: number; en: string }[] };
+    for (const item of input.items ?? []) if (item.i in out) out[item.i] = String(item.en ?? "").trim();
+  }
+  return out;
+}
