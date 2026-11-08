@@ -23,7 +23,7 @@ import { teamsAttendance, teamsConfigured, teamsWebinar } from "@/lib/webinare/t
 import { decodeReport, parseTeamsReport, plausibility } from "@/lib/webinare/attendance";
 import { generateContent, loadFireflies, translateToEnglish, translateTranscript } from "@/lib/webinare/content";
 import { parseTranscriptFile } from "@/lib/webinare/transcript-file";
-import { bunnyConfigured, bunnyMp4Url, bunnyVideo } from "@/lib/webinare/bunny";
+import { bunnyConfigured, bunnyVideo, findMp4 } from "@/lib/webinare/bunny";
 import { dubbingStatus, elevenConfigured, startDubbing, transferDubbing } from "@/lib/webinare/dubbing";
 import { localInputToDate } from "@/lib/messen/time";
 
@@ -426,7 +426,9 @@ export async function dubbingAction(_: FormState, form: FormData): Promise<FormS
     if (!elevenConfigured()) return { error: "ELEVENLABS_API_KEY fehlt." };
     if (!w.dubbingId) {
       if (!w.bunnyVideoDe || !bunnyConfigured()) return { error: "Zuerst das deutsche Video in Bunny hinterlegen." };
-      const dubId = await startDubbing(bunnyMp4Url(w.bunnyVideoDe), w.titleDe);
+      const mp4 = await findMp4(w.bunnyVideoDe);
+      if ("error" in mp4) return { error: mp4.error };
+      const dubId = await startDubbing(mp4.url, w.titleDe);
       await updateWebinar(id, { dubbingId: dubId, dubbingStatus: "dubbing" });
       refresh(id);
       return { ok: "Englische Tonspur wird erstellt. Das dauert etwa so lange wie das Video. Später erneut prüfen." };
