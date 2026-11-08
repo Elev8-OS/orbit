@@ -4,15 +4,21 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireWebinarUser } from "@/lib/webinare/access";
 import {
+  addDeliverables,
   createPoll,
   createWebinar,
+  deleteDeliverable,
   deleteWebinar,
+  getDeliverable,
   getWebinar,
+  listDeliverables,
   listRegistrations,
   markLiveEver,
   setOptionStatus,
   setPollStatus,
+  setDeliverableFile,
   setRegistrationStatus,
+  updateDeliverable,
   updateQuestion,
   updateWebinar,
   upsertRegistrations,
@@ -21,7 +27,8 @@ import {
 import { applyStatusTags } from "@/lib/webinare/ghl";
 import { teamsAttendance, teamsConfigured, teamsWebinar } from "@/lib/webinare/teams";
 import { decodeReport, parseTeamsReport, plausibility } from "@/lib/webinare/attendance";
-import { generateContent, loadFireflies, translateToEnglish, translateTranscript } from "@/lib/webinare/content";
+import { findPromises, generateContent, loadFireflies, translateToEnglish, translateTranscript } from "@/lib/webinare/content";
+import { deleteObject, putObject, storageConfigured } from "@/lib/venues/s3";
 import { parseTranscriptFile } from "@/lib/webinare/transcript-file";
 import { bunnyConfigured, bunnyVideo, findMp4 } from "@/lib/webinare/bunny";
 import { dubbingStatus, elevenConfigured, startDubbing, transferDubbing } from "@/lib/webinare/dubbing";
@@ -568,4 +575,113 @@ export async function webinarFromOptionAction(_: FormState, form: FormData): Pro
     return fail(err);
   }
   redirect(`/webinare/${id}`);
+}
+
+/* ── Nachlieferungen ─────────────────────────────────────── */
+
+const norm = (t: string) => t.toLowerCase().replace(/[^a-z0-9äöüéèà]+/g, " ").trim();
+
+export async function findPromisesAction(_: FormState, form: FormData): Promise<FormState> {
+  try {
+    const user = await requireWebinarUser("edit");
+    const id = str(form, "id");
+    const w = await getWebinar(id);
+    if (!w) return { error: "Webinar nicht gefunden." };
+    const found = await findPromises(w);
+    const existing = await listDeliverables(id);
+    const fresh = found.filter(
+      (f) =>
+        !existing.some(
+          (e) => norm(e.titleDe) === norm(f.titleDe) || (e.source === "transcript" && e.atSec != null && f.atSec != null && Math.abs(e.atSec - f.atSec) < 20)
+        )
+    );
+    if (!fresh.length) return { ok: found.length ? "Keine neuen Zusagen gefunden, alle stehen schon in der Liste." : "Im Transkript wurde keine Zusage zum Nachliefern gefunden." };
+    const tr = await autoEnglish(fresh.map((f) => ({ de: f.titleDe })));
+    await addDeliverables(
+      id,
+      fresh.map((f, i) => ({ titleDe: f.titleDe, titleEn: tr.en[i] ?? "", quote: f.quote, atSec: f.atSec, source: "transcript" as const })),
+      user.email
+    );
+    refresh(id);
+    return { ok: `${fresh.length} Zusage${fresh.length === 1 ? "" : "n"} gefunden. Bitte prüfen, was wirklich nachgeliefert werden soll.` };
+  } catch (err) {
+    return fail(err);
+  }
+}
+
+export async function addDeliverableAction(_: FormState, form: FormData): Promise<FormState> {
+  try {
+    const user = await requireWebinarUser("edit");
+    const id = str(form, "id");
+    const titleDe = str(form, "title", 200);
+    if (!titleDe) return { error: "Bitte beschreiben, was nachgeliefert wird." };
+    const tr = await autoEnglish([{ de: titleDe }]);
+    await addDeliverables(id, [{ titleDe, titleEn: tr.en[0] ?? "", quote: "", atSec: null, source: "manual" }], user.email);
+    refresh(id);
+    return { ok: "Hinzugefügt." };
+  } catch (err) {
+    return fail(err);
+  }
+}
+
+const safeName = (n: string) =>
+  n
+    .normalize("NFKD")
+    .replace(/[^\w.\- ]+/g, "")
+    .replace(/\s+/g, "-")
+    .slice(-120) || "datei";
+
+export async function deliverAction(_: FormState, form: FormData): Promise<FormState> {
+  try {
+    await requireWebinarUser("edit");
+    const d = await getDeliverable(str(form, "did"));
+    if (!d) return { error: "Eintrag nicht gefunden." };
+    const file = form.get("file");
+    const link = str(form, "link", 1000);
+    if (file instanceof File && file.size) {
+      if (!storageConfigured()) return { error: "Der Datei-Speicher ist in Orbit nicht eingerichtet (S3_*)." };
+      if (file.size > 25_000_000) return { error: "Die Datei ist grösser als 25 MB. Bitte als Link hinterlegen (z. B. SharePoint oder Google Drive)." };
+      const key = `webinare/${d.webinarId}/${d.id}/${Date.now()}-${safeName(file.name)}`;
+      const type = file.type || "application/octet-stream";
+      await putObject(key, Buffer.from(await file.arrayBuffer()), type);
+      if (d.fileKey) await deleteObject(d.fileKey).catch((e) => console.error("Alte Datei nicht gelöscht:", e));
+      await setDeliverableFile(d.id, { fileKey: key, fileName: file.name.slice(0, 200), fileType: type, fileSize: file.size, linkUrl: null });
+    } else if (link) {
+      if (!/^https:\/\/[^\s]+$/i.test(link)) return { error: "Bitte einen vollständigen Link mit https:// angeben." };
+      if (d.fileKey) await deleteObject(d.fileKey).catch((e) => console.error("Alte Datei nicht gelöscht:", e));
+      await setDeliverableFile(d.id, { fileKey: null, fileName: null, fileType: null, fileSize: null, linkUrl: link });
+    } else {
+      return { error: "Bitte eine Datei wählen oder einen Link eintragen." };
+    }
+    refresh(d.webinarId);
+    return { ok: "Erledigt. Im Portal sichtbar, sobald die Aufzeichnung online ist." };
+  } catch (err) {
+    return fail(err);
+  }
+}
+
+export async function deliverableAction(_: FormState, form: FormData): Promise<FormState> {
+  try {
+    await requireWebinarUser("edit");
+    const d = await getDeliverable(str(form, "did"));
+    if (!d) return { error: "Eintrag nicht gefunden." };
+    const op = str(form, "op");
+    if (op === "delete") {
+      const key = await deleteDeliverable(d.id);
+      if (key) await deleteObject(key).catch((e) => console.error("Datei nicht gelöscht:", e));
+    } else if (op === "remove-file") {
+      if (d.fileKey) await deleteObject(d.fileKey).catch((e) => console.error("Datei nicht gelöscht:", e));
+      await setDeliverableFile(d.id, { fileKey: null, fileName: null, fileType: null, fileSize: null, linkUrl: null });
+    } else if (op === "dismiss") {
+      await updateDeliverable(d.id, { status: "dismissed" });
+    } else if (op === "reopen") {
+      await updateDeliverable(d.id, { status: d.fileKey || d.linkUrl ? "done" : "open" });
+    } else {
+      return { error: "Unbekannte Aktion." };
+    }
+    refresh(d.webinarId);
+    return { ok: "Gespeichert." };
+  } catch (err) {
+    return fail(err);
+  }
 }

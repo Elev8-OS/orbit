@@ -220,3 +220,50 @@ export async function translateToEnglish(texts: string[]): Promise<string[]> {
   }
   return out;
 }
+
+export type Promise_ = { titleDe: string; quote: string; atSec: number | null };
+
+/**
+ * Sucht im Transkript, was das Elev8-Team im Webinar nachzuliefern versprochen hat
+ * (Folien, Vorlagen, Links, Anleitungen, Antworten auf offene Fragen …).
+ */
+export async function findPromises(w: Webinar): Promise<Promise_[]> {
+  if (!claudeConfigured()) throw new Error("ANTHROPIC_API_KEY fehlt.");
+  if (!w.transcript.length) throw new Error("Zuerst das Transkript laden.");
+  const input = (await callClaudeTool({
+    system: `${SYSTEM}
+Finde jede Stelle, an der jemand vom Elev8-Team (Referenten, Moderation) den Teilnehmenden etwas zusagt, das nach dem
+Webinar nachgeliefert wird: Folien oder Präsentation, Vorlagen, Checklisten, Links, Anleitungen, Zugänge, Unterlagen,
+Antworten auf Fragen, die im Webinar offen blieben, „schicke ich euch“, „stelle ich zur Verfügung“, „lade ich hoch“,
+„reiche ich nach“, „findet ihr dann im Portal“. Nicht dazu gehören allgemeine Produktpläne oder Dinge, die im Webinar
+selbst schon gezeigt wurden. Jede Zusage nur einmal, auch wenn sie mehrfach erwähnt wird. Lieber nichts als Geratenes.`,
+    user: `Webinar: ${w.titleDe}\nReferent: ${w.speaker || "unbekannt"}\n\nTranskript (Format: [Sekunde] Sprecher: Text):\n${transcriptText(w.transcript)}`,
+    maxTokens: 3000,
+    timeoutMs: 180_000,
+    tool: {
+      name: "nachlieferungen",
+      description: "Im Webinar zugesagte Nachlieferungen",
+      input_schema: {
+        type: "object",
+        required: ["items"],
+        properties: {
+          items: {
+            type: "array",
+            items: {
+              type: "object",
+              required: ["title", "quote", "at"],
+              properties: {
+                title: { type: "string", description: "Kurz, was nachgeliefert wird, z. B. „Folien zum Webinar“ oder „Vorlage für die Willkommensnachricht“" },
+                quote: { type: "string", description: "Die Zusage in den Worten aus dem Transkript, gekürzt auf einen Satz" },
+                at: { type: "number", description: "Sekunde der Zusage" }
+              }
+            }
+          }
+        }
+      }
+    }
+  })) as { items?: { title?: string; quote?: string; at?: number }[] };
+  return (input.items ?? [])
+    .map((i) => ({ titleDe: String(i.title ?? "").trim().slice(0, 200), quote: String(i.quote ?? "").trim().slice(0, 500), atSec: Number.isFinite(Number(i.at)) ? Math.max(0, Number(i.at)) : null }))
+    .filter((i) => i.titleDe);
+}
