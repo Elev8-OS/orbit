@@ -28,3 +28,22 @@
 .wb-poll-option { padding: 0.5rem 0; border-top: 1px solid var(--line); }
 .wb-poll-option:first-child { border-top: 0; }
 .wb-poll-row { display: flex; justify-content: space-between; gap: 1rem; font-size: 0.9375rem; }
+
+/* Deutsch pflegen, Englisch automatisch */
+.wb-hint { margin: 0 0 1rem; padding: 0.625rem 0.875rem; border-radius: 10px; background: var(--surface-2, rgba(0,0,0,0.03)); color: var(--muted); font-size: 0.8125rem; }
+.wb-en-line { display: block; margin-top: 0.35rem; color: var(--muted); font-size: 0.8125rem; line-height: 1.45; white-space: pre-line; }
+.wb-en-line span { display: inline-block; margin-right: 0.35rem; padding: 0 0.35rem; border-radius: 4px; border: 1px solid var(--line, #e5e5e5); font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.04em; }
+.wb-en { margin: 0 0 1rem; color: var(--muted); font-size: 0.875rem; }
+.wb-en summary { cursor: pointer; font-weight: 600; color: var(--ink-2, inherit); }
+.wb-en p, .wb-en ul { margin: 0.5rem 0 0; }
+.wb-en ul { padding-left: 1.1rem; }
+
+/* Abstimmung: Termine und Themen auswählen */
+.wb-opts { display: grid; gap: 0.5rem; margin-bottom: 0.875rem; }
+.wb-opt { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+.wb-opt input[type="date"], .wb-opt input[type="time"], .wb-opt input[type="text"] { padding: 0.55rem 0.7rem; border-radius: 10px; border: 1px solid var(--line-strong, #cfcfcf); background: var(--surface, #fff); color: inherit; font: inherit; font-size: 0.9375rem; }
+.wb-opt input[type="text"] { flex: 1 1 16rem; min-width: 0; }
+.wb-opt-day { min-width: 9.5rem; color: var(--muted); font-size: 0.8125rem; }
+.wb-opt-remove { border: 0; background: none; color: var(--muted); cursor: pointer; padding: 0.35rem 0.5rem; border-radius: 8px; font-size: 1rem; line-height: 1; }
+.wb-opt-remove:hover { color: var(--danger, #b42318); background: rgba(180, 35, 24, 0.08); }
+.wb-opt-add { justify-self: start; }
