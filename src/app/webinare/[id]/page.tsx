@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { currentWebinarUser, portalUrl } from "@/lib/webinare/access";
-import { getWebinar, listQuestions, listRegistrations } from "@/lib/webinare/store";
+import { getWebinar, listDeliverables, listQuestions, listRegistrations } from "@/lib/webinare/store";
+import { storageConfigured } from "@/lib/venues/s3";
 import { countByStatus } from "@/lib/webinare/attendance";
 import { firefliesReady, findFireflies, mmss, type FirefliesHit } from "@/lib/webinare/content";
 import { BUNNY_STATUS, bunnyConfigured, bunnyVideo } from "@/lib/webinare/bunny";
@@ -9,7 +10,11 @@ import { tagFor } from "@/lib/webinare/ghl";
 import { dateToLocalInput, formatInZone } from "@/lib/messen/time";
 import { ActionButton, ConfirmForm, StatefulForm } from "@/components/messen/MessenForms";
 import {
+  addDeliverableAction,
   deleteWebinarAction,
+  deliverAction,
+  deliverableAction,
+  findPromisesAction,
   dubbingAction,
   finalizeAction,
   generateAction,
@@ -47,7 +52,8 @@ export default async function WebinarPage({ params }: { params: Promise<{ id: st
   const { id } = await params;
   const w = await getWebinar(id);
   if (!w) notFound();
-  const [regs, questions] = await Promise.all([listRegistrations(id), listQuestions(id)]);
+  const [regs, questions, deliverables] = await Promise.all([listRegistrations(id), listQuestions(id), listDeliverables(id)]);
+  const openDeliverables = deliverables.filter((d) => d.status === "open").length;
   const counts = countByStatus(regs);
   const past = w.startsAt.getTime() < Date.now();
   let hits: FirefliesHit[] = [];
@@ -454,7 +460,83 @@ export default async function WebinarPage({ params }: { params: Promise<{ id: st
           )}
         </section>
 
-        {/* 5 · Fragen */}
+        {/* 5 · Nachlieferungen */}
+        <section className="me-card">
+          <div className="wb-step-head">
+            <h2>Nachlieferungen</h2>
+            <span className={deliverables.length && !openDeliverables ? "wb-state wb-state-ok" : "wb-state"}>
+              {deliverables.length ? (openDeliverables ? `${openDeliverables} noch offen` : "Alles nachgeliefert") : "Was im Webinar versprochen wurde"}
+            </span>
+          </div>
+          <p className="me-muted" style={{ marginBottom: "0.75rem" }}>
+            Erledigte Punkte erscheinen im Portal auf der Aufzeichnungsseite unter „Unterlagen zum Webinar“, mit demselben Zugang wie das Video.
+          </p>
+          {!storageConfigured() && <p className="wb-warn">Der Datei-Speicher ist in Orbit nicht eingerichtet. Links funktionieren trotzdem.</p>}
+          {user.canEdit && (
+            <div className="wb-actions" style={{ marginBottom: "1rem" }}>
+              {w.transcript.length > 0 ? (
+                <ActionButton action={findPromisesAction} fields={{ id: w.id }} label="Zusagen aus dem Transkript suchen" pending="Claude liest das Transkript …" />
+              ) : (
+                <span className="me-muted">Mit Transkript sucht Claude die Zusagen automatisch heraus.</span>
+              )}
+            </div>
+          )}
+          {deliverables.map((d) => (
+            <div className={`wb-deliv wb-deliv-${d.status}`} key={d.id}>
+              <div className="wb-deliv-head">
+                <span className="me-strong">{d.titleDe}</span>
+                <span className={d.status === "done" ? "wb-status wb-status-attended" : d.status === "dismissed" ? "wb-status wb-status-missed" : "wb-status wb-status-registered"}>
+                  {d.status === "done" ? "erledigt" : d.status === "dismissed" ? "entfällt" : "offen"}
+                </span>
+              </div>
+              {d.titleEn && <small className="wb-en-line"><span>EN</span> {d.titleEn}</small>}
+              {d.quote && (
+                <p className="wb-deliv-quote">
+                  {d.atSec != null && <b>{mmss(d.atSec)}</b>} «{d.quote}»
+                </p>
+              )}
+              {d.fileKey && (
+                <p className="wb-deliv-file">
+                  <a href={`/api/webinare/unterlagen/${d.id}`} target="_blank" rel="noreferrer">
+                    {d.fileName}
+                  </a>{" "}
+                  <span className="me-muted">{fileSize(d.fileSize)}</span>
+                </p>
+              )}
+              {d.linkUrl && (
+                <p className="wb-deliv-file">
+                  <a href={d.linkUrl} target="_blank" rel="noreferrer">
+                    {d.linkUrl}
+                  </a>
+                </p>
+              )}
+              {user.canEdit && d.status !== "dismissed" && (
+                <StatefulForm action={deliverAction} submit={d.status === "done" ? "Ersetzen" : "Nachliefern"} pending="Lädt hoch …" className="wb-deliv-form">
+                  <input type="hidden" name="did" value={d.id} />
+                  <input name="file" type="file" aria-label={`Datei für ${d.titleDe}`} />
+                  <span className="me-muted">oder</span>
+                  <input name="link" type="url" placeholder="https://… (Link)" aria-label={`Link für ${d.titleDe}`} />
+                </StatefulForm>
+              )}
+              {user.canEdit && (
+                <div className="wb-actions" style={{ marginTop: "0.5rem" }}>
+                  {(d.fileKey || d.linkUrl) && <ActionButton action={deliverableAction} fields={{ did: d.id, op: "remove-file" }} label="Datei entfernen" pending="…" />}
+                  {d.status === "open" && <ActionButton action={deliverableAction} fields={{ did: d.id, op: "dismiss" }} label="Entfällt" pending="…" />}
+                  {d.status === "dismissed" && <ActionButton action={deliverableAction} fields={{ did: d.id, op: "reopen" }} label="Wieder aufnehmen" pending="…" />}
+                  <ActionButton action={deliverableAction} fields={{ did: d.id, op: "delete" }} label="Löschen" pending="…" variant="danger" />
+                </div>
+              )}
+            </div>
+          ))}
+          {user.canEdit && (
+            <StatefulForm action={addDeliverableAction} submit="Hinzufügen" pending="…" className="wb-deliv-form" >
+              <input type="hidden" name="id" value={w.id} />
+              <input name="title" maxLength={200} placeholder="Selbst ergänzen, z. B. Folien zum Webinar" aria-label="Neue Nachlieferung" style={{ flex: "1 1 18rem" }} />
+            </StatefulForm>
+          )}
+        </section>
+
+        {/* 6 · Fragen */}
         <section className="me-card">
           <div className="wb-step-head">
             <h2>Vorab-Fragen</h2>
@@ -506,4 +588,9 @@ function EnPreview({ text }: { text: string }) {
       <span>EN</span> {text}
     </small>
   );
+}
+
+function fileSize(n: number | null) {
+  if (!n) return "";
+  return n < 1_000_000 ? `${Math.max(1, Math.round(n / 1000))} KB` : `${(n / 1_000_000).toFixed(1)} MB`;
 }
