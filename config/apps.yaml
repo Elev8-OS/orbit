@@ -116,6 +116,21 @@ apps:
     requestableBy: [Orbit.Staff]
     embed: true
 
+  # Webinare – direkt in Orbit gebaut (/webinare). Pflegt das Webinar-Portal webinar.elev8-suite.com: Termine,
+  # Teilnahme aus Teams, GHL-Tags, Aufzeichnungen (Bunny), Transkript (Fireflies), KI-Inhalte, Vorab-Fragen,
+  # Abstimmungen. Rollen: App.Webinar (Redaktion), App.Webinar.Moderation (Fragen und Vorschläge).
+  - id: webinare
+    name: { de: Webinare, en: Webinars }
+    description:
+      de: Kundenwebinare planen, Teilnahme abschliessen, Aufzeichnungen mit Transkript und Abstimmungen fürs Portal.
+      en: Plan customer webinars, close attendance, publish recordings with transcripts and run polls for the portal.
+    url: https://myorbit.elev8-suite.com/webinare
+    icon: Presentation
+    category: sales
+    roles: [App.Webinar, App.Webinar.Moderation]
+    requestableBy: [Orbit.Staff]
+    embed: true
+
   # Partnerportal (orbit.elev8-suite.com, Repo Elev8-onboarding Zweig v4, Railway-Projekt "Orbit") – Verwaltung
   # der Sales Partner: Personen, Bewerbungen, Budgetanträge, Akademie-Inhalte, Lead Harvester, Ansicht als Partner.
   # Öffnet als Tab, Anmeldung über den Orbit-Pass (/api/auth/orbit prüft Pass und Rolle).
