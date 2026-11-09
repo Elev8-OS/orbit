@@ -41,3 +41,4 @@
 .wb-copy input, .wb-copy textarea { width: 100%; box-sizing: border-box; padding: 0.55rem 0.7rem; border-radius: 0.5rem; border: 1px solid var(--line-strong); background: var(--bg); color: var(--ink); font: inherit; font-size: 0.875rem; line-height: 1.5; resize: vertical; }
 @media (prefers-reduced-motion: reduce) { .wb-vid-progress .wb-bar span { transition: none; } }
 @media (max-width: 520px) { .wb-vid-times input { width: 5.5rem; } .wb-vid-ch { padding: 0.75rem; } }
+.wb-vid-small { display: block; margin-top: 0.4rem; font-size: 0.75rem; line-height: 1.45; color: var(--muted); }
