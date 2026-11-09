@@ -18,6 +18,7 @@ export type EditorPlan = {
   meta: string;
   layout: "teams-share" | "full";
   allowGallery: boolean;
+  browserBar: boolean;
   voice: "pro" | "original";
   pip: { enabled: boolean; name: string };
   outro: { title: string; url: string };
@@ -171,18 +172,28 @@ export function VideoPlanEditor({
         </label>
 
         <div className="me-row">
-          <label className="me-field">
-            <span>Bildausschnitt</span>
-            <select value={p.layout} onChange={(e) => setP({ ...p, layout: e.target.value === "full" ? "full" : "teams-share" })}>
-              <option value="teams-share">Bildschirmfreigabe aus Teams (App bildfüllend)</option>
-              <option value="full">Ganzes Bild der Aufnahme</option>
-            </select>
+          <div className="me-field">
+            <label className="wb-vid-label">
+              <span>Bildausschnitt</span>
+              <select value={p.layout} onChange={(e) => setP({ ...p, layout: e.target.value === "full" ? "full" : "teams-share" })}>
+                <option value="teams-share">Bildschirmfreigabe aus Teams (App bildfüllend)</option>
+                <option value="full">Ganzes Bild der Aufnahme</option>
+              </select>
+            </label>
             <small>
               {p.layout === "teams-share"
                 ? "Der Render-Dienst prüft jeden Clip. Zeigt einer die Ansicht mit Teilnehmenden, bricht er mit einem Hinweis ab."
                 : "Teilnehmende und ihre Namen sind dann im Video sichtbar."}
             </small>
-          </label>
+            {p.layout === "teams-share" && (
+              <div className="wb-vid-checks">
+                <label>
+                  <input className="wb-check" type="checkbox" checked={p.browserBar} onChange={(e) => setP({ ...p, browserBar: e.target.checked })} />
+                  <span>Browserleiste zeigen (Tabs und Adresse)</span>
+                </label>
+              </div>
+            )}
+          </div>
           <div className="me-field">
             <label className="wb-vid-label">
               <span>Stimme</span>
