@@ -1,0 +1,43 @@
+/* Erklärvideo: Schnittliste, Fortschritt, YouTube-Texte */
+.wb-state-bad { color: var(--danger); font-weight: 600; }
+.wb-vid-fs { border: 0; margin: 0; padding: 0; min-width: 0; }
+.wb-vid-label { display: block; }
+.wb-vid-label > span { display: block; font-size: 0.8125rem; font-weight: 600; margin-bottom: 0.3rem; color: var(--ink-2); }
+.wb-vid-checks { display: grid; gap: 0.4rem; margin-top: 0.6rem; }
+.wb-vid-checks label { display: flex; align-items: center; gap: 0.5rem; color: var(--ink); font-size: 0.8125rem; cursor: pointer; }
+.me-field .wb-vid-checks input[type="checkbox"] { width: 1rem; height: 1rem; flex: none; margin: 0; padding: 0; }
+.wb-vid-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0.5rem 1rem; margin: 1.25rem 0 0.75rem; }
+.wb-vid-head h3, .wb-vid-h3 { margin: 0; font-size: 1rem; }
+.wb-vid-h3 { margin: 1.5rem 0 0.75rem; }
+.wb-vid-total { font-size: 0.875rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.wb-vid-total em { font-style: normal; font-weight: 400; color: var(--muted); }
+.wb-vid-ok { color: var(--success); }
+.wb-vid-short, .wb-vid-long { color: var(--yellow-ink); }
+.wb-vid-ch { border: 1px solid var(--line); border-left: 4px solid var(--yellow); border-radius: 0.5rem; padding: 0.875rem; margin-bottom: 0.875rem; background: var(--surface); min-width: 0; }
+.wb-vid-ch-head { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; min-width: 0; }
+.wb-vid-n { flex: none; width: 1.75rem; height: 1.75rem; border-radius: 999px; background: var(--yellow); color: #000; font-weight: 700; font-size: 0.875rem; display: grid; place-items: center; }
+.wb-vid-title { flex: 1; min-width: 0; padding: 0.5rem 0.65rem; border-radius: 0.5rem; border: 1px solid var(--line-strong); background: var(--bg); color: var(--ink); font: inherit; font-weight: 600; }
+.wb-vid-title:focus, .wb-vid-times input:focus { outline: 2px solid var(--yellow); outline-offset: 1px; border-color: transparent; }
+.wb-vid-tools { display: flex; gap: 0.25rem; flex: none; }
+.wb-icon { padding: 0.4rem; line-height: 0; }
+.wb-vid-clip { border-top: 1px solid var(--line); padding: 0.625rem 0; min-width: 0; }
+.wb-vid-times { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.5rem 0.75rem; }
+.wb-vid-times label { display: grid; gap: 0.2rem; font-size: 0.75rem; font-weight: 600; color: var(--muted); }
+.wb-vid-times input { width: 6.5rem; padding: 0.4rem 0.55rem; border-radius: 0.5rem; border: 1px solid var(--line-strong); background: var(--bg); color: var(--ink); font: inherit; font-variant-numeric: tabular-nums; }
+.wb-vid-times input[aria-invalid="true"] { border-color: var(--danger); }
+.wb-vid-dur { font-size: 0.8125rem; color: var(--muted); font-variant-numeric: tabular-nums; padding-bottom: 0.45rem; }
+.wb-vid-times .wb-icon { margin-left: auto; }
+.wb-vid-text { margin: 0.5rem 0 0; font-size: 0.8125rem; line-height: 1.5; color: var(--muted); overflow-wrap: anywhere; max-height: 7.5em; overflow: auto; }
+.wb-vid-add { margin-top: 0.25rem; }
+.wb-vid-problems { padding-left: 1.75rem; }
+.wb-vid-progress { display: grid; gap: 0.35rem; margin-bottom: 0.75rem; }
+.wb-vid-progress .wb-bar { height: 0.625rem; }
+.wb-vid-progress .wb-bar span { transition: width 0.6s ease; }
+.wb-vid-result { display: grid; gap: 0.75rem; }
+.wb-vid-result video { width: 100%; max-width: 48rem; aspect-ratio: 16 / 9; background: #000; border-radius: 0.5rem; }
+.wb-vid-yt { display: grid; gap: 1rem; }
+.wb-copy { display: grid; gap: 0.4rem; min-width: 0; }
+.wb-copy-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; font-size: 0.8125rem; font-weight: 600; color: var(--ink-2, var(--ink)); }
+.wb-copy input, .wb-copy textarea { width: 100%; box-sizing: border-box; padding: 0.55rem 0.7rem; border-radius: 0.5rem; border: 1px solid var(--line-strong); background: var(--bg); color: var(--ink); font: inherit; font-size: 0.875rem; line-height: 1.5; resize: vertical; }
+@media (prefers-reduced-motion: reduce) { .wb-vid-progress .wb-bar span { transition: none; } }
+@media (max-width: 520px) { .wb-vid-times input { width: 5.5rem; } .wb-vid-ch { padding: 0.75rem; } }
