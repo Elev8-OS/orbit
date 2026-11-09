@@ -9,8 +9,8 @@ import type { Webinar } from "./store";
  * Alle Zeiten sind Sekunden im Video (Transkript-Zeit + Versatz).
  */
 
-/** Eine Zeile Sprechertext: wann sie im Video gesagt wurde (Sekunden) und der bereinigte Text dazu. */
-export type NarrationLine = { start: number; end: number; text: string };
+/** Eine Zeile Sprechertext: wann sie im Video gesagt wurde (Sekunden), der bereinigte Text und die englische Fassung (Untertitel). */
+export type NarrationLine = { start: number; end: number; text: string; en?: string };
 export type Clip = { start: number; end: number; lines?: NarrationLine[] };
 export type VideoChapter = { title: string; key: string; clips: Clip[] };
 export type VideoPlan = {
@@ -29,7 +29,9 @@ export type VideoPlan = {
   youtube: { title: string; description: string; tags: string[] };
 };
 export type VideoStatus = "draft" | "queued" | "rendering" | "done" | "failed";
-export type VideoResult = { durationSec: number; size: number; chapters: { title: string; at: number }[] };
+/** Untertitel im fertigen Video (Sekunden), vom Render-Dienst aus der Platzierung der Zeilen */
+export type Caption = { start: number; end: number; de: string; en: string };
+export type VideoResult = { durationSec: number; size: number; chapters: { title: string; at: number }[]; captions?: Caption[] };
 export type VideoJob = {
   webinarId: string;
   plan: VideoPlan;
@@ -86,7 +88,12 @@ export function normalizePlan(raw: unknown, w: Webinar): VideoPlan {
         const lines = Array.isArray((k as Clip).lines) ? ((k as Clip).lines as NarrationLine[]) : null;
         if (lines)
           clip.lines = lines
-            .map((l) => ({ start: num(l?.start), end: num(l?.end), text: String(l?.text ?? "").replace(/\s+/g, " ").trim().slice(0, 400) }))
+            .map((l) => {
+              const line: NarrationLine = { start: num(l?.start), end: num(l?.end), text: String(l?.text ?? "").replace(/\s+/g, " ").trim().slice(0, 400) };
+              const en = String(l?.en ?? "").replace(/\s+/g, " ").trim().slice(0, 400);
+              if (en) line.en = en;
+              return line;
+            })
             .filter((l) => l.end >= l.start)
             .slice(0, 80);
         return clip;
@@ -255,6 +262,77 @@ export async function cleanNarration(w: Webinar, plan: VideoPlan, onlyMissing: b
     next.chapters[t.ci].clips[t.ki].lines = t.segs.map((s, j) => ({ ...s, text: (ok ? got[j] : roughClean(s.text)).replace(/\s+/g, " ").trim() }));
   });
   return { plan: next, count: todo.length };
+}
+
+/** Originalstimme: Untertitel aus dem Transkript (nur Füllwörter entfernt), wo noch keine Zeilen da sind. */
+export function withTranscriptLines(w: Webinar, plan: VideoPlan): VideoPlan {
+  const next: VideoPlan = JSON.parse(JSON.stringify(plan));
+  next.chapters.forEach((c) =>
+    c.clips.forEach((k) => {
+      k.lines = clipNarration(k);
+      if (!k.lines.length) k.lines = clipSegments(w, k).map((s) => ({ ...s, text: roughClean(s.text) })).filter((s) => s.text);
+    })
+  );
+  return next;
+}
+
+const TRANSLATE_SYSTEM = `Du übersetzt die Untertitel eines Elev8-Erklärvideos (Software für Ferienvermietung) ins Englische.
+Jede Zeile wird einzeln als Untertitel gezeigt, während sie gesprochen wird. Gib pro Clip genau so viele Zeilen zurück wie geliefert,
+in derselben Reihenfolge:
+- Natürliches, klares Englisch, wie es ein Muttersprachler in einem Produktvideo sagt. Kurz und gut lesbar, nicht wörtlich.
+- Produktnamen und Funktionsnamen unverändert (Elev8, Journey, Gap Night, Upsell). "du" wird zu "you".
+- Nichts weglassen und nichts hinzufügen. Leere Zeilen bleiben leer.`;
+
+/** Englische Fassung für alle Zeilen ohne Übersetzung (Untertitel). Ohne Claude bleibt Englisch leer. */
+export async function translateNarration(plan: VideoPlan): Promise<{ plan: VideoPlan; count: number }> {
+  const next: VideoPlan = JSON.parse(JSON.stringify(plan));
+  const todo = next.chapters.flatMap((c) => c.clips).filter((k) => k.lines?.some((l) => l.text && !l.en));
+  if (!todo.length || !claudeConfigured()) return { plan: next, count: 0 };
+  // Fällt die Übersetzung aus, entsteht das Video trotzdem (dann ohne englische Spur)
+  const input = (await callClaudeTool({
+    system: TRANSLATE_SYSTEM,
+    user: todo.map((k, i) => `Clip ${i + 1}:\n${(k.lines ?? []).map((l, j) => `${j + 1}. ${l.text}`).join("\n")}`).join("\n\n"),
+    maxTokens: 8000,
+    timeoutMs: 240_000,
+    tool: {
+      name: "untertitel_englisch",
+      description: "Englische Untertitel, pro Clip die Zeilen in derselben Reihenfolge und Anzahl",
+      input_schema: {
+        type: "object",
+        required: ["clips"],
+        properties: { clips: { type: "array", items: { type: "object", required: ["lines"], properties: { lines: { type: "array", items: { type: "string" } } } } } }
+      }
+    }
+  }).catch((err) => {
+    console.error("Untertitel-Übersetzung", err);
+    return {};
+  })) as { clips?: { lines?: unknown[] }[] };
+  let count = 0;
+  todo.forEach((k, i) => {
+    const got = (input.clips?.[i]?.lines ?? []).map((x) => String(x ?? "").replace(/\s+/g, " ").trim());
+    if (got.length !== (k.lines ?? []).length) return;
+    k.lines = (k.lines ?? []).map((l, j) => (l.en || !l.text || !got[j] ? l : { ...l, en: got[j] }));
+    count++;
+  });
+  return { plan: next, count };
+}
+
+/** Untertitel eines fertigen Videos als SRT ("de" oder "en"). */
+export function captionsSrt(captions: Caption[], lang: "de" | "en"): string {
+  const t = (sec: number) => {
+    const ms = Math.max(0, Math.round(sec * 1000));
+    const p = (n: number, w = 2) => String(n).padStart(w, "0");
+    return `${p(Math.floor(ms / 3_600_000))}:${p(Math.floor(ms / 60_000) % 60)}:${p(Math.floor(ms / 1000) % 60)},${p(ms % 1000, 3)}`;
+  };
+  return captions
+    .filter((c) => c[lang])
+    .map((c, i) => `${i + 1}\n${t(c.start)} --> ${t(c.end)}\n${c[lang]}\n`)
+    .join("\n");
+}
+
+export async function getCaptions(webinarId: string): Promise<Caption[]> {
+  const [r] = await sql`SELECT result FROM webinar_videos WHERE webinar_id = ${webinarId}`;
+  return ((r?.result as VideoResult | null)?.captions ?? []) as Caption[];
 }
 
 type Row = Record<string, unknown>;
