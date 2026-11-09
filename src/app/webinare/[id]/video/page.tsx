@@ -9,6 +9,7 @@ import { VideoPlanEditor } from "@/components/webinare/VideoPlanEditor";
 import { RefreshWhile } from "@/components/webinare/RefreshWhile";
 import { emptyPlan, getVideoJob, mmss, plannedSeconds, TARGET, youtubeDescription } from "@/lib/webinare/video";
 import { cancelVideoAction, renderVideoAction, saveVideoPlanAction, suggestVideoPlanAction } from "../../video-actions";
+import "./video.css";
 
 export const dynamic = "force-dynamic";
 const ZONE = "Europe/Zurich";
