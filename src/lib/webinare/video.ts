@@ -9,7 +9,9 @@ import type { Webinar } from "./store";
  * Alle Zeiten sind Sekunden im Video (Transkript-Zeit + Versatz).
  */
 
-export type Clip = { start: number; end: number };
+/** Eine Zeile Sprechertext: wann sie im Video gesagt wurde (Sekunden) und der bereinigte Text dazu. */
+export type NarrationLine = { start: number; end: number; text: string };
+export type Clip = { start: number; end: number; lines?: NarrationLine[] };
 export type VideoChapter = { title: string; key: string; clips: Clip[] };
 export type VideoPlan = {
   title: string;
@@ -79,7 +81,16 @@ export function normalizePlan(raw: unknown, w: Webinar): VideoPlan {
   const chapters = (Array.isArray(r.chapters) ? r.chapters : []).slice(0, 8).map((c) => {
     const ch = (c ?? {}) as Record<string, unknown>;
     const clips = (Array.isArray(ch.clips) ? ch.clips : [])
-      .map((k) => ({ start: num((k as Clip).start), end: num((k as Clip).end) }))
+      .map((k) => {
+        const clip: Clip = { start: num((k as Clip).start), end: num((k as Clip).end) };
+        const lines = Array.isArray((k as Clip).lines) ? ((k as Clip).lines as NarrationLine[]) : null;
+        if (lines)
+          clip.lines = lines
+            .map((l) => ({ start: num(l?.start), end: num(l?.end), text: String(l?.text ?? "").replace(/\s+/g, " ").trim().slice(0, 400) }))
+            .filter((l) => l.end >= l.start)
+            .slice(0, 80);
+        return clip;
+      })
       .filter((k) => k.end > k.start)
       .slice(0, 6);
     return { title: text(ch.title, 70), key: text(ch.key, 160), clips };
@@ -162,6 +173,88 @@ export function clipText(w: Webinar, clip: Clip): string {
     .join(" ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+/** Transkript-Abschnitte eines Clips mit Zeiten im Video, auf die Clip-Grenzen beschnitten. */
+export function clipSegments(w: Webinar, clip: Clip): NarrationLine[] {
+  const off = w.transcriptOffsetSec;
+  return w.transcript
+    .map((s) => ({ start: Math.max(s.start + off, clip.start), end: Math.min(s.end + off, clip.end), text: s.de }))
+    .filter((s) => s.end - s.start >= 0.3)
+    .map((s) => ({ start: num(s.start), end: num(s.end), text: s.text.replace(/\s+/g, " ").trim() }));
+}
+
+/** Sprechertext, der zum Clip passt (Zeilen ausserhalb gelten nach einer Zeitänderung als veraltet). */
+export function clipNarration(clip: Clip): NarrationLine[] {
+  return (clip.lines ?? []).filter((l) => l.start >= clip.start - 0.5 && l.start < clip.end && l.text);
+}
+
+/** Einfache Bereinigung ohne Claude (Rückfall): Füllwörter und doppelte Wörter weg. */
+export function roughClean(text: string): string {
+  const word = (w: string) => new RegExp(`(?<!\\p{L})(?:${w})(?!\\p{L})[,.]?\\s*`, "giu");
+  return text
+    .replace(word("äh+m*|öh+m*|hm+|äm+|ehm+|mhm"), "")
+    .replace(/(?<!\p{L})(\p{L}+)(?:\s+\1)+(?!\p{L})/giu, "$1")
+    .replace(/\s+([,.!?])/g, "$1")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+const NARRATION_SYSTEM = `Du bereitest den Sprechertext für ein Elev8-Erklärvideo vor. Ein professioneller Sprecher liest ihn,
+Zeile für Zeile genau dann, wenn der Referent sie in der Bildschirm-Demo gesagt hat. Grundlage ist das Transkript des Referenten.
+Für jede Zeile gibst du die bereinigte Fassung zurück, in derselben Reihenfolge und mit genau so vielen Zeilen wie geliefert:
+- Füllwörter weg (äh, ähm, also am Satzanfang, sozusagen, quasi, halt, eben, irgendwie, ja am Satzende, gell, oder? als Füllfrage).
+- Versprecher, Satzabbrüche, Wiederholungen und Selbstkorrekturen glätten: nur die gemeinte, korrigierte Fassung behalten.
+- Sauberes, flüssiges Hochdeutsch in Schweizer Rechtschreibung (ss statt ß), kurze klare Sätze, sicherer Ton.
+- Inhalt, Reihenfolge, Fachbegriffe und Produktnamen (Elev8, Journey, Gap Night, Upsell) unverändert lassen. Nichts dazuerfinden.
+- Anrede beibehalten (du oder Sie wie im Original).
+- Nicht länger als das Original, eher etwas kürzer: der Text muss in dieselbe Zeit passen.
+- Zeilen, die nur Füllwörter, Technik oder Organisatorisches enthalten ("Seht ihr meinen Bildschirm?", "Moment"), oder Namen von
+  Teilnehmenden ansprechen, werden zu einer leeren Zeichenkette.`;
+
+/**
+ * Claude bereinigt den Sprechertext der Clips (Füllwörter, Versprecher). onlyMissing: nur Clips ohne passenden Text.
+ * Liefert den Plan mit Sprechertext und die Zahl der bearbeiteten Clips.
+ */
+export async function cleanNarration(w: Webinar, plan: VideoPlan, onlyMissing: boolean): Promise<{ plan: VideoPlan; count: number }> {
+  if (!w.transcript.length) throw new Error("Zuerst das Transkript laden (Abschnitt Aufzeichnung).");
+  const todo: { ci: number; ki: number; segs: NarrationLine[] }[] = [];
+  plan.chapters.forEach((c, ci) =>
+    c.clips.forEach((k, ki) => {
+      if (onlyMissing && clipNarration(k).length) return;
+      const segs = clipSegments(w, k);
+      if (segs.length) todo.push({ ci, ki, segs });
+    })
+  );
+  const next: VideoPlan = JSON.parse(JSON.stringify(plan));
+  // Zeilen ausserhalb von Von–Bis (nach geänderten Zeiten) nicht mitsprechen
+  next.chapters.forEach((c) => c.clips.forEach((k) => k.lines && (k.lines = clipNarration(k))));
+  if (!todo.length) return { plan: next, count: 0 };
+  let cleaned: string[][] | null = null;
+  if (claudeConfigured()) {
+    const input = (await callClaudeTool({
+      system: NARRATION_SYSTEM,
+      user: todo.map((t, i) => `Clip ${i + 1}:\n${t.segs.map((s, j) => `${j + 1}. ${s.text}`).join("\n")}`).join("\n\n"),
+      maxTokens: 8000,
+      timeoutMs: 240_000,
+      tool: {
+        name: "sprechertext",
+        description: "Bereinigter Sprechertext, pro Clip die Zeilen in derselben Reihenfolge und Anzahl",
+        input_schema: {
+          type: "object",
+          required: ["clips"],
+          properties: { clips: { type: "array", items: { type: "object", required: ["lines"], properties: { lines: { type: "array", items: { type: "string" } } } } } }
+        }
+      }
+    })) as { clips?: { lines?: unknown[] }[] };
+    cleaned = todo.map((_, i) => (input.clips?.[i]?.lines ?? []).map((x) => String(x ?? "")));
+  }
+  todo.forEach((t, i) => {
+    const got = cleaned?.[i];
+    const ok = got && got.length === t.segs.length;
+    next.chapters[t.ci].clips[t.ki].lines = t.segs.map((s, j) => ({ ...s, text: (ok ? got[j] : roughClean(s.text)).replace(/\s+/g, " ").trim() }));
+  });
+  return { plan: next, count: todo.length };
 }
 
 type Row = Record<string, unknown>;

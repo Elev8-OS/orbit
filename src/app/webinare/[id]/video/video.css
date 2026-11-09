@@ -42,3 +42,9 @@
 @media (prefers-reduced-motion: reduce) { .wb-vid-progress .wb-bar span { transition: none; } }
 @media (max-width: 520px) { .wb-vid-times input { width: 5.5rem; } .wb-vid-ch { padding: 0.75rem; } }
 .wb-vid-small { display: block; margin-top: 0.4rem; font-size: 0.75rem; line-height: 1.45; color: var(--muted); }
+.wb-vid-script { display: grid; gap: 0.3rem; margin-top: 0.6rem; }
+.wb-vid-script > span { font-size: 0.75rem; font-weight: 600; color: var(--ink-2, var(--ink)); }
+.wb-vid-script em { font-style: normal; font-weight: 400; color: var(--muted); }
+.wb-vid-script textarea { width: 100%; box-sizing: border-box; padding: 0.5rem 0.65rem; border-radius: 0.5rem; border: 1px solid var(--line-strong); background: var(--bg); color: var(--ink); font: inherit; font-size: 0.8125rem; line-height: 1.55; resize: vertical; font-variant-numeric: tabular-nums; }
+.wb-vid-script textarea:focus { outline: 2px solid var(--yellow); outline-offset: 1px; border-color: transparent; }
+.wb-vid-warn { color: var(--yellow-ink); font-size: 0.75rem; }

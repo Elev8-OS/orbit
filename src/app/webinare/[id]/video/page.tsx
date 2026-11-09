@@ -8,7 +8,7 @@ import { CopyField } from "@/components/webinare/CopyField";
 import { VideoPlanEditor } from "@/components/webinare/VideoPlanEditor";
 import { RefreshWhile } from "@/components/webinare/RefreshWhile";
 import { emptyPlan, getVideoJob, mmss, plannedSeconds, TARGET, youtubeDescription, youtubeFallback } from "@/lib/webinare/video";
-import { cancelVideoAction, renderVideoAction, saveVideoPlanAction, suggestVideoPlanAction, suggestYoutubeAction } from "../../video-actions";
+import { cancelVideoAction, cleanNarrationAction, renderVideoAction, saveVideoPlanAction, suggestVideoPlanAction, suggestYoutubeAction } from "../../video-actions";
 import "./video.css";
 
 export const dynamic = "force-dynamic";
@@ -42,6 +42,7 @@ export default async function VideoPage({ params }: { params: Promise<{ id: stri
   const hasYt = Boolean(plan.youtube.title && plan.youtube.description);
   const yt = hasYt ? plan.youtube : youtubeFallback(w, plan);
   const savedClips = Boolean(job?.plan.chapters.some((c) => c.clips.length));
+  const hasNarration = plan.chapters.some((c) => c.clips.some((k) => k.lines?.length));
 
   return (
     <div className="me-page">
@@ -84,11 +85,22 @@ export default async function VideoPage({ params }: { params: Promise<{ id: stri
                 confirm={hasClips ? "Die aktuelle Schnittliste wird durch einen neuen Vorschlag ersetzt. Fortfahren?" : undefined}
                 variant={hasClips ? "secondary" : "primary"}
               />
+              {plan.voice === "pro" && savedClips && (
+                <ActionButton
+                  action={cleanNarrationAction}
+                  fields={{ id: w.id }}
+                  label={hasNarration ? "Sprechertext neu bereinigen" : "Sprechertext bereinigen"}
+                  pending="Claude glättet den Text …"
+                  variant="secondary"
+                  confirm={hasNarration ? "Der Sprechertext aller Clips wird neu erstellt, eigene Anpassungen gehen verloren. Fortfahren?" : undefined}
+                />
+              )}
             </div>
           )}
           <p className="wb-hint">
             Claude wählt die Demo-Teile aus und lässt Begrüssung, Fragen zu Kundenkonten und Namen von Teilnehmenden weg. Prüfe die Auswahl am
-            Transkripttext unter jedem Clip. Die Schnitte rasten beim Rendern auf die nächste Sprechpause ein.
+            Transkripttext unter jedem Clip. Die Schnitte rasten beim Rendern auf die nächste Sprechpause ein. Mit Profistimme bereinigt Claude
+            den Sprechertext von Füllwörtern und Versprechern; fehlt er beim Rendern, geschieht das automatisch.
           </p>
           <VideoPlanEditor
             webinarId={w.id}
