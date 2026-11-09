@@ -17,6 +17,8 @@ export type VideoPlan = {
   meta: string;
   layout: "teams-share" | "full";
   allowGallery: boolean;
+  /** pro: feste ElevenLabs-Stimme für alle Erklärvideos (Kreis und Name entfallen), original: Stimme aus der Aufnahme */
+  voice: "pro" | "original";
   pip: { enabled: boolean; name: string };
   outro: { title: string; url: string };
   chapters: VideoChapter[];
@@ -53,6 +55,7 @@ export function emptyPlan(w: Webinar): VideoPlan {
     meta: `Aus dem Elev8-Webinar vom ${date}`,
     layout: "teams-share",
     allowGallery: false,
+    voice: "pro",
     pip: { enabled: true, name: w.speaker || "" },
     outro: { title: "Mehr über Elev8 erfahren", url: "elev8-suite.com" },
     chapters: [],
@@ -84,6 +87,7 @@ export function normalizePlan(raw: unknown, w: Webinar): VideoPlan {
     meta: text(r.meta, 90) || base.meta,
     layout: r.layout === "full" ? "full" : "teams-share",
     allowGallery: r.allowGallery === true,
+    voice: r.voice === "original" ? "original" : "pro",
     pip: { enabled: pip.enabled !== false, name: text(pip.name, 40) },
     outro: { title: text(outro.title, 60) || base.outro.title, url: text(outro.url, 60) || base.outro.url },
     chapters,
