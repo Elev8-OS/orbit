@@ -12,8 +12,10 @@ Ablauf pro Auftrag:
 1. Quelle: höchste Auflösung aus der Bunny-Playlist (sonst `play_720p.mp4`).
 2. Prüfung: zeigt jeder Clip die Bildschirmfreigabe? Sonst Abbruch mit Hinweis (ausser „Ansicht mit Teilnehmenden zulassen“).
 3. Schnittpunkte rasten auf die nächste Sprechpause (±1.2 s) ein.
-4. Profistimme (Standard): jeder Clip geht als Speech-to-Speech an ElevenLabs, gleiche Worte und gleiches Tempo, zwischengespeichert
-   unter `webinare/videos/stimme/`. Mit „Originalstimme“ bleibt der Ton der Aufnahme, dann mit Sprecher-Kreis.
+4. Profistimme (Standard): ElevenLabs liest den von Claude bereinigten Sprechertext aus Orbit (ohne Füllwörter und Versprecher).
+   Jede Zeile startet dort, wo sie im Original gesagt wurde; wird es eng, bis 15 % schneller, sonst läuft das Bild etwas langsamer.
+   Gesprochene Zeilen liegen zwischengespeichert unter `webinare/videos/stimme/`. Mit „Originalstimme“ bleibt der Ton der Aufnahme,
+   dann mit Sprecher-Kreis.
 5. Eröffnung, Clips mit Kapitel und Kernaussage, Abschluss; Lautheit −16 LUFS.
 6. Upload als `webinare/videos/<webinar>/v<n>.mp4` und `.png`; die vorherige Fassung wird gelöscht.
 
