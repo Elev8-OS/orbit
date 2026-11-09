@@ -1,8 +1,10 @@
 /* Messen – Verwaltung der Gewinnspiel-Seiten. Farben aus den Orbit-Variablen (globals.css, theme.css). */
 .me-main { padding: 1.5rem clamp(1rem, 3vw, 2.5rem) 3rem; max-width: 80rem; }
-.me-page { display: grid; gap: 1.25rem; }
+.me-page { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.25rem; }
+.me-page > * { min-width: 0; }
 .me-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 1rem; }
-.me-head h1 { margin: 0.25rem 0 0.25rem; font-size: 1.75rem; line-height: 1.15; letter-spacing: -0.01em; }
+.me-head h1 { margin: 0.25rem 0 0.25rem; font-size: 1.75rem; line-height: 1.15; letter-spacing: -0.01em; overflow-wrap: anywhere; }
+.me-head > * { min-width: 0; }
 .me-sub { margin: 0; color: var(--muted); display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
 .me-back { color: var(--muted); text-decoration: none; font-size: 0.875rem; }
 .me-back:hover { color: var(--ink); }
@@ -29,8 +31,8 @@ a.me-strong:hover { text-decoration: underline; }
 
 .me-form fieldset { border: 0; border-top: 1px solid var(--line); margin: 1.25rem 0 0; padding: 1rem 0 0; }
 .me-form legend { font-weight: 600; font-size: 0.9375rem; padding: 0 0.5rem 0 0; }
-.me-row { display: grid; gap: 0 1rem; }
-@media (min-width: 640px) { .me-row { grid-template-columns: 1fr 1fr; } }
+.me-row { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0 1rem; }
+@media (min-width: 640px) { .me-row { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .me-field { display: block; margin-bottom: 0.875rem; }
 .me-field > span { display: block; font-size: 0.8125rem; font-weight: 600; margin-bottom: 0.3rem; color: var(--ink-2); }
 .me-field em { font-style: normal; font-weight: 400; color: var(--muted); }
@@ -98,3 +100,11 @@ a.me-strong:hover { text-decoration: underline; }
 .me-winners li { margin-bottom: 0.5rem; }
 .me-empty { max-width: 32rem; margin: 3rem auto; text-align: center; }
 .me-empty p { color: var(--muted); }
+
+/* Handy: Seite nie breiter als der Bildschirm, kompaktere Karten */
+@media (max-width: 640px) {
+  .me-main { padding-left: 0.75rem; padding-right: 0.75rem; }
+  .me-card { padding: 1rem; }
+  .me-card .me-table-wrap { margin: 0 -1rem -1rem; }
+  .me-head h1 { font-size: 1.5rem; }
+}
