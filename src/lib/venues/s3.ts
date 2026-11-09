@@ -60,9 +60,10 @@ export async function putObject(objectKey: string, body: Buffer, contentType: st
   if (!res.ok) throw new Error(`storage put failed: ${res.status}`);
 }
 
-export async function getObject(objectKey: string): Promise<Response> {
+/** extra: unsignierte Zusatz-Header, z. B. Range für Teilabrufe (Videos in Safari) */
+export async function getObject(objectKey: string, extra?: Record<string, string>): Promise<Response> {
   const { url, headers } = sign("GET", objectKey);
-  return fetch(url, { headers });
+  return fetch(url, { headers: { ...headers, ...extra } });
 }
 
 export async function deleteObject(objectKey: string): Promise<void> {

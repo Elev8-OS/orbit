@@ -95,6 +95,7 @@ export default async function WebinarPage({ params }: { params: Promise<{ id: st
                 Im Portal ansehen
               </a>
             )}
+            {past && <a href={`/webinare/${w.id}/video`}>Erklärvideo</a>}
           </p>
         </div>
       </header>
