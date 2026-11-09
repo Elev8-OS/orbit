@@ -24,7 +24,7 @@ import {
   upsertRegistrations,
   type Chapter
 } from "@/lib/webinare/store";
-import { applyStatusTags } from "@/lib/webinare/ghl";
+import { addTag, applyStatusTags, tagFor } from "@/lib/webinare/ghl";
 import { teamsAttendance, teamsConfigured, teamsWebinar } from "@/lib/webinare/teams";
 import { decodeReport, parseTeamsReport, plausibility } from "@/lib/webinare/attendance";
 import { findPromises, generateContent, loadFireflies, translateToEnglish, translateTranscript } from "@/lib/webinare/content";
@@ -145,7 +145,12 @@ export async function saveDetailsAction(_: FormState, form: FormData): Promise<F
 
 export async function deleteWebinarAction(form: FormData): Promise<void> {
   await requireWebinarUser("edit");
-  await deleteWebinar(str(form, "id"));
+  const id = str(form, "id");
+  // Hochgeladene Unterlagen im Bucket mitlöschen; die Einträge selbst entfernt die Datenbank
+  for (const d of await listDeliverables(id).catch(() => [])) {
+    if (d.fileKey) await deleteObject(d.fileKey).catch((e) => console.error("Datei nicht gelöscht:", e));
+  }
+  await deleteWebinar(id);
   revalidatePath("/webinare");
   redirect("/webinare");
 }
@@ -681,6 +686,31 @@ export async function deliverableAction(_: FormState, form: FormData): Promise<F
     }
     refresh(d.webinarId);
     return { ok: "Gespeichert." };
+  } catch (err) {
+    return fail(err);
+  }
+}
+
+/** Teilnehmende über die nachgelieferten Unterlagen informieren: GHL-Tag `<basis>-unterlagen` startet den Workflow. */
+export async function notifyMaterialsAction(_: FormState, form: FormData): Promise<FormState> {
+  try {
+    await requireWebinarUser("edit");
+    const id = str(form, "id");
+    const w = await getWebinar(id);
+    if (!w) return { error: "Webinar nicht gefunden." };
+    if (!w.recordingPublishedAt) return { error: "Zuerst die Aufzeichnung veröffentlichen, die Unterlagen liegen auf ihrer Seite." };
+    const done = (await listDeliverables(id)).filter((d) => d.status === "done");
+    if (!done.length) return { error: "Es ist noch keine Unterlage nachgeliefert." };
+    const regs = (await listRegistrations(id)).filter((r) => r.status === "attended" || r.status === "missed");
+    if (!regs.length) return { error: "Keine Teilnehmenden. Zuerst die Teilnahme abschliessen." };
+    const tag = tagFor(w, "unterlagen");
+    const result = await addTag(tag, regs);
+    if (result.skipped) return { error: "GHL ist in Orbit nicht eingerichtet." };
+    if (result.ok) await updateWebinar(id, { materialsNotifiedAt: new Date() });
+    refresh(id);
+    return result.failed
+      ? { error: `${result.ok} informiert, ${result.failed} fehlgeschlagen. Erneut klicken versucht es nochmals (doppelte Tags schaden nicht).` }
+      : { ok: `Tag ${tag} bei ${result.ok} Personen gesetzt. Der GHL-Workflow verschickt die Mail.` };
   } catch (err) {
     return fail(err);
   }
