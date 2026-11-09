@@ -10,7 +10,8 @@ import type { VideoFormState } from "@/app/webinare/video-actions";
  * Zeiten werden als m:ss eingegeben; unter jedem Clip steht der Transkripttext zur Kontrolle.
  */
 
-type Clip = { start: number; end: number };
+type Line = { start: number; end: number; text: string };
+type Clip = { start: number; end: number; lines?: Line[] };
 type Chapter = { title: string; key: string; clips: Clip[] };
 export type EditorPlan = {
   title: string;
@@ -25,9 +26,9 @@ export type EditorPlan = {
   chapters: Chapter[];
   youtube: { title: string; description: string; tags: string[] };
 };
-export type Line = { start: number; end: number; text: string };
+export type { Line };
 
-type ClipRow = { id: number; start: string; end: string };
+type ClipRow = { id: number; start: string; end: string; script: string };
 type ChapterRow = { id: number; title: string; key: string; clips: ClipRow[] };
 
 let seq = 0;
@@ -47,6 +48,19 @@ const parse = (s: string): number | null => {
   const parts = t.split(":").map(Number);
   if (parts.some((p) => !Number.isFinite(p) || p < 0)) return null;
   return Math.round(parts.reduce((a, p) => a * 60 + p, 0) * 10) / 10;
+};
+/** Sprechertext als Zeilen "m:ss | Text"; die Zeit sagt, wann die Profistimme die Zeile beginnt. */
+const toScript = (lines?: Line[]) => (lines ?? []).map((l) => `${fmt(l.start)} | ${l.text}`).join("\n");
+const fromScript = (script: string, clipEnd: number): Line[] | undefined => {
+  const rows: { start: number; text: string }[] = [];
+  for (const raw of script.split("\n")) {
+    const m = raw.match(/^\s*([\d:.,]+)\s*\|\s*(.*)$/);
+    const t = m ? parse(m[1]) : null;
+    if (m && t !== null) rows.push({ start: t, text: m[2].trim() });
+    else if (raw.trim() && rows.length) rows[rows.length - 1].text = `${rows[rows.length - 1].text} ${raw.trim()}`.trim();
+  }
+  if (!rows.length) return undefined;
+  return rows.map((r, i) => ({ start: r.start, end: Math.max(r.start, rows[i + 1]?.start ?? clipEnd), text: r.text }));
 };
 const mmss = (sec: number) => `${Math.floor(sec / 60)}:${String(Math.round(sec % 60)).padStart(2, "0")}`;
 
@@ -76,7 +90,7 @@ export function VideoPlanEditor({
 }) {
   const [state, formAction] = useActionState(action, null);
   const toRows = (src: EditorPlan): ChapterRow[] =>
-    src.chapters.map((c) => ({ id: nextId(), title: c.title, key: c.key, clips: c.clips.map((k) => ({ id: nextId(), start: fmt(k.start), end: fmt(k.end) })) }));
+    src.chapters.map((c) => ({ id: nextId(), title: c.title, key: c.key, clips: c.clips.map((k) => ({ id: nextId(), start: fmt(k.start), end: fmt(k.end), script: toScript(k.lines) })) }));
   const [p, setP] = useState(() => ({ ...initial }));
   const [chapters, setChapters] = useState<ChapterRow[]>(() => toRows(initial));
   const [tags, setTags] = useState(initial.youtube.tags.join(", "));
@@ -110,7 +124,12 @@ export function VideoPlanEditor({
     chapters: chapters.map((ch) => ({
       title: ch.title,
       key: ch.key,
-      clips: ch.clips.map(clipOf).filter((c): c is Clip => Boolean(c && c.end > c.start))
+      clips: ch.clips.flatMap((k) => {
+        const c = clipOf(k);
+        if (!c || c.end <= c.start) return [];
+        const lines = fromScript(k.script, c.end);
+        return [lines ? { ...c, lines } : c];
+      })
     })),
     youtube: { ...p.youtube, tags: tags.split(",").map((t) => t.trim()).filter(Boolean) }
   };
@@ -203,7 +222,7 @@ export function VideoPlanEditor({
               </select>
             </label>
             {p.voice === "pro" ? (
-              <small className="wb-vid-small">Spricht genau das Gesagte im gleichen Tempo nach. Kamerabild und Name des Referenten entfallen, weil die Stimme nicht seine ist.</small>
+              <small className="wb-vid-small">Liest den bereinigten Sprechertext ohne Füllwörter und Versprecher, jede Zeile an ihrer Stelle im Video. Kamerabild und Name des Referenten entfallen.</small>
             ) : (
             <>
             <label className="wb-vid-label" style={{ marginTop: "0.75rem" }}>
@@ -278,6 +297,20 @@ export function VideoPlanEditor({
                     </button>
                   </div>
                   <p className="wb-vid-text">{c && !bad ? textOf(c) || "Kein Transkript an dieser Stelle." : "Zeiten im Format m:ss eingeben, z. B. 7:02."}</p>
+                  {p.voice === "pro" && (
+                    <label className="wb-vid-script">
+                      <span>Sprechertext <em>(Zeit | Text; die Zeit sagt, wann die Profistimme die Zeile beginnt)</em></span>
+                      <textarea
+                        rows={Math.min(10, Math.max(2, k.script.split("\n").length + 1))}
+                        value={k.script}
+                        placeholder="Noch leer. Wird beim Rendern automatisch aus dem Transkript bereinigt, oder oben „Sprechertext bereinigen“."
+                        onChange={(e) => setClip(ch.id, k.id, { script: e.target.value })}
+                      />
+                      {c && !bad && fromScript(k.script, c.end)?.some((l) => l.start < c.start - 0.5 || l.start >= c.end) && (
+                        <small className="wb-vid-warn">Einige Zeilen liegen ausserhalb von Von–Bis und werden nicht gesprochen. Nach geänderten Zeiten neu bereinigen.</small>
+                      )}
+                    </label>
+                  )}
                 </div>
               );
             })}
@@ -287,7 +320,7 @@ export function VideoPlanEditor({
               onClick={() => {
                 const last = ch.clips[ch.clips.length - 1];
                 const from = last ? parse(last.end) ?? 0 : 0;
-                setCh(ch.id, { clips: [...ch.clips, { id: nextId(), start: fmt(from), end: fmt(from + 20) }] });
+                setCh(ch.id, { clips: [...ch.clips, { id: nextId(), start: fmt(from), end: fmt(from + 20), script: "" }] });
               }}
             >
               <Plus size={16} /> Clip
