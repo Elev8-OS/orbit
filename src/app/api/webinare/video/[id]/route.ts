@@ -1,12 +1,12 @@
 import { currentWebinarUser } from "@/lib/webinare/access";
 import { getWebinar } from "@/lib/webinare/store";
-import { getVideoFiles } from "@/lib/webinare/video";
+import { captionsSrt, getCaptions, getVideoFiles } from "@/lib/webinare/video";
 import { getObject } from "@/lib/venues/s3";
 
 export const dynamic = "force-dynamic";
 
 /**
- * Fertiges Erklärvideo (?f=mp4) oder YouTube-Vorschaubild (?f=png) aus dem Bucket.
+ * Fertiges Erklärvideo (?f=mp4), YouTube-Vorschaubild (?f=png) oder Untertitel (?f=srt&lang=en|de) aus dem Bucket bzw. dem Ergebnis.
  * Mit Range-Unterstützung, damit das Video im Browser (auch Safari) abspielbar ist. ?download=1 lädt herunter.
  */
 export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }) {
@@ -14,6 +14,20 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
   const { id } = await ctx.params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) return Response.json({ error: "Not found" }, { status: 404 });
   const url = new URL(req.url);
+  if (url.searchParams.get("f") === "srt") {
+    const lang = url.searchParams.get("lang") === "de" ? "de" : "en";
+    const srt = captionsSrt(await getCaptions(id), lang);
+    if (!srt) return Response.json({ error: "Keine Untertitel" }, { status: 404 });
+    const w = await getWebinar(id);
+    const name = `erklaervideo-${w?.slug ?? id}.${lang}.srt`;
+    return new Response(srt, {
+      headers: {
+        "content-type": "application/x-subrip; charset=utf-8",
+        "content-disposition": `attachment; filename*=UTF-8''${encodeURIComponent(name)}`,
+        "cache-control": "private, no-store"
+      }
+    });
+  }
   const kind = url.searchParams.get("f") === "png" ? "png" : "mp4";
   const files = await getVideoFiles(id);
   const key = kind === "png" ? files?.thumbKey : files?.fileKey;

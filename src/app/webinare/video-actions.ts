@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireWebinarUser } from "@/lib/webinare/access";
 import { getWebinar } from "@/lib/webinare/store";
 import { storageConfigured } from "@/lib/venues/s3";
-import { cancelQueued, cleanNarration, getVideoJob, normalizePlan, plannedSeconds, queueRender, savePlan, saveYoutube, suggestPlan, suggestYoutube } from "@/lib/webinare/video";
+import { cancelQueued, cleanNarration, getVideoJob, normalizePlan, plannedSeconds, queueRender, savePlan, saveYoutube, suggestPlan, suggestYoutube, translateNarration, withTranscriptLines } from "@/lib/webinare/video";
 
 export type VideoFormState = { ok?: string; error?: string } | null;
 
@@ -81,11 +81,11 @@ export async function renderVideoAction(_: VideoFormState, form: FormData): Prom
     if (untitled >= 0) return { error: `Kapitel ${untitled + 1} braucht einen Titel.` };
     const sec = plannedSeconds(job.plan);
     if (sec > MAX_SEC) return { error: `Die Clips dauern zusammen ${Math.round(sec)} Sekunden. Höchstens ${MAX_SEC} sind möglich.` };
-    // Profistimme: fehlenden Sprechertext vor dem Rendern von Claude bereinigen lassen
-    if (job.plan.voice === "pro") {
-      const { plan } = await cleanNarration(w, job.plan, true);
-      if (JSON.stringify(plan) !== JSON.stringify(job.plan)) await savePlan(w.id, plan, user.email);
-    }
+    // Vor dem Rendern: Sprechertext (Profistimme, von Claude bereinigt) bzw. Transkriptzeilen (Originalstimme)
+    // und die englische Fassung für die Untertitel ergänzen, wo sie fehlen
+    let plan = job.plan.voice === "pro" ? (await cleanNarration(w, job.plan, true)).plan : withTranscriptLines(w, job.plan);
+    plan = (await translateNarration(plan)).plan;
+    if (JSON.stringify(plan) !== JSON.stringify(job.plan)) await savePlan(w.id, plan, user.email);
     const started = await queueRender(w.id, user.email);
     refresh(w.id);
     return started ? { ok: "Eingereiht. Der Render-Dienst beginnt in wenigen Sekunden." } : { error: "Es läuft bereits ein Auftrag." };
@@ -130,9 +130,10 @@ export async function cleanNarrationAction(_: VideoFormState, form: FormData): P
     if (job.status === "rendering") return { error: "Das Video wird gerade gerendert. Bitte warten, bis es fertig ist." };
     const { plan, count } = await cleanNarration(w, job.plan, false);
     if (!count) return { error: "An den Stellen der Clips gibt es kein Transkript." };
-    await savePlan(w.id, plan, user.email);
+    const translated = await translateNarration(plan);
+    await savePlan(w.id, translated.plan, user.email);
     refresh(w.id);
-    return { ok: `Sprechertext für ${count} Clips bereinigt. Bitte in der Schnittliste prüfen.` };
+    return { ok: `Sprechertext für ${count} Clips bereinigt${translated.count ? " und ins Englische übersetzt" : ""}. Bitte in der Schnittliste prüfen.` };
   } catch (err) {
     return fail(err);
   }
