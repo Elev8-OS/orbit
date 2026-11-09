@@ -54,6 +54,7 @@ export async function suggestVideoPlanAction(_: VideoFormState, form: FormData):
       plan.layout = job.plan.layout;
       plan.allowGallery = job.plan.allowGallery;
       plan.voice = job.plan.voice;
+      plan.browserBar = job.plan.browserBar;
       plan.outro = job.plan.outro;
       plan.meta = job.plan.meta;
     }
