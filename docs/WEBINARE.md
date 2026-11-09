@@ -46,6 +46,7 @@ Orbit pflegt die Inhalte für **webinar.elev8-suite.com**. Das Portal selbst ist
 | `<basis>-angemeldet` | Bestätigung sofort, Erinnerung 24 h und 1 h vor Beginn |
 | `<basis>-anwesend` | «Danke fürs Dabeisein» mit Link zur Aufzeichnung |
 | `<basis>-verpasst` | «Du hast was verpasst» sofort, nach 30 Tagen «Jetzt freigeschaltet» |
+| `<basis>-unterlagen` | «Die versprochenen Unterlagen sind da» mit Link zur Aufzeichnung (Orbit setzt den Tag per Klick unter Nachlieferungen) |
 
 Kontaktfelder, die das Portal schreibt (legt sie bei Bedarf an): PMS, Anzahl Einheiten,
 Newsletter-Einwilligung, Sprache, Webinar-Titel, Webinar-Datum, Webinar-Uhrzeit, Webinar-Link.
@@ -83,3 +84,9 @@ jedem erfolgreichen Login per E-Mail-Code einen Eintrag in `webinar_logins` (Mig
 das Gerät (z. B. „iPhone · Safari“), keine IP-Adresse. Logins vor der Einführung sind aus den benutzten Login-Codes
 nachgetragen. Einträge älter als 12 Monate löscht Orbit beim Anzeigen. Ein Login gilt 30 Tage; wer eingeloggt bleibt,
 erscheint in dieser Zeit nicht erneut.
+
+## Zuschauer und Feedback
+
+Auf der Webinar-Seite zeigt Orbit, wer die Aufzeichnung gestartet und bis zum Ende geschaut hat (aus dem Fortschritt im
+Portal, Prozent bezogen auf die Transkript-Länge), dazu das Feedback von der Aufzeichnungsseite: Bewertung 1–5,
+Kommentar und Themenwunsch (Tabelle `webinar_feedback`, Migration 026).

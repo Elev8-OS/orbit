@@ -35,6 +35,7 @@ export type Webinar = {
   recordingPublishedAt: Date | null;
   dubbingId: string | null;
   dubbingStatus: string | null;
+  materialsNotifiedAt: Date | null;
 };
 
 export type Registration = {
@@ -92,7 +93,8 @@ function toWebinar(r: Row): Webinar {
     teaserEndSec: (r.teaser_end_sec as number) ?? null,
     recordingPublishedAt: (r.recording_published_at as Date) ?? null,
     dubbingId: (r.dubbing_id as string) ?? null,
-    dubbingStatus: (r.dubbing_status as string) ?? null
+    dubbingStatus: (r.dubbing_status as string) ?? null,
+    materialsNotifiedAt: (r.materials_notified_at as Date) ?? null
   };
 }
 
@@ -188,7 +190,8 @@ const COLUMNS: Record<string, string> = {
   attendanceFinalizedAt: "attendance_finalized_at",
   attendanceNote: "attendance_note",
   dubbingId: "dubbing_id",
-  dubbingStatus: "dubbing_status"
+  dubbingStatus: "dubbing_status",
+  materialsNotifiedAt: "materials_notified_at"
 };
 const JSON_COLS = new Set(["transcript", "chapters", "takeaways", "checklist"]);
 
@@ -453,4 +456,32 @@ export async function updateDeliverable(id: string, patch: { titleDe?: string; t
 export async function deleteDeliverable(id: string): Promise<string | null> {
   const [r] = await sql`DELETE FROM webinar_deliverables WHERE id = ${id} RETURNING file_key`;
   return (r?.file_key as string) ?? null;
+}
+
+/* ── Zuschauer und Feedback ────────────────────────────── */
+
+export type Viewer = { email: string; name: string; maxSec: number; completed: boolean; updatedAt: Date; status: string | null };
+export type ViewerStats = { started: number; completed: number; durationSec: number | null; viewers: Viewer[] };
+
+/** Fortschritt aus dem Portal (webinar_progress). Dauer aus dem Transkript, falls vorhanden. */
+export async function viewerStats(w: Webinar): Promise<ViewerStats> {
+  const rows = await sql`SELECT g.email, g.max_sec, g.completed, g.updated_at, r.status,
+      COALESCE(NULLIF(TRIM(COALESCE(r.first_name, p.first_name, '') || ' ' || COALESCE(r.last_name, p.last_name, '')), ''), '') AS name
+    FROM webinar_progress g
+    LEFT JOIN webinar_registrations r ON r.webinar_id = g.webinar_id AND r.email = g.email
+    LEFT JOIN webinar_people p ON p.email = g.email
+    WHERE g.webinar_id = ${w.id} ORDER BY g.updated_at DESC`;
+  const last = w.transcript[w.transcript.length - 1];
+  const durationSec = last ? Math.round(last.end + w.transcriptOffsetSec) : null;
+  const viewers = rows.map((r) => ({ email: r.email, name: r.name, maxSec: r.max_sec, completed: r.completed, updatedAt: r.updated_at, status: r.status ?? null }));
+  return { started: viewers.length, completed: viewers.filter((v) => v.completed).length, durationSec, viewers };
+}
+
+export type Feedback = { email: string; name: string; rating: number; comment: string; wish: string; updatedAt: Date };
+
+export async function listFeedback(webinarId: string): Promise<Feedback[]> {
+  const rows = await sql`SELECT f.*, COALESCE(NULLIF(TRIM(COALESCE(p.first_name, '') || ' ' || COALESCE(p.last_name, '')), ''), '') AS name
+    FROM webinar_feedback f LEFT JOIN webinar_people p ON p.email = f.email
+    WHERE f.webinar_id = ${webinarId} ORDER BY f.updated_at DESC`;
+  return rows.map((r) => ({ email: r.email, name: r.name, rating: r.rating, comment: r.comment, wish: r.wish, updatedAt: r.updated_at }));
 }
