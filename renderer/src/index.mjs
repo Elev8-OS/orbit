@@ -25,9 +25,12 @@ const CHAPTER_SHOW = [0.4, 5.2]; // Kapiteltitel: von–bis ab Kapitelbeginn
 const KEY_SEC = 7; // Kernaussage: die letzten Sekunden des Kapitels
 const FPS = 30;
 
-/** Bildausschnitte der Teams-Aufnahme (1920×1080) bei geteiltem Bildschirm */
+/**
+ * Bildausschnitte der Teams-Aufnahme (1920×1080) bei geteiltem Bildschirm.
+ * screen: ganzer geteilter Browser, app: ohne Tab- und Adressleiste (92 px, Chrome ohne Lesezeichenleiste).
+ */
 const LAYOUTS = {
-  "teams-share": { screen: { x: 0, y: 69, w: 1674, h: 942 }, cam: { x: 1731, y: 396, w: 128, h: 128 } },
+  "teams-share": { screen: { x: 0, y: 69, w: 1674, h: 942 }, app: { x: 0, y: 162, w: 1674, h: 849 }, cam: { x: 1731, y: 396, w: 128, h: 128 } },
   full: { screen: { x: 0, y: 0, w: 1920, h: 1080 }, cam: null }
 };
 
@@ -140,12 +143,14 @@ async function stillPart(pngFile, sec, out) {
 }
 
 /** Ein Clip: Bildschirm-Ausschnitt, Sprecher im Kreis, Kapitel- und Kernaussage-Einblendung, weiche Übergänge. */
-async function clipPart({ src, start, dur, layout, pip, voice, chapterFile, chapterAt, keyFile, keyAt, out }) {
+async function clipPart({ src, start, dur, layout, bar, pip, voice, chapterFile, chapterAt, keyFile, keyAt, out }) {
   const L = LAYOUTS[layout] ?? LAYOUTS["teams-share"];
   const inputs = ["-ss", start.toFixed(3), "-t", dur.toFixed(3), "-i", src];
   const f = [];
-  const s = L.screen;
-  f.push(`[0:v]crop=${s.w}:${s.h}:${s.x}:${s.y},scale=${W}:${H}:flags=lanczos,setsar=1,fps=${FPS}[base]`);
+  // Ohne Browserleiste ist der Ausschnitt breiter als 16:9: auf volle Breite skalieren, oben und unten schwarzer Rand.
+  const s = !bar && L.app ? L.app : L.screen;
+  const fit = s.w / s.h > W / H + 0.01 ? `scale=${W}:-2:flags=lanczos,pad=${W}:${H}:0:(oh-ih)/2:black` : `scale=${W}:${H}:flags=lanczos`;
+  f.push(`[0:v]crop=${s.w}:${s.h}:${s.x}:${s.y},${fit},setsar=1,fps=${FPS}[base]`);
   let cur = "base";
   let n = 1;
   if (pip && L.cam) {
@@ -263,6 +268,7 @@ export async function render(job) {
         start: s,
         dur,
         layout: k.gallery ? "full" : layout,
+        bar: plan.browserBar === true,
         pip: pipOn && !k.gallery ? join(dir, "pip.png") : null,
         voice,
         chapterFile: k.ki === 0 ? join(dir, `ch${k.ci}.png`) : null,
