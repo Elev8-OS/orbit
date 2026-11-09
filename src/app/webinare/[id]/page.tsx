@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { currentWebinarUser, portalUrl } from "@/lib/webinare/access";
-import { getWebinar, listDeliverables, listQuestions, listRegistrations } from "@/lib/webinare/store";
+import { getWebinar, listDeliverables, listFeedback, listQuestions, listRegistrations, viewerStats } from "@/lib/webinare/store";
 import { storageConfigured } from "@/lib/venues/s3";
 import { countByStatus } from "@/lib/webinare/attendance";
 import { firefliesReady, findFireflies, mmss, type FirefliesHit } from "@/lib/webinare/content";
@@ -15,6 +15,7 @@ import {
   deliverAction,
   deliverableAction,
   findPromisesAction,
+  notifyMaterialsAction,
   dubbingAction,
   finalizeAction,
   generateAction,
@@ -52,7 +53,16 @@ export default async function WebinarPage({ params }: { params: Promise<{ id: st
   const { id } = await params;
   const w = await getWebinar(id);
   if (!w) notFound();
-  const [regs, questions, deliverables] = await Promise.all([listRegistrations(id), listQuestions(id), listDeliverables(id)]);
+  const [regs, questions, deliverables, viewers, feedback] = await Promise.all([
+    listRegistrations(id),
+    listQuestions(id),
+    listDeliverables(id),
+    viewerStats(w),
+    listFeedback(id)
+  ]);
+  const doneDeliverables = deliverables.filter((d) => d.status === "done").length;
+  const avgRating = feedback.length ? feedback.reduce((s, f) => s + f.rating, 0) / feedback.length : null;
+  const pct = (sec: number) => (viewers.durationSec ? Math.min(100, Math.round((sec / viewers.durationSec) * 100)) : null);
   const openDeliverables = deliverables.filter((d) => d.status === "open").length;
   const counts = countByStatus(regs);
   const past = w.startsAt.getTime() < Date.now();
@@ -528,6 +538,23 @@ export default async function WebinarPage({ params }: { params: Promise<{ id: st
               )}
             </div>
           ))}
+          {user.canEdit && doneDeliverables > 0 && (
+            <div className="wb-notify">
+              <div>
+                <span className="me-strong">Teilnehmende informieren</span>
+                <p className="me-muted">
+                  Setzt bei allen Anwesenden und Verpassten den GHL-Tag {tagFor(w, "unterlagen")}. Der GHL-Workflow dazu verschickt die Mail mit dem Link zur Aufzeichnung.
+                  {w.materialsNotifiedAt && ` Zuletzt informiert am ${formatInZone(w.materialsNotifiedAt, ZONE)}.`}
+                </p>
+              </div>
+              <ActionButton
+                action={notifyMaterialsAction}
+                fields={{ id: w.id }}
+                label={w.materialsNotifiedAt ? "Erneut informieren" : "Jetzt informieren"}
+                pending="Setzt Tags …"
+              />
+            </div>
+          )}
           {user.canEdit && (
             <StatefulForm action={addDeliverableAction} submit="Hinzufügen" pending="…" className="wb-deliv-form" >
               <input type="hidden" name="id" value={w.id} />
@@ -536,7 +563,93 @@ export default async function WebinarPage({ params }: { params: Promise<{ id: st
           )}
         </section>
 
-        {/* 6 · Fragen */}
+        {/* 6 · Zuschauer und Feedback */}
+        <section className="me-card">
+          <div className="wb-step-head">
+            <h2>Zuschauer und Feedback</h2>
+            <span className="wb-state">{w.recordingPublishedAt ? "Aus dem Portal" : "Nach der Veröffentlichung"}</span>
+          </div>
+          <div className="me-stats" style={{ marginBottom: "1rem" }}>
+            <div>
+              <b>{viewers.started}</b>
+              <span>Aufzeichnung gestartet</span>
+            </div>
+            <div>
+              <b>{viewers.completed}</b>
+              <span>bis zum Ende geschaut</span>
+            </div>
+            <div>
+              <b>{avgRating != null ? avgRating.toFixed(1).replace(".", ",") : "–"}</b>
+              <span>Bewertung ({feedback.length})</span>
+            </div>
+            <div>
+              <b>{counts.attended}</b>
+              <span>live dabei</span>
+            </div>
+          </div>
+          {viewers.viewers.length > 0 && (
+            <details className="wb-en" open={viewers.viewers.length <= 10}>
+              <summary>Wer die Aufzeichnung gesehen hat ({viewers.viewers.length})</summary>
+              <div className="me-table-wrap" style={{ marginTop: "0.5rem" }}>
+                <table className="me-table">
+                  <thead>
+                    <tr>
+                      <th>Person</th>
+                      <th>Gesehen</th>
+                      <th>Zuletzt</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {viewers.viewers.map((v) => {
+                      const p = pct(v.maxSec);
+                      return (
+                        <tr key={v.email}>
+                          <td>
+                            <span className="me-strong">{v.name || v.email}</span>
+                            {v.name && <div className="me-muted">{v.email}</div>}
+                            {v.status === "attended" && <div className="me-muted">war live dabei</div>}
+                          </td>
+                          <td>
+                            {v.completed ? "bis zum Ende" : p != null ? `${p} %` : mmss(v.maxSec)}
+                            {!v.completed && p != null && (
+                              <div className="wb-bar" aria-hidden="true">
+                                <span style={{ width: `${p}%` }} />
+                              </div>
+                            )}
+                          </td>
+                          <td className="me-muted">{formatInZone(v.updatedAt, ZONE)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </details>
+          )}
+          {feedback.length > 0 ? (
+            feedback.map((f) => (
+              <div className="wb-q" key={f.email}>
+                <div>
+                  <span className="wb-stars" aria-label={`${f.rating} von 5`}>
+                    {"★".repeat(f.rating)}
+                    <span>{"★".repeat(5 - f.rating)}</span>
+                  </span>{" "}
+                  <span className="me-strong">{f.name || f.email}</span> <span className="me-muted">{formatInZone(f.updatedAt, ZONE)}</span>
+                </div>
+                {f.comment && <p className="wb-q-body">{f.comment}</p>}
+                {f.wish && (
+                  <p className="me-muted" style={{ margin: 0 }}>
+                    Themenwunsch: {f.wish}
+                  </p>
+                )}
+              </div>
+            ))
+          ) : (
+            <p className="me-muted">Noch kein Feedback. Es kommt über die Aufzeichnungsseite im Portal.</p>
+          )}
+        </section>
+
+        {/* 7 · Fragen */}
         <section className="me-card">
           <div className="wb-step-head">
             <h2>Vorab-Fragen</h2>
@@ -571,7 +684,7 @@ export default async function WebinarPage({ params }: { params: Promise<{ id: st
           <section className="me-card me-danger">
             <h2>Webinar löschen</h2>
             <p className="me-muted" style={{ marginBottom: "0.75rem" }}>
-              Löscht Anmeldungen, Fragen und Inhalte. Videos in Bunny und Tags in GHL bleiben.
+              Löscht Anmeldungen, Fragen, Inhalte und hochgeladene Unterlagen. Videos in Bunny und Tags in GHL bleiben.
             </p>
             <ConfirmForm action={deleteWebinarAction} fields={{ id: w.id }} label="Endgültig löschen" confirm={`„${w.titleDe}“ mit allen Anmeldungen löschen?`} />
           </section>

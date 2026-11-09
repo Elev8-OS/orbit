@@ -34,7 +34,7 @@ async function ghl<T>(path: string, body: unknown, method: "POST" | "PUT" | "DEL
   return json as T;
 }
 
-export const tagFor = (w: Pick<Webinar, "ghlTagBase">, kind: "angemeldet" | "anwesend" | "verpasst") => `${w.ghlTagBase}-${kind}`;
+export const tagFor = (w: Pick<Webinar, "ghlTagBase">, kind: "angemeldet" | "anwesend" | "verpasst" | "unterlagen") => `${w.ghlTagBase}-${kind}`;
 
 async function contactIdFor(r: Registration): Promise<string> {
   if (r.ghlContactId) return r.ghlContactId;
@@ -69,6 +69,25 @@ export async function applyStatusTags(webinar: Webinar, regs: Registration[]): P
     } catch (err) {
       failed++;
       await setRegistrationGhl(r.id, { status: "error", error: (err instanceof Error ? err.message : String(err)).slice(0, 400) });
+    }
+  }
+  return { ok, failed, skipped: false };
+}
+
+/** Setzt einen zusätzlichen Tag bei allen Personen (z. B. `<basis>-unterlagen` für den Unterlagen-Workflow). */
+export async function addTag(tag: string, regs: Registration[]): Promise<{ ok: number; failed: number; skipped: boolean }> {
+  if (!ghlConfigured()) return { ok: 0, failed: 0, skipped: true };
+  let ok = 0;
+  let failed = 0;
+  for (const r of regs) {
+    try {
+      const id = await contactIdFor(r);
+      await ghl(`/contacts/${encodeURIComponent(id)}/tags`, { tags: [tag] });
+      if (!r.ghlContactId) await setRegistrationGhl(r.id, { contactId: id, status: r.ghlStatus ?? `tag:${tag}` });
+      ok++;
+    } catch (err) {
+      failed++;
+      console.error("GHL-Tag", tag, r.email, err instanceof Error ? err.message : err);
     }
   }
   return { ok, failed, skipped: false };
