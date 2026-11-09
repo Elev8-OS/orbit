@@ -69,3 +69,9 @@
 .wb-tabs a:focus-visible { outline: 2px solid var(--yellow); outline-offset: 1px; }
 .wb-login-search { display: flex; gap: 0.5rem; flex: 1 1 18rem; max-width: 26rem; }
 .wb-login-search input { flex: 1; min-width: 0; padding: 0.5rem 0.7rem; border-radius: 0.5rem; border: 1px solid var(--line-strong); background: var(--bg); color: var(--ink); font: inherit; font-size: 0.9375rem; }
+
+/* Unterlagen-Benachrichtigung, Feedback */
+.wb-notify { display: flex; flex-wrap: wrap; gap: 0.75rem 1.25rem; align-items: center; justify-content: space-between; margin: 0.5rem 0 1rem; padding: 0.875rem 1rem; border-radius: 0.75rem; background: var(--yellow-soft); }
+.wb-notify p { margin: 0.25rem 0 0; font-size: 0.875rem; max-width: 40rem; }
+.wb-stars { color: var(--yellow); letter-spacing: 0.05em; }
+.wb-stars span { color: var(--line-strong); }
