@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireWebinarUser } from "@/lib/webinare/access";
 import { getWebinar } from "@/lib/webinare/store";
 import { storageConfigured } from "@/lib/venues/s3";
-import { cancelQueued, getVideoJob, normalizePlan, plannedSeconds, queueRender, savePlan, saveYoutube, suggestPlan, suggestYoutube } from "@/lib/webinare/video";
+import { cancelQueued, cleanNarration, getVideoJob, normalizePlan, plannedSeconds, queueRender, savePlan, saveYoutube, suggestPlan, suggestYoutube } from "@/lib/webinare/video";
 
 export type VideoFormState = { ok?: string; error?: string } | null;
 
@@ -81,6 +81,11 @@ export async function renderVideoAction(_: VideoFormState, form: FormData): Prom
     if (untitled >= 0) return { error: `Kapitel ${untitled + 1} braucht einen Titel.` };
     const sec = plannedSeconds(job.plan);
     if (sec > MAX_SEC) return { error: `Die Clips dauern zusammen ${Math.round(sec)} Sekunden. Höchstens ${MAX_SEC} sind möglich.` };
+    // Profistimme: fehlenden Sprechertext vor dem Rendern von Claude bereinigen lassen
+    if (job.plan.voice === "pro") {
+      const { plan } = await cleanNarration(w, job.plan, true);
+      if (JSON.stringify(plan) !== JSON.stringify(job.plan)) await savePlan(w.id, plan, user.email);
+    }
     const started = await queueRender(w.id, user.email);
     refresh(w.id);
     return started ? { ok: "Eingereiht. Der Render-Dienst beginnt in wenigen Sekunden." } : { error: "Es läuft bereits ein Auftrag." };
@@ -111,6 +116,23 @@ export async function suggestYoutubeAction(_: VideoFormState, form: FormData): P
     await saveYoutube(w.id, youtube, user.email);
     refresh(w.id);
     return { ok: "YouTube-Texte zum gespeicherten Schnitt erstellt. Anpassen lassen sie sich in der Schnittliste unter YouTube." };
+  } catch (err) {
+    return fail(err);
+  }
+}
+
+export async function cleanNarrationAction(_: VideoFormState, form: FormData): Promise<VideoFormState> {
+  try {
+    const user = await requireWebinarUser("edit");
+    const w = await load(form);
+    const job = await getVideoJob(w);
+    if (!job || !job.plan.chapters.some((c) => c.clips.length)) return { error: "Zuerst eine Schnittliste mit Clips speichern." };
+    if (job.status === "rendering") return { error: "Das Video wird gerade gerendert. Bitte warten, bis es fertig ist." };
+    const { plan, count } = await cleanNarration(w, job.plan, false);
+    if (!count) return { error: "An den Stellen der Clips gibt es kein Transkript." };
+    await savePlan(w.id, plan, user.email);
+    refresh(w.id);
+    return { ok: `Sprechertext für ${count} Clips bereinigt. Bitte in der Schnittliste prüfen.` };
   } catch (err) {
     return fail(err);
   }
