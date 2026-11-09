@@ -18,6 +18,7 @@ export type EditorPlan = {
   meta: string;
   layout: "teams-share" | "full";
   allowGallery: boolean;
+  voice: "pro" | "original";
   pip: { enabled: boolean; name: string };
   outro: { title: string; url: string };
   chapters: Chapter[];
@@ -184,6 +185,17 @@ export function VideoPlanEditor({
           </label>
           <div className="me-field">
             <label className="wb-vid-label">
+              <span>Stimme</span>
+              <select value={p.voice} onChange={(e) => setP({ ...p, voice: e.target.value === "original" ? "original" : "pro" })}>
+                <option value="pro">Profistimme (ElevenLabs, gleich für alle Videos)</option>
+                <option value="original">Originalstimme aus der Aufnahme</option>
+              </select>
+            </label>
+            {p.voice === "pro" ? (
+              <small className="wb-vid-small">Spricht genau das Gesagte im gleichen Tempo nach. Kamerabild und Name des Referenten entfallen, weil die Stimme nicht seine ist.</small>
+            ) : (
+            <>
+            <label className="wb-vid-label" style={{ marginTop: "0.75rem" }}>
               <span>Sprecher im Kreis unten rechts</span>
               <input value={p.pip.name} maxLength={40} placeholder="Name, z. B. Reto Wyss" onChange={(e) => setP({ ...p, pip: { ...p.pip, name: e.target.value } })} />
             </label>
@@ -192,6 +204,10 @@ export function VideoPlanEditor({
                 <input className="wb-check" type="checkbox" checked={p.pip.enabled} onChange={(e) => setP({ ...p, pip: { ...p.pip, enabled: e.target.checked } })} />
                 <span>Kamerabild des Sprechers zeigen</span>
               </label>
+            </div>
+            </>
+            )}
+            <div className="wb-vid-checks">
               {p.layout === "teams-share" && (
                 <label>
                   <input className="wb-check" type="checkbox" checked={p.allowGallery} onChange={(e) => setP({ ...p, allowGallery: e.target.checked })} />

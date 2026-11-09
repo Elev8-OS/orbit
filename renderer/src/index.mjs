@@ -5,13 +5,15 @@ import { join } from "node:path";
 import postgres from "postgres";
 import { H, PIP, W, chapterPng, clean, introPng, keyPng, outroPng, pipPng, pipX, pipY, thumbPng } from "./overlays.mjs";
 import { deleteObject, putObject, storageConfigured } from "./s3.mjs";
+import { convertVoice, voiceConfigured } from "./voice.mjs";
 
 /**
  * Render-Dienst für Erklärvideos aus Webinar-Aufzeichnungen.
  * Holt Aufträge aus webinar_videos (status 'queued'), schneidet die Clips aus dem Bunny-Video,
  * legt die Elev8-Einblendungen darüber und lädt MP4 und YouTube-Vorschaubild in den Bucket.
  *
- * Variablen: DATABASE_URL, BUNNY_CDN_HOST, S3_ENDPOINT, S3_BUCKET, S3_REGION, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY.
+ * Variablen: DATABASE_URL, BUNNY_CDN_HOST, S3_ENDPOINT, S3_BUCKET, S3_REGION, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY,
+ * für die Profistimme ELEVENLABS_API_KEY und ELEVENLABS_VIDEO_VOICE_ID.
  * Zum Testen: SOURCE_OVERRIDE (lokale Datei statt Bunny), NO_UPLOAD=1 (Ergebnis bleibt in OUT_DIR).
  */
 
@@ -138,7 +140,7 @@ async function stillPart(pngFile, sec, out) {
 }
 
 /** Ein Clip: Bildschirm-Ausschnitt, Sprecher im Kreis, Kapitel- und Kernaussage-Einblendung, weiche Übergänge. */
-async function clipPart({ src, start, dur, layout, pip, chapterFile, chapterAt, keyFile, keyAt, out }) {
+async function clipPart({ src, start, dur, layout, pip, voice, chapterFile, chapterAt, keyFile, keyAt, out }) {
   const L = LAYOUTS[layout] ?? LAYOUTS["teams-share"];
   const inputs = ["-ss", start.toFixed(3), "-t", dur.toFixed(3), "-i", src];
   const f = [];
@@ -169,8 +171,15 @@ async function clipPart({ src, start, dur, layout, pip, chapterFile, chapterAt, 
   };
   if (chapterFile) timed(chapterFile, chapterAt[0], Math.min(chapterAt[1], dur - 0.3), "ch");
   if (keyFile) timed(keyFile, keyAt[0], keyAt[1], "ky");
+  // Ton: Originalaufnahme oder die umgewandelte Profistimme (auf Clip-Länge aufgefüllt bzw. gekürzt)
+  let audio = "[0:a]aresample=48000";
+  if (voice) {
+    inputs.push("-i", voice);
+    audio = `[${n}:a]aresample=48000,apad,atrim=0:${dur.toFixed(3)}`;
+    n++;
+  }
   f.push(`[${cur}]format=yuv420p,fade=in:st=0:d=0.25,fade=out:st=${Math.max(0, dur - 0.25).toFixed(3)}:d=0.25[v]`);
-  f.push(`[0:a]aresample=48000,loudnorm=I=-16:TP=-1.5:LRA=11,aresample=48000,aformat=channel_layouts=stereo,afade=in:st=0:d=0.15,afade=out:st=${Math.max(0, dur - 0.2).toFixed(3)}:d=0.2[a]`);
+  f.push(`${audio},loudnorm=I=-16:TP=-1.5:LRA=11,aresample=48000,aformat=channel_layouts=stereo,afade=in:st=0:d=0.15,afade=out:st=${Math.max(0, dur - 0.2).toFixed(3)}:d=0.2[a]`);
   await run("ffmpeg", ["-hide_banner", "-y", ...inputs, "-filter_complex", f.join(";"), "-map", "[v]", "-map", "[a]", "-t", dur.toFixed(3), ...enc, out]);
 }
 
@@ -212,7 +221,10 @@ export async function render(job) {
 
     await writeFile(join(dir, "intro.png"), await introPng(p));
     await writeFile(join(dir, "outro.png"), await outroPng(p));
-    const pipOn = plan.pip?.enabled !== false && (plan.layout ?? "teams-share") === "teams-share";
+    // Profistimme (Standard): Kamerabild und Name des Referenten passen dann nicht und entfallen.
+    const proVoice = plan.voice !== "original";
+    if (proVoice && !voiceConfigured()) throw new Error("Die Profistimme ist im Render-Dienst nicht eingerichtet (ELEVENLABS_API_KEY, ELEVENLABS_VIDEO_VOICE_ID). Bitte melden oder in Orbit „Originalstimme“ wählen.");
+    const pipOn = !proVoice && plan.pip?.enabled !== false && (plan.layout ?? "teams-share") === "teams-share";
     if (pipOn) await writeFile(join(dir, "pip.png"), await pipPng({ name: clean(plan.pip?.name || "") }));
     for (const [ci, c] of chapters.entries()) {
       await writeFile(join(dir, `ch${ci}.png`), await chapterPng({ label: `${ci + 1} von ${chapters.length}`, title: clean(c.title) }));
@@ -237,12 +249,22 @@ export async function render(job) {
       const keyFile = k.last && isLong && clean(chapters[k.ci].key) ? join(dir, `key${k.ci}.png`) : null;
       const keyAt = [Math.max(k.ki === 0 ? CHAPTER_SHOW[1] + 0.5 : 0.4, dur - KEY_SEC - 0.4), dur - 0.4];
       const out = join(dir, `p_${String(i).padStart(2, "0")}.mp4`);
+      let voice = null;
+      if (proVoice) {
+        await progress(id, (done / steps) * 100, `Profistimme für Clip ${i + 1} von ${clips.length} …`);
+        const wavFile = join(dir, `v_${i}.wav`);
+        await run("ffmpeg", ["-hide_banner", "-y", "-ss", s.toFixed(3), "-t", dur.toFixed(3), "-i", src, "-vn", "-ac", "1", "-ar", "44100", "-c:a", "pcm_s16le", wavFile]);
+        voice = join(dir, `v_${i}.mp3`);
+        const hit = await convertVoice(await readFile(wavFile), voice, [w.bunny_video_de, s.toFixed(2), dur.toFixed(2)]);
+        log(`Clip ${i + 1}: Profistimme ${hit ? "aus Zwischenspeicher" : "umgewandelt"}`);
+      }
       await clipPart({
         src,
         start: s,
         dur,
         layout: k.gallery ? "full" : layout,
         pip: pipOn && !k.gallery ? join(dir, "pip.png") : null,
+        voice,
         chapterFile: k.ki === 0 ? join(dir, `ch${k.ci}.png`) : null,
         chapterAt: CHAPTER_SHOW,
         keyFile,
