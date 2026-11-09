@@ -5,7 +5,7 @@ import { join } from "node:path";
 import postgres from "postgres";
 import { H, PIP, W, chapterPng, clean, introPng, keyPng, outroPng, pipPng, pipX, pipY, thumbPng } from "./overlays.mjs";
 import { deleteObject, putObject, storageConfigured } from "./s3.mjs";
-import { convertVoice, voiceConfigured } from "./voice.mjs";
+import { speak, voiceConfigured } from "./voice.mjs";
 
 /**
  * Render-Dienst für Erklärvideos aus Webinar-Aufzeichnungen.
@@ -13,7 +13,7 @@ import { convertVoice, voiceConfigured } from "./voice.mjs";
  * legt die Elev8-Einblendungen darüber und lädt MP4 und YouTube-Vorschaubild in den Bucket.
  *
  * Variablen: DATABASE_URL, BUNNY_CDN_HOST, S3_ENDPOINT, S3_BUCKET, S3_REGION, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY,
- * für die Profistimme ELEVENLABS_API_KEY und ELEVENLABS_VIDEO_VOICE_ID.
+ * für die Profistimme ELEVENLABS_API_KEY und ELEVENLABS_VIDEO_VOICE_ID (liest den bereinigten Sprechertext aus Orbit).
  * Zum Testen: SOURCE_OVERRIDE (lokale Datei statt Bunny), NO_UPLOAD=1 (Ergebnis bleibt in OUT_DIR).
  */
 
@@ -24,6 +24,8 @@ const OUTRO_SEC = 6;
 const CHAPTER_SHOW = [0.4, 5.2]; // Kapiteltitel: von–bis ab Kapitelbeginn
 const KEY_SEC = 7; // Kernaussage: die letzten Sekunden des Kapitels
 const FPS = 30;
+const MAX_TEMPO = 1.15; // Profistimme höchstens so viel schneller, wenn eine Zeile knapp wird
+const GAP = 0.15; // Mindestpause zwischen zwei gesprochenen Zeilen
 
 /**
  * Bildausschnitte der Teams-Aufnahme (1920×1080) bei geteiltem Bildschirm.
@@ -143,14 +145,17 @@ async function stillPart(pngFile, sec, out) {
 }
 
 /** Ein Clip: Bildschirm-Ausschnitt, Sprecher im Kreis, Kapitel- und Kernaussage-Einblendung, weiche Übergänge. */
-async function clipPart({ src, start, dur, layout, bar, pip, voice, chapterFile, chapterAt, keyFile, keyAt, out }) {
+async function clipPart({ src, start, dur: srcDur, stretch = 1, layout, bar, pip, voice, chapterFile, chapterAt, keyFile, keyAt, out }) {
   const L = LAYOUTS[layout] ?? LAYOUTS["teams-share"];
-  const inputs = ["-ss", start.toFixed(3), "-t", dur.toFixed(3), "-i", src];
+  // dur: Länge im fertigen Video. Mit stretch > 1 läuft das Bild etwas langsamer, damit der Sprechertext Platz hat.
+  const dur = srcDur * stretch;
+  const slow = stretch > 1.001 ? `setpts=${stretch.toFixed(4)}*PTS,` : "";
+  const inputs = ["-ss", start.toFixed(3), "-t", srcDur.toFixed(3), "-i", src];
   const f = [];
   // Ohne Browserleiste ist der Ausschnitt breiter als 16:9: auf volle Breite skalieren, oben und unten schwarzer Rand.
   const s = !bar && L.app ? L.app : L.screen;
   const fit = s.w / s.h > W / H + 0.01 ? `scale=${W}:-2:flags=lanczos,pad=${W}:${H}:0:(oh-ih)/2:black` : `scale=${W}:${H}:flags=lanczos`;
-  f.push(`[0:v]crop=${s.w}:${s.h}:${s.x}:${s.y},${fit},setsar=1,fps=${FPS}[base]`);
+  f.push(`[0:v]crop=${s.w}:${s.h}:${s.x}:${s.y},${slow}${fit},setsar=1,fps=${FPS}[base]`);
   let cur = "base";
   let n = 1;
   if (pip && L.cam) {
@@ -188,6 +193,42 @@ async function clipPart({ src, start, dur, layout, bar, pip, voice, chapterFile,
   await run("ffmpeg", ["-hide_banner", "-y", ...inputs, "-filter_complex", f.join(";"), "-map", "[v]", "-map", "[a]", "-t", dur.toFixed(3), ...enc, out]);
 }
 
+const probe = async (file) => Number((await run("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", file])).out.trim());
+
+/**
+ * Sprechertext eines Clips mit der Profistimme: jede Zeile startet dort, wo sie im Original gesagt wurde (oder direkt
+ * nach der vorherigen). Ist eine Zeile länger als ihr Platz, spricht die Stimme bis 15 % schneller; reicht das nicht,
+ * läuft das Bild am Ende etwas langsamer (stretch). Langes Schweigen am Clip-Ende wird gekürzt.
+ */
+async function narrate({ dir, i, lines, start, dur }) {
+  const rows = (lines ?? [])
+    .map((l) => ({ t: Math.max(0, Number(l.start) - start), text: String(l.text ?? "").trim() }))
+    .filter((l) => l.text && l.t < dur - 0.3)
+    .sort((a, b) => a.t - b.t);
+  if (!rows.length) throw new Error(`Clip ${i + 1} hat keinen Sprechertext. Bitte in Orbit „Sprechertext bereinigen“ wählen oder den Text eintragen.`);
+  const parts = [];
+  let end = 0;
+  for (const [k, r] of rows.entries()) {
+    const file = join(dir, `n_${i}_${k}.mp3`);
+    await speak(r.text, file, { previous: rows[k - 1]?.text, next: rows[k + 1]?.text });
+    const len = await probe(file);
+    const at = Math.max(r.t, k ? end + GAP : r.t);
+    const room = (rows[k + 1]?.t ?? dur) - at;
+    const tempo = room > 0 && len > room ? Math.min(MAX_TEMPO, len / room) : 1;
+    parts.push({ file, at, tempo });
+    end = at + len / tempo;
+  }
+  const outDur = end + 0.4 > dur ? end + 0.4 : dur - end > 3 ? end + 1.5 : dur;
+  const stretch = Math.max(1, outDur / dur);
+  const srcDur = outDur / stretch;
+  const f = parts.map((p, k) => `[${k}:a]aresample=44100,${p.tempo > 1.001 ? `atempo=${p.tempo.toFixed(4)},` : ""}adelay=${Math.round(p.at * 1000)}:all=1[a${k}]`);
+  f.push(`${parts.map((_, k) => `[a${k}]`).join("")}amix=inputs=${parts.length}:normalize=0:dropout_transition=0,apad,atrim=0:${outDur.toFixed(3)}[a]`);
+  const audio = join(dir, `n_${i}.wav`);
+  await run("ffmpeg", ["-hide_banner", "-y", ...parts.flatMap((p) => ["-i", p.file]), "-filter_complex", f.join(";"), "-map", "[a]", "-ac", "1", "-ar", "44100", audio]);
+  if (stretch > 1.25) log(`Clip ${i + 1}: Sprechertext deutlich länger als das Original, Bild um ${Math.round((stretch - 1) * 100)} % verlangsamt`);
+  return { audio, srcDur, stretch, sped: parts.filter((p) => p.tempo > 1.001).length };
+}
+
 async function progress(id, pct, message) {
   await sql`UPDATE webinar_videos SET progress = ${Math.round(pct)}, message = ${message}, updated_at = now() WHERE webinar_id = ${id}`;
 }
@@ -205,7 +246,7 @@ export async function render(job) {
     log("Quelle", src);
     const title = clean(plan.title || w.title_de);
     const p = { ...plan, title };
-    const clips = chapters.flatMap((c, ci) => c.clips.filter((k) => Number(k.end) > Number(k.start)).map((k, ki, arr) => ({ ci, ki, last: ki === arr.length - 1, start: Number(k.start), end: Number(k.end) })));
+    const clips = chapters.flatMap((c, ci) => c.clips.filter((k) => Number(k.end) > Number(k.start)).map((k, ki, arr) => ({ ci, ki, last: ki === arr.length - 1, start: Number(k.start), end: Number(k.end), lines: k.lines ?? [] })));
     // Vor dem Rendern: zeigt jeder Clip die Bildschirmfreigabe? Sonst wären Teilnehmende im Bild.
     const layout = plan.layout ?? "teams-share";
     if (layout === "teams-share") {
@@ -246,27 +287,31 @@ export async function render(job) {
     for (const [i, k] of clips.entries()) {
       const s = await snap(src, k.start, "start");
       const e = await snap(src, k.end, "end");
-      const dur = Math.max(1, e - s);
+      let dur = Math.max(1, e - s);
       if (k.ki === 0) timeline.push({ title: clean(chapters[k.ci].title), at: Math.floor(at) });
+      const out = join(dir, `p_${String(i).padStart(2, "0")}.mp4`);
+      let voice = null;
+      let srcDur = dur;
+      let stretch = 1;
+      if (proVoice) {
+        await progress(id, (done / steps) * 100, `Profistimme für Clip ${i + 1} von ${clips.length} …`);
+        const n = await narrate({ dir, i, lines: k.lines, start: s, dur });
+        voice = n.audio;
+        srcDur = n.srcDur;
+        stretch = n.stretch;
+        dur = srcDur * stretch;
+        log(`Clip ${i + 1}: Sprechertext ${n.sped ? `(${n.sped} Zeilen leicht schneller)` : ""}${stretch > 1 ? ` Bild ×${stretch.toFixed(2)}` : ""}`);
+      }
       // Kapiteldauer: Summe aller Clips des Kapitels (für die Kernaussage am Schluss)
       const chapterClips = clips.filter((x) => x.ci === k.ci);
       const isLong = chapterClips.reduce((sum, x) => sum + (x.end - x.start), 0) >= CHAPTER_SHOW[1] + KEY_SEC + 1;
       const keyFile = k.last && isLong && clean(chapters[k.ci].key) ? join(dir, `key${k.ci}.png`) : null;
       const keyAt = [Math.max(k.ki === 0 ? CHAPTER_SHOW[1] + 0.5 : 0.4, dur - KEY_SEC - 0.4), dur - 0.4];
-      const out = join(dir, `p_${String(i).padStart(2, "0")}.mp4`);
-      let voice = null;
-      if (proVoice) {
-        await progress(id, (done / steps) * 100, `Profistimme für Clip ${i + 1} von ${clips.length} …`);
-        const wavFile = join(dir, `v_${i}.wav`);
-        await run("ffmpeg", ["-hide_banner", "-y", "-ss", s.toFixed(3), "-t", dur.toFixed(3), "-i", src, "-vn", "-ac", "1", "-ar", "44100", "-c:a", "pcm_s16le", wavFile]);
-        voice = join(dir, `v_${i}.mp3`);
-        const hit = await convertVoice(await readFile(wavFile), voice, [w.bunny_video_de, s.toFixed(2), dur.toFixed(2)]);
-        log(`Clip ${i + 1}: Profistimme ${hit ? "aus Zwischenspeicher" : "umgewandelt"}`);
-      }
       await clipPart({
         src,
         start: s,
-        dur,
+        dur: srcDur,
+        stretch,
         layout: k.gallery ? "full" : layout,
         bar: plan.browserBar === true,
         pip: pipOn && !k.gallery ? join(dir, "pip.png") : null,
