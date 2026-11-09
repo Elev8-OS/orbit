@@ -120,8 +120,15 @@ export function VideoPlanEditor({
   const planJson = JSON.stringify(plan);
   useEffect(() => {
     if (initialJson === seen.current) return;
+    const before = JSON.parse(seen.current) as EditorPlan;
     seen.current = initialJson;
     if (initialJson === planJson) return;
+    // Nur die YouTube-Texte neu (eigener Claude-Knopf): übrige Eingaben im Editor nicht überschreiben
+    if (JSON.stringify({ ...before, youtube: null }) === JSON.stringify({ ...initial, youtube: null })) {
+      setP((cur) => ({ ...cur, youtube: initial.youtube }));
+      setTags(initial.youtube.tags.join(", "));
+      return;
+    }
     setP({ ...initial });
     setChapters(toRows(initial));
     setTags(initial.youtube.tags.join(", "));

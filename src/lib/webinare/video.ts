@@ -115,9 +115,24 @@ export function timeline(plan: VideoPlan, result: VideoResult | null): { title: 
 export function youtubeDescription(plan: VideoPlan, result: VideoResult | null, portal: string): string {
   const marks = [{ title: "Einleitung", at: 0 }, ...timeline(plan, result)];
   const chapters = marks.map((m) => `${mmss(m.at)} ${m.title}`).join("\n");
-  return [plan.youtube.description.trim(), `Kapitel\n${chapters}`, `Mehr über Elev8: https://${plan.outro.url.replace(/^https?:\/\//, "")}`, portal ? `Kundenwebinare: ${portal}` : ""]
+  // Hashtag-Zeilen gehören ans Ende: YouTube zeigt die ersten drei über dem Titel.
+  const lines = plan.youtube.description.trim().split("\n");
+  const isTags = (l: string) => /^\s*(#[\p{L}\p{N}_]+\s*)+$/u.test(l);
+  const body = lines.filter((l) => !isTags(l)).join("\n").trim();
+  const tags = lines.filter(isTags).join(" ").trim();
+  return [body, `Kapitel\n${chapters}`, `Mehr über Elev8: https://${plan.outro.url.replace(/^https?:\/\//, "")}`, portal ? `Kundenwebinare: ${portal}` : "", tags]
     .filter(Boolean)
     .join("\n\n");
+}
+
+/** YouTube-Texte aus den Webinar-Daten, solange Claude noch keine formuliert hat. */
+export function youtubeFallback(w: Webinar, plan: VideoPlan): VideoPlan["youtube"] {
+  const first = (t: string) => (t.match(/^[^.!?]*[.!?]/)?.[0] ?? t).trim();
+  return {
+    title: plan.title.slice(0, 70),
+    description: [plan.subtitle || first(w.descriptionDe), plan.chapters.filter((c) => c.key).map((c) => `• ${c.key}`).join("\n")].filter(Boolean).join("\n\n"),
+    tags: ["Elev8", "Ferienvermietung", "Ferienwohnung", "Gastgeber", "Property Management", "Gästekommunikation"]
+  };
 }
 
 /** Zeitangabe lesen: 75, 1:15, 0:01:15, 1:15.5 */
@@ -190,6 +205,17 @@ export async function cancelQueued(webinarId: string): Promise<boolean> {
   return rows.length > 0;
 }
 
+/** Regeln für die YouTube-Texte (Vorschlag der Schnittliste und eigene Formulierung). */
+const YT_RULES = `YouTube-Texte, gefunden werden über die Suche von Gastgebern:
+- Titel höchstens 70 Zeichen. Vorne das Suchwort, nach dem Gastgeber suchen würden (z. B. "Gästekommunikation automatisieren"),
+  dann der konkrete Nutzen. Kein Clickbait, keine Emojis, keine Grossbuchstaben-Wörter, "Elev8" nur wenn es passt.
+- Beschreibung: Der erste Satz (höchstens 150 Zeichen) sagt, was man im Video lernt; YouTube zeigt ihn in der Suche.
+  Danach ein kurzer Absatz zum Problem und zur Lösung, dann "Im Video:" mit 3 bis 5 Zeilen, die mit "• " beginnen und je
+  einen Punkt aus dem Video nennen. Letzte Zeile: genau 3 Hashtags ohne Umlaute (z. B. #Ferienvermietung #Gastgeber #Elev8).
+  Keine Kapitelliste, keine Links, keine Zeitangaben: die werden automatisch ergänzt. Nur was im Video gezeigt wird.
+- Tags: 8 bis 12, zusammen höchstens 400 Zeichen, ohne #. Mischung aus Marke (Elev8), Thema und Suchphrasen,
+  die Gastgeber eintippen (z. B. "Gäste Nachrichten automatisch", "Ferienwohnung vermieten", "Airbnb Gastgeber").`;
+
 const SYSTEM = `Du schneidest aus der Aufzeichnung eines Elev8-Kundenwebinars ein Erklärvideo für YouTube.
 Elev8 ist eine Software für Ferienvermietung (Property Management, Channel Manager, Gästekommunikation mit KI).
 Zielgruppe des Videos: Gastgeber und Vermieter, die Elev8 noch nicht kennen. Das Video erklärt eine Funktion an echten
@@ -203,7 +229,7 @@ Regeln für die Auswahl:
   Fragen zu einzelnen Kundenkonten, Namen von Teilnehmenden, persönliche Daten, Rechtsauskünfte, Versprechen zu künftigen Funktionen.
 - Kapiteltitel: höchstens 45 Zeichen, sagt, was man lernt. Kernaussage: ein Satz, höchstens 120 Zeichen, nur was im Clip gesagt wird.
 - Titel des Videos höchstens 60 Zeichen, Untertitel ein Satz Nutzen.
-- YouTube: Titel höchstens 70 Zeichen; Beschreibung 2 kurze Absätze ohne Kapitelliste (die wird automatisch ergänzt); 6 bis 12 Tags.
+${YT_RULES}
 Deutsch in Schweizer Rechtschreibung (ss statt ß). Zeitangaben sind Sekunden ab Videostart.`;
 
 /** Claude schlägt die Schnittliste vor. */
@@ -249,7 +275,50 @@ export async function suggestPlan(w: Webinar): Promise<VideoPlan> {
   })) as Record<string, unknown>;
   const plan = normalizePlan({ ...emptyPlan(w), ...input }, w);
   if (!plan.chapters.some((c) => c.clips.length)) throw new Error("Claude hat keine brauchbaren Clips vorgeschlagen. Bitte nochmals versuchen.");
+  if (!plan.youtube.title || !plan.youtube.description) plan.youtube = { ...youtubeFallback(w, plan), ...(plan.youtube.tags.length ? { tags: plan.youtube.tags } : {}) };
   return plan;
+}
+
+const YT_SYSTEM = `Du schreibst die YouTube-Texte für ein Elev8-Erklärvideo. Elev8 ist eine Software für Ferienvermietung
+(Property Management, Channel Manager, Gästekommunikation mit KI). Zielgruppe: Gastgeber und Vermieter, die Elev8 noch nicht kennen.
+Grundlage ist nur der fertige Schnitt: Kapitel, Kernaussagen und was in den Clips gesagt wird. Nichts versprechen, was dort nicht vorkommt.
+${YT_RULES}
+Deutsch in Schweizer Rechtschreibung (ss statt ß).`;
+
+/** Claude formuliert Titel, Beschreibung und Tags passend zur gespeicherten Schnittliste. */
+export async function suggestYoutube(w: Webinar, plan: VideoPlan): Promise<VideoPlan["youtube"]> {
+  if (!claudeConfigured()) throw new Error("ANTHROPIC_API_KEY fehlt.");
+  const chapters = plan.chapters.filter((c) => c.clips.length);
+  if (!chapters.length) throw new Error("Zuerst eine Schnittliste mit Clips speichern.");
+  const cut = chapters
+    .map((c, i) => {
+      const said = c.clips.map((k) => clipText(w, k)).join(" ").slice(0, 1800);
+      return `Kapitel ${i + 1}: ${c.title}${c.key ? `\nKernaussage: ${c.key}` : ""}\nGesagt: ${said || "(kein Transkript)"}`;
+    })
+    .join("\n\n");
+  const input = (await callClaudeTool({
+    system: YT_SYSTEM,
+    user: `Videotitel: ${plan.title}\nUntertitel: ${plan.subtitle || "-"}\nAus dem Webinar: ${w.titleDe}\nVideolänge etwa ${mmss(plannedSeconds(plan) + INTRO_SEC + OUTRO_SEC)} Minuten\n\n${cut}`,
+    maxTokens: 1500,
+    timeoutMs: 120_000,
+    tool: {
+      name: "youtube_texte",
+      description: "Titel, Beschreibung und Tags für YouTube",
+      input_schema: {
+        type: "object",
+        required: ["title", "description", "tags"],
+        properties: { title: { type: "string" }, description: { type: "string" }, tags: { type: "array", items: { type: "string" } } }
+      }
+    }
+  })) as Record<string, unknown>;
+  const yt = normalizePlan({ ...plan, youtube: input }, w).youtube;
+  if (!yt.title || !yt.description) throw new Error("Claude hat keine brauchbaren YouTube-Texte geliefert. Bitte nochmals versuchen.");
+  return yt;
+}
+
+/** Nur die YouTube-Texte speichern. Ändert updated_at nicht: das Video muss dafür nicht neu gerendert werden. */
+export async function saveYoutube(webinarId: string, youtube: VideoPlan["youtube"], by: string): Promise<void> {
+  await sql`UPDATE webinar_videos SET plan = jsonb_set(plan, '{youtube}', ${sql.json(youtube)}), updated_by = ${by} WHERE webinar_id = ${webinarId}`;
 }
 
 export { mmss };

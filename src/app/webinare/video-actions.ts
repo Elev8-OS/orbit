@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireWebinarUser } from "@/lib/webinare/access";
 import { getWebinar } from "@/lib/webinare/store";
 import { storageConfigured } from "@/lib/venues/s3";
-import { cancelQueued, getVideoJob, normalizePlan, plannedSeconds, queueRender, savePlan, suggestPlan } from "@/lib/webinare/video";
+import { cancelQueued, getVideoJob, normalizePlan, plannedSeconds, queueRender, savePlan, saveYoutube, suggestPlan, suggestYoutube } from "@/lib/webinare/video";
 
 export type VideoFormState = { ok?: string; error?: string } | null;
 
@@ -94,6 +94,21 @@ export async function cancelVideoAction(_: VideoFormState, form: FormData): Prom
     const done = await cancelQueued(w.id);
     refresh(w.id);
     return done ? { ok: "Auftrag zurückgenommen." } : { error: "Der Auftrag läuft schon und wird zu Ende gerendert." };
+  } catch (err) {
+    return fail(err);
+  }
+}
+
+export async function suggestYoutubeAction(_: VideoFormState, form: FormData): Promise<VideoFormState> {
+  try {
+    const user = await requireWebinarUser("edit");
+    const w = await load(form);
+    const job = await getVideoJob(w);
+    if (!job || !job.plan.chapters.some((c) => c.clips.length)) return { error: "Zuerst eine Schnittliste mit Clips speichern." };
+    const youtube = await suggestYoutube(w, job.plan);
+    await saveYoutube(w.id, youtube, user.email);
+    refresh(w.id);
+    return { ok: "YouTube-Texte zum gespeicherten Schnitt erstellt. Anpassen lassen sie sich in der Schnittliste unter YouTube." };
   } catch (err) {
     return fail(err);
   }

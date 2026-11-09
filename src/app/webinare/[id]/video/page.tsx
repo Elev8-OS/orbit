@@ -7,8 +7,8 @@ import { ActionButton } from "@/components/messen/MessenForms";
 import { CopyField } from "@/components/webinare/CopyField";
 import { VideoPlanEditor } from "@/components/webinare/VideoPlanEditor";
 import { RefreshWhile } from "@/components/webinare/RefreshWhile";
-import { emptyPlan, getVideoJob, mmss, plannedSeconds, TARGET, youtubeDescription } from "@/lib/webinare/video";
-import { cancelVideoAction, renderVideoAction, saveVideoPlanAction, suggestVideoPlanAction } from "../../video-actions";
+import { emptyPlan, getVideoJob, mmss, plannedSeconds, TARGET, youtubeDescription, youtubeFallback } from "@/lib/webinare/video";
+import { cancelVideoAction, renderVideoAction, saveVideoPlanAction, suggestVideoPlanAction, suggestYoutubeAction } from "../../video-actions";
 import "./video.css";
 
 export const dynamic = "force-dynamic";
@@ -39,6 +39,9 @@ export default async function VideoPage({ params }: { params: Promise<{ id: stri
   const hasClips = plan.chapters.some((c) => c.clips.length);
   const fileUrl = `/api/webinare/video/${w.id}?f=mp4`;
   const stale = Boolean(job?.finishedAt && job.updatedAt > job.finishedAt && status === "done");
+  const hasYt = Boolean(plan.youtube.title && plan.youtube.description);
+  const yt = hasYt ? plan.youtube : youtubeFallback(w, plan);
+  const savedClips = Boolean(job?.plan.chapters.some((c) => c.clips.length));
 
   return (
     <div className="me-page">
@@ -154,15 +157,25 @@ export default async function VideoPage({ params }: { params: Promise<{ id: stri
             <h2>Für YouTube</h2>
             <span className="wb-state">{job?.result ? "Kapitelmarken aus dem fertigen Schnitt" : "Kapitelmarken geschätzt, nach dem Rendern exakt"}</span>
           </div>
-          {plan.youtube.title || plan.youtube.description ? (
-            <div className="wb-vid-yt">
-              <CopyField label="Titel" text={plan.youtube.title || plan.title} />
-              <CopyField label="Beschreibung mit Kapiteln" text={youtubeDescription(plan, job?.result ?? null, portalUrl())} rows={12} />
-              {plan.youtube.tags.length > 0 && <CopyField label="Tags" text={plan.youtube.tags.join(", ")} />}
+          {!ro && (
+            <div className="wb-actions" style={{ marginBottom: "1rem" }}>
+              <ActionButton
+                action={suggestYoutubeAction}
+                fields={{ id: w.id }}
+                label={hasYt ? "YouTube-Texte neu formulieren" : "YouTube-Texte von Claude"}
+                pending="Claude schreibt …"
+                variant={hasYt ? "secondary" : "primary"}
+                confirm={hasYt ? "Titel, Beschreibung und Tags werden ersetzt. Fortfahren?" : undefined}
+              />
+              <span className="me-muted">{savedClips ? "Aus Kapiteln, Kernaussagen und dem Gesagten im gespeicherten Schnitt." : "Zuerst eine Schnittliste mit Clips speichern."}</span>
             </div>
-          ) : (
-            <p className="me-muted">Titel, Beschreibung und Tags entstehen mit dem Vorschlag von Claude und lassen sich in der Schnittliste anpassen.</p>
           )}
+          {!hasYt && <p className="wb-note">Noch nicht formuliert. Unten steht ein Entwurf aus den Webinar-Daten.</p>}
+          <div className="wb-vid-yt">
+            <CopyField label={`Titel (${yt.title.length}/100)`} text={yt.title} />
+            <CopyField label="Beschreibung mit Kapiteln" text={youtubeDescription({ ...plan, youtube: yt }, job?.result ?? null, portalUrl())} rows={14} />
+            <CopyField label={`Tags (${yt.tags.join(",").length}/500 Zeichen)`} text={yt.tags.join(", ")} />
+          </div>
         </section>
       </div>
     </div>
