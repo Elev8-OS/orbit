@@ -202,7 +202,7 @@ const probe = async (file) => Number((await run("ffprobe", ["-v", "error", "-sho
  */
 async function narrate({ dir, i, lines, start, dur }) {
   const rows = (lines ?? [])
-    .map((l) => ({ t: Math.max(0, Number(l.start) - start), text: String(l.text ?? "").trim() }))
+    .map((l) => ({ t: Math.max(0, Number(l.start) - start), text: String(l.text ?? "").trim(), en: String(l.en ?? "").trim() }))
     .filter((l) => l.text && l.t < dur - 0.3)
     .sort((a, b) => a.t - b.t);
   if (!rows.length) throw new Error(`Clip ${i + 1} hat keinen Sprechertext. Bitte in Orbit „Sprechertext bereinigen“ wählen oder den Text eintragen.`);
@@ -215,7 +215,7 @@ async function narrate({ dir, i, lines, start, dur }) {
     const at = Math.max(r.t, k ? end + GAP : r.t);
     const room = (rows[k + 1]?.t ?? dur) - at;
     const tempo = room > 0 && len > room ? Math.min(MAX_TEMPO, len / room) : 1;
-    parts.push({ file, at, tempo });
+    parts.push({ file, at, tempo, end: at + len / tempo, de: r.text, en: r.en });
     end = at + len / tempo;
   }
   const outDur = end + 0.4 > dur ? end + 0.4 : dur - end > 3 ? end + 1.5 : dur;
@@ -226,8 +226,21 @@ async function narrate({ dir, i, lines, start, dur }) {
   const audio = join(dir, `n_${i}.wav`);
   await run("ffmpeg", ["-hide_banner", "-y", ...parts.flatMap((p) => ["-i", p.file]), "-filter_complex", f.join(";"), "-map", "[a]", "-ac", "1", "-ar", "44100", audio]);
   if (stretch > 1.25) log(`Clip ${i + 1}: Sprechertext deutlich länger als das Original, Bild um ${Math.round((stretch - 1) * 100)} % verlangsamt`);
-  return { audio, srcDur, stretch, sped: parts.filter((p) => p.tempo > 1.001).length };
+  const cues = parts.map((p) => ({ start: p.at, end: p.end, de: p.de, en: p.en }));
+  return { audio, srcDur, stretch, cues, sped: parts.filter((p) => p.tempo > 1.001).length };
 }
+
+/** Untertitel als SRT (Zeiten in Sekunden im fertigen Video). */
+const srtTime = (sec) => {
+  const ms = Math.max(0, Math.round(sec * 1000));
+  const p = (n, w = 2) => String(n).padStart(w, "0");
+  return `${p(Math.floor(ms / 3_600_000))}:${p(Math.floor(ms / 60_000) % 60)}:${p(Math.floor(ms / 1000) % 60)},${p(ms % 1000, 3)}`;
+};
+export const toSrt = (cues, lang) =>
+  cues
+    .filter((c) => c[lang])
+    .map((c, i) => `${i + 1}\n${srtTime(c.start)} --> ${srtTime(c.end)}\n${c[lang]}\n`)
+    .join("\n");
 
 async function progress(id, pct, message) {
   await sql`UPDATE webinar_videos SET progress = ${Math.round(pct)}, message = ${message}, updated_at = now() WHERE webinar_id = ${id}`;
@@ -284,6 +297,7 @@ export async function render(job) {
     // Schnittpunkte auf Pausen legen, Kapitel-Zeitachse fürs YouTube-Inhaltsverzeichnis mitschreiben
     let at = INTRO_SEC;
     const timeline = [];
+    const captions = [];
     for (const [i, k] of clips.entries()) {
       const s = await snap(src, k.start, "start");
       const e = await snap(src, k.end, "end");
@@ -293,6 +307,7 @@ export async function render(job) {
       let voice = null;
       let srcDur = dur;
       let stretch = 1;
+      let cues = [];
       if (proVoice) {
         await progress(id, (done / steps) * 100, `Profistimme für Clip ${i + 1} von ${clips.length} …`);
         const n = await narrate({ dir, i, lines: k.lines, start: s, dur });
@@ -300,8 +315,17 @@ export async function render(job) {
         srcDur = n.srcDur;
         stretch = n.stretch;
         dur = srcDur * stretch;
+        cues = n.cues;
         log(`Clip ${i + 1}: Sprechertext ${n.sped ? `(${n.sped} Zeilen leicht schneller)` : ""}${stretch > 1 ? ` Bild ×${stretch.toFixed(2)}` : ""}`);
       }
+      if (!proVoice) {
+        // Originalstimme: Untertitel an den Zeiten des Transkripts
+        cues = (k.lines ?? [])
+          .map((l) => ({ start: Number(l.start) - s, end: Number(l.end) - s, de: String(l.text ?? "").trim(), en: String(l.en ?? "").trim() }))
+          .filter((c) => c.de && c.end > 0 && c.start < dur)
+          .map((c) => ({ ...c, start: Math.max(0, c.start), end: Math.min(dur, c.end) }));
+      }
+      for (const c of cues) captions.push({ start: +(at + c.start).toFixed(2), end: +(at + c.end).toFixed(2), de: c.de, en: c.en });
       // Kapiteldauer: Summe aller Clips des Kapitels (für die Kernaussage am Schluss)
       const chapterClips = clips.filter((x) => x.ci === k.ci);
       const isLong = chapterClips.reduce((sum, x) => sum + (x.end - x.start), 0) >= CHAPTER_SHOW[1] + KEY_SEC + 1;
@@ -335,11 +359,22 @@ export async function render(job) {
 
     await writeFile(join(dir, "list.txt"), parts.map((x) => `file '${x}'`).join("\n"));
     const final = join(dir, "erklaervideo.mp4");
-    await run("ffmpeg", ["-hide_banner", "-y", "-f", "concat", "-safe", "0", "-i", join(dir, "list.txt"), "-c", "copy", "-movflags", "+faststart", final]);
+    const joined = join(dir, "zusammen.mp4");
+    await run("ffmpeg", ["-hide_banner", "-y", "-f", "concat", "-safe", "0", "-i", join(dir, "list.txt"), "-c", "copy", joined]);
+    // Untertitel (Englisch, Deutsch) als zuschaltbare Spuren ins MP4; für YouTube gibt Orbit sie als SRT aus
+    const subs = [["en", "eng", "English"], ["de", "deu", "Deutsch"]].filter(([l]) => captions.some((c) => c[l]));
+    for (const [l] of subs) await writeFile(join(dir, `${l}.srt`), toSrt(captions, l));
+    await run("ffmpeg", [
+      "-hide_banner", "-y", "-i", joined, ...subs.flatMap(([l]) => ["-i", join(dir, `${l}.srt`)]),
+      "-map", "0", ...subs.flatMap((_, j) => ["-map", String(j + 1)]),
+      "-c", "copy", ...(subs.length ? ["-c:s", "mov_text"] : []),
+      ...subs.flatMap(([, iso, name], j) => [`-metadata:s:s:${j}`, `language=${iso}`, `-metadata:s:s:${j}`, `title=${name}`]),
+      "-movflags", "+faststart", final
+    ]);
     const thumb = join(dir, "thumbnail.png");
     await writeFile(thumb, await thumbPng(p));
     const size = (await stat(final)).size;
-    const result = { durationSec: Math.round(at), chapters: timeline, size };
+    const result = { durationSec: Math.round(at), chapters: timeline, size, captions };
 
     if (process.env.NO_UPLOAD) {
       log("Fertig (ohne Upload):", final, result);

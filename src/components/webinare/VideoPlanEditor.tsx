@@ -10,7 +10,7 @@ import type { VideoFormState } from "@/app/webinare/video-actions";
  * Zeiten werden als m:ss eingegeben; unter jedem Clip steht der Transkripttext zur Kontrolle.
  */
 
-type Line = { start: number; end: number; text: string };
+type Line = { start: number; end: number; text: string; en?: string };
 type Clip = { start: number; end: number; lines?: Line[] };
 type Chapter = { title: string; key: string; clips: Clip[] };
 export type EditorPlan = {
@@ -28,7 +28,7 @@ export type EditorPlan = {
 };
 export type { Line };
 
-type ClipRow = { id: number; start: string; end: string; script: string };
+type ClipRow = { id: number; start: string; end: string; script: string; lines?: Line[] };
 type ChapterRow = { id: number; title: string; key: string; clips: ClipRow[] };
 
 let seq = 0;
@@ -49,18 +49,31 @@ const parse = (s: string): number | null => {
   if (parts.some((p) => !Number.isFinite(p) || p < 0)) return null;
   return Math.round(parts.reduce((a, p) => a * 60 + p, 0) * 10) / 10;
 };
-/** Sprechertext als Zeilen "m:ss | Text"; die Zeit sagt, wann die Profistimme die Zeile beginnt. */
-const toScript = (lines?: Line[]) => (lines ?? []).map((l) => `${fmt(l.start)} | ${l.text}`).join("\n");
-const fromScript = (script: string, clipEnd: number): Line[] | undefined => {
-  const rows: { start: number; text: string }[] = [];
+/**
+ * Sprechertext als Zeilen "m:ss | Text", darunter die englische Fassung als "EN: ..." (Untertitel).
+ * Die Zeit sagt, wann die Profistimme die Zeile beginnt.
+ */
+const toScript = (lines?: Line[]) => (lines ?? []).map((l) => `${fmt(l.start)} | ${l.text}${l.en ? `\n    EN: ${l.en}` : ""}`).join("\n");
+const fromScript = (script: string, clipEnd: number, before?: Line[]): Line[] | undefined => {
+  const rows: { start: number; text: string; en: string }[] = [];
   for (const raw of script.split("\n")) {
     const m = raw.match(/^\s*([\d:.,]+)\s*\|\s*(.*)$/);
     const t = m ? parse(m[1]) : null;
-    if (m && t !== null) rows.push({ start: t, text: m[2].trim() });
-    else if (raw.trim() && rows.length) rows[rows.length - 1].text = `${rows[rows.length - 1].text} ${raw.trim()}`.trim();
+    const en = raw.match(/^\s*EN:\s*(.*)$/i);
+    const last = rows[rows.length - 1];
+    if (m && t !== null) rows.push({ start: t, text: m[2].trim(), en: "" });
+    else if (en && last) last.en = `${last.en} ${en[1].trim()}`.trim();
+    else if (raw.trim() && last) last.text = `${last.text} ${raw.trim()}`.trim();
   }
   if (!rows.length) return undefined;
-  return rows.map((r, i) => ({ start: r.start, end: Math.max(r.start, rows[i + 1]?.start ?? clipEnd), text: r.text }));
+  return rows.map((r, i) => {
+    const line: Line = { start: r.start, end: Math.max(r.start, rows[i + 1]?.start ?? clipEnd), text: r.text };
+    // Deutsch geändert, Englisch nicht: Englisch beim Rendern neu übersetzen lassen
+    const old = before?.find((b) => b.start === r.start);
+    const stale = old && old.text !== r.text && old.en === r.en;
+    if (r.en && !stale) line.en = r.en;
+    return line;
+  });
 };
 const mmss = (sec: number) => `${Math.floor(sec / 60)}:${String(Math.round(sec % 60)).padStart(2, "0")}`;
 
@@ -90,7 +103,7 @@ export function VideoPlanEditor({
 }) {
   const [state, formAction] = useActionState(action, null);
   const toRows = (src: EditorPlan): ChapterRow[] =>
-    src.chapters.map((c) => ({ id: nextId(), title: c.title, key: c.key, clips: c.clips.map((k) => ({ id: nextId(), start: fmt(k.start), end: fmt(k.end), script: toScript(k.lines) })) }));
+    src.chapters.map((c) => ({ id: nextId(), title: c.title, key: c.key, clips: c.clips.map((k) => ({ id: nextId(), start: fmt(k.start), end: fmt(k.end), script: toScript(k.lines), lines: k.lines })) }));
   const [p, setP] = useState(() => ({ ...initial }));
   const [chapters, setChapters] = useState<ChapterRow[]>(() => toRows(initial));
   const [tags, setTags] = useState(initial.youtube.tags.join(", "));
@@ -127,7 +140,7 @@ export function VideoPlanEditor({
       clips: ch.clips.flatMap((k) => {
         const c = clipOf(k);
         if (!c || c.end <= c.start) return [];
-        const lines = fromScript(k.script, c.end);
+        const lines = fromScript(k.script, c.end, k.lines);
         return [lines ? { ...c, lines } : c];
       })
     })),
@@ -297,20 +310,26 @@ export function VideoPlanEditor({
                     </button>
                   </div>
                   <p className="wb-vid-text">{c && !bad ? textOf(c) || "Kein Transkript an dieser Stelle." : "Zeiten im Format m:ss eingeben, z. B. 7:02."}</p>
-                  {p.voice === "pro" && (
-                    <label className="wb-vid-script">
-                      <span>Sprechertext <em>(Zeit | Text; die Zeit sagt, wann die Profistimme die Zeile beginnt)</em></span>
-                      <textarea
-                        rows={Math.min(10, Math.max(2, k.script.split("\n").length + 1))}
-                        value={k.script}
-                        placeholder="Noch leer. Wird beim Rendern automatisch aus dem Transkript bereinigt, oder oben „Sprechertext bereinigen“."
-                        onChange={(e) => setClip(ch.id, k.id, { script: e.target.value })}
-                      />
-                      {c && !bad && fromScript(k.script, c.end)?.some((l) => l.start < c.start - 0.5 || l.start >= c.end) && (
-                        <small className="wb-vid-warn">Einige Zeilen liegen ausserhalb von Von–Bis und werden nicht gesprochen. Nach geänderten Zeiten neu bereinigen.</small>
-                      )}
-                    </label>
-                  )}
+                  <label className="wb-vid-script">
+                    {p.voice === "pro" ? (
+                      <span>Sprechertext <em>(Zeit | Text, darunter „EN:“ für die englischen Untertitel; die Zeit sagt, wann die Profistimme die Zeile beginnt)</em></span>
+                    ) : (
+                      <span>Untertitel <em>(Zeit | Deutsch, darunter „EN:“ Englisch)</em></span>
+                    )}
+                    <textarea
+                      rows={Math.min(10, Math.max(2, k.script.split("\n").length + 1))}
+                      value={k.script}
+                      placeholder={
+                        p.voice === "pro"
+                          ? "Noch leer. Wird beim Rendern automatisch aus dem Transkript bereinigt, oder oben „Sprechertext bereinigen“."
+                          : "Noch leer. Wird beim Rendern automatisch aus dem Transkript erstellt und übersetzt."
+                      }
+                      onChange={(e) => setClip(ch.id, k.id, { script: e.target.value })}
+                    />
+                    {c && !bad && fromScript(k.script, c.end)?.some((l) => l.start < c.start - 0.5 || l.start >= c.end) && (
+                      <small className="wb-vid-warn">Einige Zeilen liegen ausserhalb von Von–Bis und entfallen. Nach geänderten Zeiten neu bereinigen.</small>
+                    )}
+                  </label>
                 </div>
               );
             })}

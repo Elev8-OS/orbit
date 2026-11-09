@@ -43,6 +43,7 @@ export default async function VideoPage({ params }: { params: Promise<{ id: stri
   const yt = hasYt ? plan.youtube : youtubeFallback(w, plan);
   const savedClips = Boolean(job?.plan.chapters.some((c) => c.clips.length));
   const hasNarration = plan.chapters.some((c) => c.clips.some((k) => k.lines?.length));
+  const captions = job?.result?.captions ?? [];
 
   return (
     <div className="me-page">
@@ -100,7 +101,8 @@ export default async function VideoPage({ params }: { params: Promise<{ id: stri
           <p className="wb-hint">
             Claude wählt die Demo-Teile aus und lässt Begrüssung, Fragen zu Kundenkonten und Namen von Teilnehmenden weg. Prüfe die Auswahl am
             Transkripttext unter jedem Clip. Die Schnitte rasten beim Rendern auf die nächste Sprechpause ein. Mit Profistimme bereinigt Claude
-            den Sprechertext von Füllwörtern und Versprechern; fehlt er beim Rendern, geschieht das automatisch.
+            den Sprechertext von Füllwörtern und Versprechern; fehlt er beim Rendern, geschieht das automatisch. Die englischen Untertitel übersetzt
+            Claude dabei gleich mit.
           </p>
           <VideoPlanEditor
             webinarId={w.id}
@@ -143,7 +145,22 @@ export default async function VideoPage({ params }: { params: Promise<{ id: stri
                 <a className="me-btn me-btn-secondary" href={`/api/webinare/video/${w.id}?f=png&download=1`}>
                   YouTube-Vorschaubild
                 </a>
+                {captions.some((c) => c.en) && (
+                  <a className="me-btn me-btn-secondary" href={`/api/webinare/video/${w.id}?f=srt&lang=en`}>
+                    Untertitel Englisch (.srt)
+                  </a>
+                )}
+                {captions.some((c) => c.de) && (
+                  <a className="me-btn me-btn-secondary" href={`/api/webinare/video/${w.id}?f=srt&lang=de`}>
+                    Untertitel Deutsch (.srt)
+                  </a>
+                )}
               </div>
+              {captions.length > 0 && (
+                <p className="me-muted">
+                  Die Untertitel sind im MP4 als zuschaltbare Spuren enthalten. Für YouTube die .srt-Dateien in YouTube Studio unter Untertitel hochladen.
+                </p>
+              )}
             </div>
           )}
           {!ro && (
