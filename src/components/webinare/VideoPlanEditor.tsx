@@ -4,6 +4,7 @@ import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { ArrowDown, ArrowUp, Plus, X } from "lucide-react";
 import type { VideoFormState } from "@/app/webinare/video-actions";
+import { cutSeconds, linesFromWords, wordsValid, type Word } from "@/lib/webinare/words";
 
 /**
  * Schnittliste des Erklärvideos bearbeiten: Titel, Bildausschnitt, Kapitel mit Clips und Kernaussage, YouTube-Texte.
@@ -11,7 +12,7 @@ import type { VideoFormState } from "@/app/webinare/video-actions";
  */
 
 type Line = { start: number; end: number; text: string; en?: string };
-type Clip = { start: number; end: number; lines?: Line[] };
+type Clip = { start: number; end: number; lines?: Line[]; words?: Word[]; wordsFor?: [number, number] };
 type Chapter = { title: string; key: string; clips: Clip[] };
 export type EditorPlan = {
   title: string;
@@ -20,7 +21,7 @@ export type EditorPlan = {
   layout: "teams-share" | "full";
   allowGallery: boolean;
   browserBar: boolean;
-  voice: "pro" | "original";
+  voice: "pro" | "script" | "original";
   pip: { enabled: boolean; name: string };
   outro: { title: string; url: string };
   chapters: Chapter[];
@@ -28,7 +29,7 @@ export type EditorPlan = {
 };
 export type { Line };
 
-type ClipRow = { id: number; start: string; end: string; script: string; lines?: Line[] };
+type ClipRow = { id: number; start: string; end: string; script: string; lines?: Line[]; words?: Word[]; wordsFor?: [number, number] };
 type ChapterRow = { id: number; title: string; key: string; clips: ClipRow[] };
 
 let seq = 0;
@@ -103,7 +104,16 @@ export function VideoPlanEditor({
 }) {
   const [state, formAction] = useActionState(action, null);
   const toRows = (src: EditorPlan): ChapterRow[] =>
-    src.chapters.map((c) => ({ id: nextId(), title: c.title, key: c.key, clips: c.clips.map((k) => ({ id: nextId(), start: fmt(k.start), end: fmt(k.end), script: toScript(k.lines), lines: k.lines })) }));
+    src.chapters.map((c) => ({
+      id: nextId(),
+      title: c.title,
+      key: c.key,
+      clips: c.clips.map((k) => {
+        // Synchron: ohne eigene Zeilen die Untertitel aus den behaltenen Wörtern zeigen
+        const lines = k.lines?.length ? k.lines : src.voice === "pro" && wordsValid(k) ? linesFromWords(k.words ?? []) : k.lines;
+        return { id: nextId(), start: fmt(k.start), end: fmt(k.end), script: toScript(lines), lines, words: k.words, wordsFor: k.wordsFor };
+      })
+    }));
   const [p, setP] = useState(() => ({ ...initial }));
   const [chapters, setChapters] = useState<ChapterRow[]>(() => toRows(initial));
   const [tags, setTags] = useState(initial.youtube.tags.join(", "));
@@ -141,7 +151,9 @@ export function VideoPlanEditor({
         const c = clipOf(k);
         if (!c || c.end <= c.start) return [];
         const lines = fromScript(k.script, c.end, k.lines);
-        return [lines ? { ...c, lines } : c];
+        const clip: Clip = lines ? { ...c, lines } : { ...c };
+        if (k.words && k.wordsFor) Object.assign(clip, { words: k.words, wordsFor: k.wordsFor });
+        return [clip];
       })
     })),
     youtube: { ...p.youtube, tags: tags.split(",").map((t) => t.trim()).filter(Boolean) }
@@ -172,6 +184,18 @@ export function VideoPlanEditor({
   const setCh = (id: number, patch: Partial<ChapterRow>) => setChapters((all) => all.map((c) => (c.id === id ? { ...c, ...patch } : c)));
   const setClip = (cid: number, kid: number, patch: Partial<ClipRow>) =>
     setChapters((all) => all.map((c) => (c.id === cid ? { ...c, clips: c.clips.map((k) => (k.id === kid ? { ...k, ...patch } : k)) } : c)));
+  // Wort streichen oder zurückholen; mit Shift den ganzen Bereich seit dem letzten Klick. Untertitel folgen.
+  const lastWord = useRef(new Map<number, number>());
+  const toggleWord = (cid: number, k: ClipRow, i: number, range: boolean, end: number) => {
+    if (!k.words) return;
+    const from = range ? lastWord.current.get(k.id) : undefined;
+    const [a, b] = from === undefined ? [i, i] : [Math.min(from, i), Math.max(from, i)];
+    const cut = !k.words[i].cut;
+    const words = k.words.map((w, j) => (j >= a && j <= b ? { ...w, cut } : w));
+    lastWord.current.set(k.id, i);
+    const lines = linesFromWords(words, fromScript(k.script, end, k.lines));
+    setClip(cid, k.id, { words, script: toScript(lines) });
+  };
   const move = (i: number, d: -1 | 1) =>
     setChapters((all) => {
       const next = [...all];
@@ -229,13 +253,25 @@ export function VideoPlanEditor({
           <div className="me-field">
             <label className="wb-vid-label">
               <span>Stimme</span>
-              <select value={p.voice} onChange={(e) => setP({ ...p, voice: e.target.value === "original" ? "original" : "pro" })}>
-                <option value="pro">Profistimme (ElevenLabs, gleich für alle Videos)</option>
+              <select
+                value={p.voice}
+                onChange={(e) => setP({ ...p, voice: e.target.value === "original" ? "original" : e.target.value === "script" ? "script" : "pro" })}
+              >
+                <option value="pro">Profistimme, synchron zum Bild (empfohlen)</option>
+                <option value="script">Profistimme, neu formulierter Sprechertext</option>
                 <option value="original">Originalstimme aus der Aufnahme</option>
               </select>
             </label>
             {p.voice === "pro" ? (
-              <small className="wb-vid-small">Liest den bereinigten Sprechertext ohne Füllwörter und Versprecher, jede Zeile an ihrer Stelle im Video. Kamerabild und Name des Referenten entfallen.</small>
+              <small className="wb-vid-small">
+                Deine Worte und dein Timing mit der Profistimme. Füllwörter und Versprecher werden aus Ton und Bild geschnitten, alles bleibt synchron.
+                Kamerabild und Name des Referenten entfallen.
+              </small>
+            ) : p.voice === "script" ? (
+              <small className="wb-vid-small">
+                Liest einen von Claude geglätteten Sprechertext, jede Zeile ab ihrer Stelle im Video. Klingt flüssiger, läuft aber nicht genau mit dem
+                Bild mit. Kamerabild und Name des Referenten entfallen.
+              </small>
             ) : (
             <>
             <label className="wb-vid-label" style={{ marginTop: "0.75rem" }}>
@@ -309,9 +345,39 @@ export function VideoPlanEditor({
                       <X size={16} />
                     </button>
                   </div>
-                  <p className="wb-vid-text">{c && !bad ? textOf(c) || "Kein Transkript an dieser Stelle." : "Zeiten im Format m:ss eingeben, z. B. 7:02."}</p>
+                  {p.voice === "pro" && c && !bad && wordsValid({ ...c, words: k.words, wordsFor: k.wordsFor }) ? (
+                    <div className="wb-vid-wordbox">
+                      <div className="wb-vid-words">
+                        {k.words!.map((w, i) => (
+                          <button
+                            type="button"
+                            key={i}
+                            className={w.cut ? "wb-cut" : w.k === "a" ? "wb-ev" : undefined}
+                            aria-pressed={Boolean(w.cut)}
+                            title={`${fmt(w.s)}: ${w.cut ? "wieder aufnehmen" : "streichen"} (Shift: ganzer Bereich)`}
+                            onClick={(e) => toggleWord(ch.id, k, i, e.shiftKey, c.end)}
+                          >
+                            {w.k === "a" ? `(${w.t})` : w.t}
+                          </button>
+                        ))}
+                      </div>
+                      <small>
+                        {k.words!.filter((w) => w.cut).length} Wörter gestrichen, etwa {cutSeconds(k.words!).toFixed(1)} s kürzer. Klick streicht ein Wort oder
+                        holt es zurück, Shift-Klick den ganzen Bereich seit dem letzten Klick.
+                      </small>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="wb-vid-text">{c && !bad ? textOf(c) || "Kein Transkript an dieser Stelle." : "Zeiten im Format m:ss eingeben, z. B. 7:02."}</p>
+                      {p.voice === "pro" && c && !bad && (
+                        <small className="wb-vid-warn">
+                          {k.words?.length ? "Die Zeiten haben sich geändert: Ton neu bereinigen." : "Noch nicht bereinigt: Speichern, dann oben „Ton bereinigen“."}
+                        </small>
+                      )}
+                    </>
+                  )}
                   <label className="wb-vid-script">
-                    {p.voice === "pro" ? (
+                    {p.voice === "script" ? (
                       <span>Sprechertext <em>(Zeit | Text, darunter „EN:“ für die englischen Untertitel; die Zeit sagt, wann die Profistimme die Zeile beginnt)</em></span>
                     ) : (
                       <span>Untertitel <em>(Zeit | Deutsch, darunter „EN:“ Englisch)</em></span>
@@ -320,9 +386,11 @@ export function VideoPlanEditor({
                       rows={Math.min(10, Math.max(2, k.script.split("\n").length + 1))}
                       value={k.script}
                       placeholder={
-                        p.voice === "pro"
+                        p.voice === "script"
                           ? "Noch leer. Wird beim Rendern automatisch aus dem Transkript bereinigt, oder oben „Sprechertext bereinigen“."
-                          : "Noch leer. Wird beim Rendern automatisch aus dem Transkript erstellt und übersetzt."
+                          : p.voice === "pro"
+                            ? "Noch leer. Nach „Ton bereinigen“ stehen hier die Untertitel aus den behaltenen Wörtern."
+                            : "Noch leer. Wird beim Rendern automatisch aus dem Transkript erstellt und übersetzt."
                       }
                       onChange={(e) => setClip(ch.id, k.id, { script: e.target.value })}
                     />
