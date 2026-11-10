@@ -5,7 +5,8 @@ import { join } from "node:path";
 import postgres from "postgres";
 import { H, PIP, W, chapterPng, clean, introPng, keyPng, outroPng, pipPng, pipX, pipY, thumbPng } from "./overlays.mjs";
 import { deleteObject, putObject, storageConfigured } from "./s3.mjs";
-import { speak, voiceConfigured } from "./voice.mjs";
+import { clipWords } from "./stt.mjs";
+import { convert, speak, voiceConfigured } from "./voice.mjs";
 
 /**
  * Render-Dienst für Erklärvideos aus Webinar-Aufzeichnungen.
@@ -13,7 +14,8 @@ import { speak, voiceConfigured } from "./voice.mjs";
  * legt die Elev8-Einblendungen darüber und lädt MP4 und YouTube-Vorschaubild in den Bucket.
  *
  * Variablen: DATABASE_URL, BUNNY_CDN_HOST, S3_ENDPOINT, S3_BUCKET, S3_REGION, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY,
- * für die Profistimme ELEVENLABS_API_KEY und ELEVENLABS_VIDEO_VOICE_ID (liest den bereinigten Sprechertext aus Orbit).
+ * für die Profistimme ELEVENLABS_API_KEY und ELEVENLABS_VIDEO_VOICE_ID.
+ * Aufträge "prepare"/"prepare-all": Clips wortgenau transkribieren und Füllwörter markieren (für die synchrone Profistimme).
  * Zum Testen: SOURCE_OVERRIDE (lokale Datei statt Bunny), NO_UPLOAD=1 (Ergebnis bleibt in OUT_DIR).
  */
 
@@ -230,6 +232,102 @@ async function narrate({ dir, i, lines, start, dur }) {
   return { audio, srcDur, stretch, cues, sped: parts.filter((p) => p.tempo > 1.001).length };
 }
 
+/** Gleiche Regeln wie in Orbit (src/lib/webinare/words.ts) */
+const wordsValid = (k) =>
+  Boolean(k.words?.length && Array.isArray(k.wordsFor) && Math.abs(k.wordsFor[0] - k.start) < 0.05 && Math.abs(k.wordsFor[1] - k.end) < 0.05);
+function linesFromWords(words) {
+  // gap: ob die Pause davor echt ist (lagen nur gestrichene Wörter dazwischen, ist sie im Video herausgeschnitten)
+  const kept = words
+    .map((w, i) => ({ w, cutBefore: i > 0 && Boolean(words[i - 1].cut) }))
+    .filter(({ w }) => !w.cut && w.k !== "a" && String(w.t).trim())
+    .map(({ w, cutBefore }) => ({ ...w, cutBefore }));
+  const ends = (t) => /[.!?…]["»“]?$/.test(t);
+  const lines = [];
+  let cur = [];
+  const flush = () => {
+    if (cur.length) lines.push(cur);
+    cur = [];
+  };
+  kept.forEach((w, i) => {
+    const prev = kept[i - 1];
+    if (prev && cur.length && ((!w.cutBefore && w.s - prev.e > 0.8) || (ends(prev.t) && cur.length >= 3))) flush();
+    cur.push(w);
+    if (cur.length >= 14) {
+      const comma = cur.findLastIndex((x, j) => j >= 5 && /,$/.test(x.t));
+      if (comma >= 0 && comma < cur.length - 1) {
+        const rest = cur.slice(comma + 1);
+        cur = cur.slice(0, comma + 1);
+        flush();
+        cur = rest;
+      } else flush();
+    }
+  });
+  flush();
+  return lines.map((ws) => {
+    const t = ws.map((w) => w.t.trim()).join(" ").replace(/\s+([,.!?;:])/g, "$1");
+    return { start: ws[0].s, end: ws[ws.length - 1].e, text: t.charAt(0).toUpperCase() + t.slice(1) };
+  });
+}
+
+/**
+ * Synchron: zu behaltende Abschnitte zwischen s und e. Jedes gestrichene Wort fällt heraus, dazu die Hälfte der Pausen
+ * davor und danach (mindestens 0.12 s bleiben stehen, damit es nicht gehetzt klingt).
+ */
+export function keepSegments(words, s, e) {
+  const inside = words.filter((w) => w.e > s && w.s < e);
+  const cuts = [];
+  inside.forEach((w, i) => {
+    if (!w.cut) return;
+    let prev = s;
+    for (let j = i - 1; j >= 0; j--) if (!inside[j].cut) { prev = inside[j].e; break; }
+    let next = e;
+    for (let j = i + 1; j < inside.length; j++) if (!inside[j].cut) { next = inside[j].s; break; }
+    const hi = Math.max(prev, w.s - 0.02);
+    const lo = Math.min(next, w.e + 0.02);
+    const a = Math.min(hi, Math.max(prev === s ? s : prev + 0.12, (prev + w.s) / 2));
+    const b = Math.max(lo, Math.min(next === e ? e : next - 0.12, (w.e + next) / 2));
+    cuts.push([Math.max(s, a), Math.min(e, b)]);
+  });
+  cuts.sort((x, y) => x[0] - y[0]);
+  const keep = [];
+  let pos = s;
+  for (const [a, b] of cuts) {
+    if (a - pos >= 0.12) keep.push([pos, a]);
+    pos = Math.max(pos, b);
+  }
+  if (e - pos >= 0.12) keep.push([pos, e]);
+  return keep;
+}
+
+/** Synchron: Bild und Ton eines Clips ohne die gestrichenen Stellen; map rechnet eine Originalzeit in Clip-Zeit um. */
+async function cutClip({ dir, i, src, s, e, words }) {
+  const keep = keepSegments(words, s, e);
+  if (!keep.length) throw new Error(`Clip ${i + 1}: Es ist alles gestrichen.`);
+  const expr = keep.map(([a, b]) => `between(t,${(a - s).toFixed(3)},${(b - s).toFixed(3)})`).join("+");
+  const video = join(dir, `cut_${i}.mp4`);
+  const audio = join(dir, `cut_${i}.wav`);
+  await run("ffmpeg", [
+    "-hide_banner", "-y", "-ss", s.toFixed(3), "-t", (e - s).toFixed(3), "-i", src,
+    "-filter_complex", `[0:v]fps=${FPS},select='${expr}',setpts=N/(${FPS}*TB)[v];[0:a]aresample=48000,aselect='${expr}',asetpts=N/SR/TB[a]`,
+    "-map", "[v]", "-an", "-c:v", "libx264", "-preset", "veryfast", "-crf", "14", "-pix_fmt", "yuv420p", video,
+    "-map", "[a]", "-vn", "-ac", "1", "-ar", "48000", audio
+  ]);
+  let o = 0;
+  const segs = keep.map(([a, b]) => {
+    const g = { a, b, o };
+    o += b - a;
+    return g;
+  });
+  const map = (t) => {
+    for (const g of segs) {
+      if (t < g.a) return g.o;
+      if (t <= g.b) return g.o + t - g.a;
+    }
+    return o;
+  };
+  return { video, audio, dur: o, map, saved: e - s - o };
+}
+
 /** Untertitel als SRT (Zeiten in Sekunden im fertigen Video). */
 const srtTime = (sec) => {
   const ms = Math.max(0, Math.round(sec * 1000));
@@ -259,7 +357,7 @@ export async function render(job) {
     log("Quelle", src);
     const title = clean(plan.title || w.title_de);
     const p = { ...plan, title };
-    const clips = chapters.flatMap((c, ci) => c.clips.filter((k) => Number(k.end) > Number(k.start)).map((k, ki, arr) => ({ ci, ki, last: ki === arr.length - 1, start: Number(k.start), end: Number(k.end), lines: k.lines ?? [] })));
+    const clips = chapters.flatMap((c, ci) => c.clips.filter((k) => Number(k.end) > Number(k.start)).map((k, ki, arr) => ({ ci, ki, last: ki === arr.length - 1, start: Number(k.start), end: Number(k.end), lines: k.lines ?? [], words: k.words, wordsFor: k.wordsFor })));
     // Vor dem Rendern: zeigt jeder Clip die Bildschirmfreigabe? Sonst wären Teilnehmende im Bild.
     const layout = plan.layout ?? "teams-share";
     if (layout === "teams-share") {
@@ -282,6 +380,12 @@ export async function render(job) {
     await writeFile(join(dir, "outro.png"), await outroPng(p));
     // Profistimme (Standard): Kamerabild und Name des Referenten passen dann nicht und entfallen.
     const proVoice = plan.voice !== "original";
+    // Synchron (Standard der Profistimme): Originalspur ohne Füllwörter, in die Profistimme umgewandelt
+    const sync = proVoice && plan.voice !== "script";
+    if (sync) {
+      const open = clips.map((k, i) => (wordsValid(k) ? null : i + 1)).filter(Boolean);
+      if (open.length) throw new Error(`Clip ${open.join(", ")} ist noch nicht bereinigt. Bitte in Orbit „Ton bereinigen“ wählen.`);
+    }
     if (proVoice && !voiceConfigured()) throw new Error("Die Profistimme ist im Render-Dienst nicht eingerichtet (ELEVENLABS_API_KEY, ELEVENLABS_VIDEO_VOICE_ID). Bitte melden oder in Orbit „Originalstimme“ wählen.");
     const pipOn = !proVoice && plan.pip?.enabled !== false && (plan.layout ?? "teams-share") === "teams-share";
     if (pipOn) await writeFile(join(dir, "pip.png"), await pipPng({ name: clean(plan.pip?.name || "") }));
@@ -308,7 +412,23 @@ export async function render(job) {
       let srcDur = dur;
       let stretch = 1;
       let cues = [];
-      if (proVoice) {
+      let clipSrc = src;
+      let clipStart = s;
+      if (sync) {
+        await progress(id, (done / steps) * 100, `Schneidet und spricht Clip ${i + 1} von ${clips.length} …`);
+        const c = await cutClip({ dir, i, src, s, e, words: k.words });
+        voice = join(dir, `v_${i}.mp3`);
+        await convert(c.audio, voice);
+        clipSrc = c.video;
+        clipStart = 0;
+        dur = c.dur;
+        srcDur = c.dur;
+        const own = (k.lines ?? []).filter((l) => l.start >= k.start - 0.5 && l.start < k.end && String(l.text ?? "").trim());
+        cues = (own.length ? own : linesFromWords(k.words))
+          .map((l) => ({ start: c.map(l.start), end: c.map(l.end), de: String(l.text).trim(), en: String(l.en ?? "").trim() }))
+          .filter((x) => x.end - x.start > 0.2);
+        log(`Clip ${i + 1}: synchron, ${c.saved.toFixed(1)} s gestrichen`);
+      } else if (proVoice) {
         await progress(id, (done / steps) * 100, `Profistimme für Clip ${i + 1} von ${clips.length} …`);
         const n = await narrate({ dir, i, lines: k.lines, start: s, dur });
         voice = n.audio;
@@ -332,8 +452,8 @@ export async function render(job) {
       const keyFile = k.last && isLong && clean(chapters[k.ci].key) ? join(dir, `key${k.ci}.png`) : null;
       const keyAt = [Math.max(k.ki === 0 ? CHAPTER_SHOW[1] + 0.5 : 0.4, dur - KEY_SEC - 0.4), dur - 0.4];
       await clipPart({
-        src,
-        start: s,
+        src: clipSrc,
+        start: clipStart,
         dur: srcDur,
         stretch,
         layout: k.gallery ? "full" : layout,
@@ -401,6 +521,55 @@ export async function render(job) {
   }
 }
 
+/** Ton der Clips wortgenau transkribieren und Füllwörter markieren; schreibt die Wörter in die Schnittliste. */
+export async function prepare(job) {
+  const id = job.webinar_id;
+  const plan = job.plan ?? {};
+  const [w] = await sql`SELECT bunny_video_de FROM webinar_webinars WHERE id = ${id}`;
+  if (!w?.bunny_video_de) throw new Error("Für dieses Webinar ist kein Bunny-Video eingetragen.");
+  if (!process.env.ELEVENLABS_API_KEY) throw new Error("ELEVENLABS_API_KEY fehlt im Render-Dienst.");
+  const all = job.task === "prepare-all";
+  const todo = (plan.chapters ?? []).flatMap((c) => c.clips ?? []).filter((k) => Number(k.end) > Number(k.start) && (all || !wordsValid(k)));
+  if (!todo.length) return { plan, count: 0, cut: 0 };
+  const src = await sourceFor(w.bunny_video_de);
+  const dir = await mkdtemp(join(process.env.OUT_DIR || tmpdir(), "ton-"));
+  let cut = 0;
+  try {
+    for (const [i, k] of todo.entries()) {
+      await progress(id, (i / todo.length) * 100, `Transkribiert Clip ${i + 1} von ${todo.length} …`);
+      const from = Math.max(0, Number(k.start) - 0.3);
+      const file = join(dir, `t_${i}.flac`);
+      await run("ffmpeg", ["-hide_banner", "-y", "-ss", from.toFixed(3), "-t", (Number(k.end) - from + 0.3).toFixed(3), "-i", src, "-vn", "-ac", "1", "-ar", "16000", "-c:a", "flac", file]);
+      const words = (await clipWords(file, from)).filter((x) => (x.s + x.e) / 2 >= Number(k.start) && (x.s + x.e) / 2 <= Number(k.end));
+      k.words = words;
+      k.wordsFor = [Number(k.start), Number(k.end)];
+      delete k.lines;
+      cut += words.filter((x) => x.cut).length;
+      log(`Clip ${i + 1}: ${words.length} Wörter, ${words.filter((x) => x.cut).length} gestrichen`);
+    }
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+  return { plan, count: todo.length, cut };
+}
+
+async function runPrepare(job) {
+  const id = job.webinar_id;
+  const back = sql`CASE WHEN file_key IS NOT NULL THEN 'done' ELSE 'draft' END`;
+  try {
+    const r = await prepare(job);
+    const msg = r.count
+      ? `Ton bereinigt: ${r.count} ${r.count === 1 ? "Clip" : "Clips"}, ${r.cut} Wörter gestrichen. Bitte die Streichungen unter jedem Clip prüfen.`
+      : "Alle Clips waren bereits bereinigt.";
+    await sql`UPDATE webinar_videos SET plan = ${sql.json(r.plan)}, status = ${back}, progress = 100, message = ${msg}, updated_at = now() WHERE webinar_id = ${id}`;
+    log("Bereinigt", id, msg);
+  } catch (err) {
+    log("Fehler beim Bereinigen", err);
+    const msg = `Bereinigen fehlgeschlagen: ${String(err?.message || err)}`.slice(0, 1500);
+    await sql`UPDATE webinar_videos SET status = ${back}, progress = 0, message = ${msg}, updated_at = now() WHERE webinar_id = ${id}`.catch(() => {});
+  }
+}
+
 async function claim() {
   const [job] = await sql`
     UPDATE webinar_videos SET status = 'rendering', progress = 0, message = 'Startet …', attempts = attempts + 1, started_at = now(), updated_at = now()
@@ -419,8 +588,9 @@ async function loop() {
     try {
       job = await claim();
       if (job) {
-        log("Auftrag", job.webinar_id);
-        await render(job);
+        log("Auftrag", job.webinar_id, job.task ?? "render");
+        if (job.task === "prepare" || job.task === "prepare-all") await runPrepare(job);
+        else await render(job);
         continue;
       }
     } catch (err) {
