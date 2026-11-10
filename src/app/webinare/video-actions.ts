@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireWebinarUser } from "@/lib/webinare/access";
 import { getWebinar } from "@/lib/webinare/store";
 import { storageConfigured } from "@/lib/venues/s3";
-import { cancelQueued, cleanNarration, getVideoJob, normalizePlan, plannedSeconds, queueRender, savePlan, saveYoutube, suggestPlan, suggestYoutube, translateNarration, withTranscriptLines } from "@/lib/webinare/video";
+import { cancelQueued, cleanNarration, clipsWithoutWords, getVideoJob, normalizePlan, plannedSeconds, queueRender, savePlan, saveYoutube, suggestPlan, suggestYoutube, translateNarration, withTranscriptLines, withWordLines, type VideoPlan } from "@/lib/webinare/video";
 
 export type VideoFormState = { ok?: string; error?: string } | null;
 
@@ -81,9 +81,15 @@ export async function renderVideoAction(_: VideoFormState, form: FormData): Prom
     if (untitled >= 0) return { error: `Kapitel ${untitled + 1} braucht einen Titel.` };
     const sec = plannedSeconds(job.plan);
     if (sec > MAX_SEC) return { error: `Die Clips dauern zusammen ${Math.round(sec)} Sekunden. Höchstens ${MAX_SEC} sind möglich.` };
-    // Vor dem Rendern: Sprechertext (Profistimme, von Claude bereinigt) bzw. Transkriptzeilen (Originalstimme)
-    // und die englische Fassung für die Untertitel ergänzen, wo sie fehlen
-    let plan = job.plan.voice === "pro" ? (await cleanNarration(w, job.plan, true)).plan : withTranscriptLines(w, job.plan);
+    // Vor dem Rendern: Untertitelzeilen (synchron aus den behaltenen Wörtern, neu gesprochen aus dem von Claude
+    // bereinigten Sprechertext, sonst aus dem Transkript) und die englische Fassung ergänzen, wo sie fehlen
+    let plan: VideoPlan;
+    if (job.plan.voice === "pro") {
+      const missing = clipsWithoutWords(job.plan);
+      if (missing)
+        return { error: `${missing === 1 ? "Ein Clip ist" : `${missing} Clips sind`} noch nicht bereinigt (oder die Zeiten haben sich geändert). Zuerst oben „Ton bereinigen“ wählen.` };
+      plan = withWordLines(job.plan);
+    } else plan = job.plan.voice === "script" ? (await cleanNarration(w, job.plan, true)).plan : withTranscriptLines(w, job.plan);
     plan = (await translateNarration(plan)).plan;
     if (JSON.stringify(plan) !== JSON.stringify(job.plan)) await savePlan(w.id, plan, user.email);
     const started = await queueRender(w.id, user.email);
@@ -134,6 +140,25 @@ export async function cleanNarrationAction(_: VideoFormState, form: FormData): P
     await savePlan(w.id, translated.plan, user.email);
     refresh(w.id);
     return { ok: `Sprechertext für ${count} Clips bereinigt${translated.count ? " und ins Englische übersetzt" : ""}. Bitte in der Schnittliste prüfen.` };
+  } catch (err) {
+    return fail(err);
+  }
+}
+
+export async function prepareAudioAction(_: VideoFormState, form: FormData): Promise<VideoFormState> {
+  try {
+    const user = await requireWebinarUser("edit");
+    const w = await load(form);
+    if (!w.bunnyVideoDe) return { error: "Zuerst die Bunny-Video-ID im Abschnitt Aufzeichnung eintragen." };
+    const job = await getVideoJob(w);
+    if (!job || !job.plan.chapters.some((c) => c.clips.length)) return { error: "Zuerst eine Schnittliste mit Clips speichern." };
+    const all = form.get("all") === "1";
+    if (!all && !clipsWithoutWords(job.plan)) return { ok: "Alle Clips sind bereits bereinigt." };
+    const started = await queueRender(w.id, user.email, all ? "prepare-all" : "prepare");
+    refresh(w.id);
+    return started
+      ? { ok: "Eingereiht. Der Render-Dienst transkribiert die Clips wortgenau und markiert Füllwörter, das dauert etwa eine Minute." }
+      : { error: "Es läuft bereits ein Auftrag." };
   } catch (err) {
     return fail(err);
   }
