@@ -19,10 +19,10 @@ Orbit pflegt die Inhalte für **webinar.elev8-suite.com**. Das Portal selbst ist
 2. **Teams verbinden:** Teams-Webinar-ID eintragen, *Mit Teams verbinden* übernimmt den Teilnahmelink.
    Referenten treten genau über diesen Link bei, sonst fehlt die Teilnahme im Bericht.
 3. **Veröffentlichen:** *Im Kalender zeigen*. Das Portal meldet Personen an, legt sie in GHL an und setzt
-   `<basis>-angemeldet` (startet den GHL-Workflow für Bestätigung und Erinnerungen).
+   `<basis>-registered` (startet den GHL-Workflow für Bestätigung und Erinnerungen).
 4. **Nach dem Webinar:** *Teilnahme aus Teams holen* oder Anwesenheitsbericht (CSV) importieren. Orbit warnt,
    wenn der Bericht unglaubwürdig ist (Sitzung unter 5 Minuten, kaum Anwesende). Status prüfen, dann
-   *Teilnahme abschliessen*: `<basis>-angemeldet` wird durch `<basis>-anwesend` oder `<basis>-verpasst`
+   *Teilnahme abschliessen*: `<basis>-registered` wird durch `<basis>-attended` oder `<basis>-missed`
    ersetzt, Anwesende erhalten den Archiv-Schlüssel.
 5. **Aufzeichnung:** Video in Bunny Stream hochladen, Video-ID eintragen. Transkript aus Fireflies wählen
    oder das Teams-Transkript (.docx/.vtt) hochladen. *Kapitel und Zusammenfassung erzeugen*,
@@ -43,10 +43,10 @@ Orbit pflegt die Inhalte für **webinar.elev8-suite.com**. Das Portal selbst ist
 
 | Tag | Workflow |
 |---|---|
-| `<basis>-angemeldet` | Bestätigung sofort, Erinnerung 24 h und 1 h vor Beginn |
-| `<basis>-anwesend` | «Danke fürs Dabeisein» mit Link zur Aufzeichnung |
-| `<basis>-verpasst` | «Du hast was verpasst» sofort, nach 30 Tagen «Jetzt freigeschaltet» |
-| `<basis>-unterlagen` | «Die versprochenen Unterlagen sind da» mit Link zur Aufzeichnung (Orbit setzt den Tag per Klick unter Nachlieferungen) |
+| `<basis>-registered` | Bestätigung sofort, Erinnerung 24 h und 1 h vor Beginn |
+| `<basis>-attended` | «Danke fürs Dabeisein» mit Link zur Aufzeichnung |
+| `<basis>-missed` | «Du hast was verpasst» sofort, nach 30 Tagen «Jetzt freigeschaltet» |
+| `<basis>-materials` | «Die versprochenen Unterlagen sind da» mit Link zur Aufzeichnung (Orbit setzt den Tag per Klick unter Nachlieferungen) |
 
 Kontaktfelder, die das Portal schreibt (legt sie bei Bedarf an): PMS, Anzahl Einheiten,
 Newsletter-Einwilligung, Sprache, Webinar-Titel, Webinar-Datum, Webinar-Uhrzeit, Webinar-Link.
