@@ -2,6 +2,7 @@ import { sql } from "@/lib/db";
 import { callClaudeTool, claudeConfigured } from "@/lib/offerten/claude";
 import { mmss } from "./content";
 import type { Webinar } from "./store";
+import { linesFromWords, wordsValid, type Word } from "./words";
 
 /**
  * Erklärvideos aus Webinar-Aufzeichnungen. Orbit pflegt die Schnittliste (plan) und reiht den Auftrag ein,
@@ -11,7 +12,8 @@ import type { Webinar } from "./store";
 
 /** Eine Zeile Sprechertext: wann sie im Video gesagt wurde (Sekunden), der bereinigte Text und die englische Fassung (Untertitel). */
 export type NarrationLine = { start: number; end: number; text: string; en?: string };
-export type Clip = { start: number; end: number; lines?: NarrationLine[] };
+/** words, wordsFor: wortgenaues Transkript für die synchrone Profistimme und die Clip-Zeiten, für die es gilt */
+export type Clip = { start: number; end: number; lines?: NarrationLine[]; words?: Word[]; wordsFor?: [number, number] };
 export type VideoChapter = { title: string; key: string; clips: Clip[] };
 export type VideoPlan = {
   title: string;
@@ -21,8 +23,12 @@ export type VideoPlan = {
   allowGallery: boolean;
   /** Tab- und Adressleiste des geteilten Browsers zeigen (Standard: ausgeblendet) */
   browserBar: boolean;
-  /** pro: feste ElevenLabs-Stimme für alle Erklärvideos (Kreis und Name entfallen), original: Stimme aus der Aufnahme */
-  voice: "pro" | "original";
+  /**
+   * pro: feste ElevenLabs-Stimme im Original-Timing (Füllwörter und Versprecher aus Ton und Bild geschnitten, synchron),
+   * script: dieselbe Stimme liest einen neu formulierten Sprechertext, original: Stimme aus der Aufnahme.
+   * Bei pro und script entfallen Kreis und Name des Referenten.
+   */
+  voice: "pro" | "script" | "original";
   pip: { enabled: boolean; name: string };
   outro: { title: string; url: string };
   chapters: VideoChapter[];
@@ -32,8 +38,11 @@ export type VideoStatus = "draft" | "queued" | "rendering" | "done" | "failed";
 /** Untertitel im fertigen Video (Sekunden), vom Render-Dienst aus der Platzierung der Zeilen */
 export type Caption = { start: number; end: number; de: string; en: string };
 export type VideoResult = { durationSec: number; size: number; chapters: { title: string; at: number }[]; captions?: Caption[] };
+/** render: Video rendern, prepare: Ton der Clips wortgenau transkribieren und Füllwörter markieren (fehlende), prepare-all: alle neu */
+export type VideoTask = "render" | "prepare" | "prepare-all";
 export type VideoJob = {
   webinarId: string;
+  task: VideoTask;
   plan: VideoPlan;
   status: VideoStatus;
   progress: number;
@@ -86,6 +95,18 @@ export function normalizePlan(raw: unknown, w: Webinar): VideoPlan {
       .map((k) => {
         const clip: Clip = { start: num((k as Clip).start), end: num((k as Clip).end) };
         const lines = Array.isArray((k as Clip).lines) ? ((k as Clip).lines as NarrationLine[]) : null;
+        const words = Array.isArray((k as Clip).words) ? ((k as Clip).words as Word[]) : null;
+        const wf = (k as Clip).wordsFor;
+        if (words && Array.isArray(wf) && wf.length === 2) {
+          const n2 = (v: unknown) => (Number.isFinite(Number(v)) ? Math.round(Number(v) * 100) / 100 : 0);
+          clip.wordsFor = [num(wf[0]), num(wf[1])];
+          clip.words = words.slice(0, 3000).map((w) => {
+            const word: Word = { s: n2(w?.s), e: n2(w?.e), t: String(w?.t ?? "").slice(0, 60) };
+            if (w?.k === "a") word.k = "a";
+            if (w?.cut) word.cut = true;
+            return word;
+          });
+        }
         if (lines)
           clip.lines = lines
             .map((l) => {
@@ -109,7 +130,7 @@ export function normalizePlan(raw: unknown, w: Webinar): VideoPlan {
     layout: r.layout === "full" ? "full" : "teams-share",
     allowGallery: r.allowGallery === true,
     browserBar: r.browserBar === true,
-    voice: r.voice === "original" ? "original" : "pro",
+    voice: r.voice === "original" ? "original" : r.voice === "script" ? "script" : "pro",
     pip: { enabled: pip.enabled !== false, name: text(pip.name, 40) },
     outro: { title: text(outro.title, 60) || base.outro.title, url: text(outro.url, 60) || base.outro.url },
     chapters,
@@ -264,6 +285,24 @@ export async function cleanNarration(w: Webinar, plan: VideoPlan, onlyMissing: b
   return { plan: next, count: todo.length };
 }
 
+/** Synchrone Profistimme: Clips, deren Ton noch nicht (oder für andere Zeiten) bereinigt ist. */
+export function clipsWithoutWords(plan: VideoPlan): number {
+  return plan.chapters.reduce((n, c) => n + c.clips.filter((k) => !wordsValid(k)).length, 0);
+}
+
+/** Synchrone Profistimme: Untertitel aus den behaltenen Wörtern, wo noch keine passenden Zeilen da sind. */
+export function withWordLines(plan: VideoPlan): VideoPlan {
+  const next: VideoPlan = JSON.parse(JSON.stringify(plan));
+  next.chapters.forEach((c) =>
+    c.clips.forEach((k) => {
+      if (!wordsValid(k)) return;
+      const have = clipNarration(k);
+      k.lines = have.length ? have : linesFromWords(k.words ?? []);
+    })
+  );
+  return next;
+}
+
 /** Originalstimme: Untertitel aus dem Transkript (nur Füllwörter entfernt), wo noch keine Zeilen da sind. */
 export function withTranscriptLines(w: Webinar, plan: VideoPlan): VideoPlan {
   const next: VideoPlan = JSON.parse(JSON.stringify(plan));
@@ -338,6 +377,7 @@ export async function getCaptions(webinarId: string): Promise<Caption[]> {
 type Row = Record<string, unknown>;
 const toJob = (r: Row, w: Webinar): VideoJob => ({
   webinarId: r.webinar_id as string,
+  task: (r.task === "prepare" || r.task === "prepare-all" ? r.task : "render") as VideoTask,
   plan: normalizePlan(r.plan, w),
   status: r.status as VideoStatus,
   progress: Number(r.progress ?? 0),
@@ -369,9 +409,9 @@ export async function savePlan(webinarId: string, plan: VideoPlan, by: string): 
 }
 
 /** Auftrag einreihen. Läuft schon einer, bleibt er unverändert (false). */
-export async function queueRender(webinarId: string, by: string): Promise<boolean> {
+export async function queueRender(webinarId: string, by: string, task: VideoTask = "render"): Promise<boolean> {
   const rows = await sql`
-    UPDATE webinar_videos SET status = 'queued', progress = 0, attempts = 0, message = 'Wartet auf den Render-Dienst …',
+    UPDATE webinar_videos SET status = 'queued', task = ${task}, progress = 0, attempts = 0, message = 'Wartet auf den Render-Dienst …',
       queued_at = now(), started_at = NULL, finished_at = NULL, updated_by = ${by}, updated_at = now()
     WHERE webinar_id = ${webinarId} AND status NOT IN ('queued', 'rendering')
     RETURNING webinar_id`;
