@@ -24,7 +24,7 @@ import {
   upsertRegistrations,
   type Chapter
 } from "@/lib/webinare/store";
-import { addTag, applyStatusTags, tagFor } from "@/lib/webinare/ghl";
+import { addTag, applyStatusTags, migrateLegacyTags, tagFor } from "@/lib/webinare/ghl";
 import { teamsAttendance, teamsConfigured, teamsWebinar } from "@/lib/webinare/teams";
 import { decodeReport, parseTeamsReport, plausibility } from "@/lib/webinare/attendance";
 import { findPromises, generateContent, loadFireflies, translateToEnglish, translateTranscript } from "@/lib/webinare/content";
@@ -277,6 +277,23 @@ export async function finalizeAction(_: FormState, form: FormData): Promise<Form
     return result.failed
       ? { error: `Abgeschlossen. ${result.ok} Tags gesetzt, ${result.failed} fehlgeschlagen (siehe Liste). Erneut abschliessen versucht es nochmals.` }
       : { ok: `Abgeschlossen. ${result.ok} Tags in GHL gesetzt, die Follow-up-Workflows laufen.` };
+  } catch (err) {
+    return fail(err);
+  }
+}
+
+/** Einmalige Umstellung der deutschen GHL-Tags dieses Webinars auf die englischen. */
+export async function migrateTagsAction(_: FormState, form: FormData): Promise<FormState> {
+  try {
+    await requireWebinarUser("edit");
+    const id = str(form, "id");
+    const w = await getWebinar(id);
+    if (!w) return { error: "Webinar nicht gefunden." };
+    const r = await migrateLegacyTags(w, await listRegistrations(id));
+    if (r.skipped) return { error: "GHL ist in Orbit nicht eingerichtet." };
+    refresh(id);
+    const msg = `${r.changed} Kontakte umgestellt, ${r.unchanged} hatten keine deutschen Tags.`;
+    return r.failed ? { error: `${msg} ${r.failed} fehlgeschlagen, bitte nochmals versuchen.` } : { ok: msg };
   } catch (err) {
     return fail(err);
   }
@@ -691,7 +708,7 @@ export async function deliverableAction(_: FormState, form: FormData): Promise<F
   }
 }
 
-/** Teilnehmende über die nachgelieferten Unterlagen informieren: GHL-Tag `<basis>-unterlagen` startet den Workflow. */
+/** Teilnehmende über die nachgelieferten Unterlagen informieren: GHL-Tag `<basis>-materials` startet den Workflow. */
 export async function notifyMaterialsAction(_: FormState, form: FormData): Promise<FormState> {
   try {
     await requireWebinarUser("edit");
@@ -703,7 +720,7 @@ export async function notifyMaterialsAction(_: FormState, form: FormData): Promi
     if (!done.length) return { error: "Es ist noch keine Unterlage nachgeliefert." };
     const regs = (await listRegistrations(id)).filter((r) => r.status === "attended" || r.status === "missed");
     if (!regs.length) return { error: "Keine Teilnehmenden. Zuerst die Teilnahme abschliessen." };
-    const tag = tagFor(w, "unterlagen");
+    const tag = tagFor(w, "materials");
     const result = await addTag(tag, regs);
     if (result.skipped) return { error: "GHL ist in Orbit nicht eingerichtet." };
     if (result.ok) await updateWebinar(id, { materialsNotifiedAt: new Date() });

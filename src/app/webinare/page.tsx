@@ -47,7 +47,7 @@ export default async function WebinarePage() {
                 Kurzthema für den GHL-Tag <em>optional</em>
               </span>
               <input name="tagTopic" maxLength={40} placeholder="z. B. journey" />
-              <small>Ergibt Tags wie webinar-2026-11-02-journey-angemeldet.</small>
+              <small>Ergibt Tags wie webinar-2026-11-02-journey-registered.</small>
             </label>
           </StatefulForm>
         </section>

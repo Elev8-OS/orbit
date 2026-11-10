@@ -6,7 +6,7 @@ import { countByStatus } from "@/lib/webinare/attendance";
 import { firefliesReady, findFireflies, mmss, type FirefliesHit } from "@/lib/webinare/content";
 import { BUNNY_STATUS, bunnyConfigured, bunnyVideo } from "@/lib/webinare/bunny";
 import { teamsConfigured } from "@/lib/webinare/teams";
-import { tagFor } from "@/lib/webinare/ghl";
+import { hasLegacyTag, tagFor } from "@/lib/webinare/ghl";
 import { dateToLocalInput, formatInZone } from "@/lib/messen/time";
 import { ActionButton, ConfirmForm, StatefulForm } from "@/components/messen/MessenForms";
 import {
@@ -29,6 +29,7 @@ import {
   saveMediaAction,
   setStatusAction,
   teamsAttendanceAction,
+  migrateTagsAction,
   translateAction,
   uploadTranscriptAction
 } from "../actions";
@@ -157,7 +158,7 @@ export default async function WebinarPage({ params }: { params: Promise<{ id: st
                 <span>GHL-Tag-Basis</span>
                 <input name="ghlTagBase" defaultValue={w.ghlTagBase} maxLength={80} pattern="[a-z0-9-]+" />
                 <small>
-                  Tags: {tagFor(w, "angemeldet")}, {tagFor(w, "anwesend")}, {tagFor(w, "verpasst")}
+                  Tags: {tagFor(w, "registered")}, {tagFor(w, "attended")}, {tagFor(w, "missed")}, {tagFor(w, "materials")}
                 </small>
               </label>
               <label className="me-switch">
@@ -169,6 +170,16 @@ export default async function WebinarPage({ params }: { params: Promise<{ id: st
             <div className="wb-actions" style={{ marginTop: "1rem" }}>
               <ActionButton action={loadTeamsAction} fields={{ id: w.id }} label="Mit Teams verbinden" pending="Verbinde …" />
               {!teamsConfigured() && <span className="me-muted">Microsoft-Zugang in Orbit fehlt noch.</span>}
+              {regs.some(hasLegacyTag) && (
+                <ActionButton
+                  action={migrateTagsAction}
+                  fields={{ id: w.id }}
+                  label="Deutsche Tags auf Englisch umstellen"
+                  pending="Stellt um …"
+                  variant="secondary"
+                  confirm={`Ersetzt bei allen Angemeldeten in GHL die deutschen Tags (z. B. ${w.ghlTagBase}-angemeldet) durch die englischen (${tagFor(w, "registered")} …). Workflows, die auf die englischen Tags reagieren, starten dabei. Fortfahren?`}
+                />
+              )}
             </div>
           )}
         </section>
@@ -271,7 +282,7 @@ export default async function WebinarPage({ params }: { params: Promise<{ id: st
             <StatefulForm action={finalizeAction} submit="Teilnahme abschliessen und Tags setzen" pending="Setzt Tags …" className="me-form">
               <input type="hidden" name="id" value={w.id} />
               <p className="me-muted" style={{ margin: "1rem 0 0.5rem" }}>
-                Ersetzt in GHL {tagFor(w, "angemeldet")} durch {tagFor(w, "anwesend")} oder {tagFor(w, "verpasst")}. Noch offene gelten als verpasst. Anwesende erhalten den
+                Ersetzt in GHL {tagFor(w, "registered")} durch {tagFor(w, "attended")} oder {tagFor(w, "missed")}. Noch offene gelten als verpasst. Anwesende erhalten den
                 Archiv-Schlüssel.
               </p>
               {w.attendanceNote && !w.attendanceNote.startsWith("Ausnahme") && (
@@ -544,7 +555,7 @@ export default async function WebinarPage({ params }: { params: Promise<{ id: st
               <div>
                 <span className="me-strong">Teilnehmende informieren</span>
                 <p className="me-muted">
-                  Setzt bei allen Anwesenden und Verpassten den GHL-Tag {tagFor(w, "unterlagen")}. Der GHL-Workflow dazu verschickt die Mail mit dem Link zur Aufzeichnung.
+                  Setzt bei allen Anwesenden und Verpassten den GHL-Tag {tagFor(w, "materials")}. Der GHL-Workflow dazu verschickt die Mail mit dem Link zur Aufzeichnung.
                   {w.materialsNotifiedAt && ` Zuletzt informiert am ${formatInZone(w.materialsNotifiedAt, ZONE)}.`}
                 </p>
               </div>
