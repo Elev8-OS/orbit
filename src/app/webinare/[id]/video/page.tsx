@@ -7,8 +7,8 @@ import { ActionButton } from "@/components/messen/MessenForms";
 import { CopyField } from "@/components/webinare/CopyField";
 import { VideoPlanEditor } from "@/components/webinare/VideoPlanEditor";
 import { RefreshWhile } from "@/components/webinare/RefreshWhile";
-import { emptyPlan, getVideoJob, mmss, plannedSeconds, TARGET, youtubeDescription, youtubeFallback } from "@/lib/webinare/video";
-import { cancelVideoAction, cleanNarrationAction, renderVideoAction, saveVideoPlanAction, suggestVideoPlanAction, suggestYoutubeAction } from "../../video-actions";
+import { clipsWithoutWords, emptyPlan, getVideoJob, mmss, plannedSeconds, TARGET, youtubeDescription, youtubeFallback } from "@/lib/webinare/video";
+import { cancelVideoAction, cleanNarrationAction, prepareAudioAction, renderVideoAction, saveVideoPlanAction, suggestVideoPlanAction, suggestYoutubeAction } from "../../video-actions";
 import "./video.css";
 
 export const dynamic = "force-dynamic";
@@ -44,6 +44,8 @@ export default async function VideoPage({ params }: { params: Promise<{ id: stri
   const savedClips = Boolean(job?.plan.chapters.some((c) => c.clips.length));
   const hasNarration = plan.chapters.some((c) => c.clips.some((k) => k.lines?.length));
   const captions = job?.result?.captions ?? [];
+  const preparing = job?.task !== undefined && job.task !== "render";
+  const unprepared = clipsWithoutWords(plan);
 
   return (
     <div className="me-page">
@@ -86,7 +88,17 @@ export default async function VideoPage({ params }: { params: Promise<{ id: stri
                 confirm={hasClips ? "Die aktuelle Schnittliste wird durch einen neuen Vorschlag ersetzt. Fortfahren?" : undefined}
                 variant={hasClips ? "secondary" : "primary"}
               />
-              {plan.voice === "pro" && savedClips && (
+              {plan.voice === "pro" && savedClips && !busy && (
+                <ActionButton
+                  action={prepareAudioAction}
+                  fields={unprepared ? { id: w.id } : { id: w.id, all: "1" }}
+                  label={unprepared ? "Ton bereinigen" : "Ton neu bereinigen"}
+                  pending="Reiht ein …"
+                  variant={unprepared ? "primary" : "secondary"}
+                  confirm={unprepared ? undefined : "Alle Clips werden neu transkribiert, eigene Streichungen gehen verloren. Fortfahren?"}
+                />
+              )}
+              {plan.voice === "script" && savedClips && (
                 <ActionButton
                   action={cleanNarrationAction}
                   fields={{ id: w.id }}
@@ -98,11 +110,20 @@ export default async function VideoPage({ params }: { params: Promise<{ id: stri
               )}
             </div>
           )}
+          {preparing && busy && (
+            <div className="wb-vid-progress">
+              <div className="wb-bar" aria-hidden="true">
+                <span style={{ width: `${Math.max(3, job?.progress ?? 0)}%` }} />
+              </div>
+              <p className="me-muted">{job?.message ?? "…"}</p>
+            </div>
+          )}
+          {preparing && !busy && job?.message && <p className={/fehlgeschlagen/i.test(job.message) ? "wb-warn" : "wb-note"}>{job.message}</p>}
           <p className="wb-hint">
             Claude wählt die Demo-Teile aus und lässt Begrüssung, Fragen zu Kundenkonten und Namen von Teilnehmenden weg. Prüfe die Auswahl am
-            Transkripttext unter jedem Clip. Die Schnitte rasten beim Rendern auf die nächste Sprechpause ein. Mit Profistimme bereinigt Claude
-            den Sprechertext von Füllwörtern und Versprechern; fehlt er beim Rendern, geschieht das automatisch. Die englischen Untertitel übersetzt
-            Claude dabei gleich mit.
+            Transkripttext unter jedem Clip. Die Schnitte rasten beim Rendern auf die nächste Sprechpause ein. Mit der synchronen Profistimme
+            transkribiert „Ton bereinigen“ jeden Clip Wort für Wort und streicht Füllwörter und Versprecher; prüfe die Streichungen unter jedem
+            Clip. Die englischen Untertitel übersetzt Claude beim Rendern.
           </p>
           <VideoPlanEditor
             webinarId={w.id}
@@ -117,9 +138,9 @@ export default async function VideoPage({ params }: { params: Promise<{ id: stri
         <section className="me-card">
           <div className="wb-step-head">
             <h2>Video</h2>
-            <span className={STATUS[status].cls}>{STATUS[status].label}</span>
+            <span className={STATUS[status].cls}>{busy && preparing ? "Ton wird bereinigt" : STATUS[status].label}</span>
           </div>
-          {busy && (
+          {busy && !preparing && (
             <div className="wb-vid-progress">
               <div className="wb-bar" aria-hidden="true">
                 <span style={{ width: `${Math.max(3, job?.progress ?? 0)}%` }} />
