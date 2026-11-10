@@ -23,7 +23,8 @@ Orbit pflegt die Inhalte für **webinar.elev8-suite.com**. Das Portal selbst ist
 4. **Nach dem Webinar:** *Teilnahme aus Teams holen* oder Anwesenheitsbericht (CSV) importieren. Orbit warnt,
    wenn der Bericht unglaubwürdig ist (Sitzung unter 5 Minuten, kaum Anwesende). Status prüfen, dann
    *Teilnahme abschliessen*: `<basis>-registered` wird durch `<basis>-attended` oder `<basis>-missed`
-   ersetzt, Anwesende erhalten den Archiv-Schlüssel.
+   ersetzt, Anwesende erhalten den Archiv-Schlüssel. Die Tags (und damit die Mails mit dem Link zur Aufzeichnung)
+   setzt Orbit erst, wenn die Aufzeichnung veröffentlicht ist; wer vorher abschliesst, bekommt sie beim Veröffentlichen.
 5. **Aufzeichnung:** Video in Bunny Stream hochladen, Video-ID eintragen. Transkript aus Fireflies wählen
    oder das Teams-Transkript (.docx/.vtt) hochladen. *Kapitel und Zusammenfassung erzeugen*,
    *Transkript übersetzen*, *Englische Tonspur erstellen* (ElevenLabs, später *prüfen* klicken).
@@ -48,9 +49,20 @@ Orbit pflegt die Inhalte für **webinar.elev8-suite.com**. Das Portal selbst ist
 | `<basis>-missed` | «Du hast was verpasst» sofort, nach 30 Tagen «Jetzt freigeschaltet» |
 | `<basis>-materials` | «Die versprochenen Unterlagen sind da» mit Link zur Aufzeichnung (Orbit setzt den Tag per Klick unter Nachlieferungen) |
 
-Kontaktfelder, die das Portal schreibt (legt sie bei Bedarf an): PMS, Anzahl Einheiten,
-Newsletter-Einwilligung, Sprache, Webinar-Titel, Webinar-Datum, Webinar-Uhrzeit, Webinar-Link.
-Der Webinar-Link ist der persönliche Teilnahmelink. Die Sprache (`de`/`en`) steuert die Mailvariante.
+Kontaktfelder (Portal und Orbit legen sie bei Bedarf an), mit Platzhalter für die Mails:
+
+| Feld | Platzhalter | Schreibt |
+|---|---|---|
+| Webinar Title | `{{contact.webinar_title}}` | Portal bei der Anmeldung, Orbit vor den Tags nach dem Webinar (in der Sprache der Person) |
+| Webinar Date | `{{contact.webinar_date}}` | Portal, z. B. „Montag, 2. November 2026“ |
+| Webinar Time | `{{contact.webinar_time}}` | Portal, z. B. „16:00 Uhr (Schweizer Zeit)“ |
+| Webinar Link | `{{contact.webinar_link}}` | Portal: persönlicher Teilnahmelink |
+| Webinar Recording Link | `{{contact.webinar_recording_link}}` | Orbit vor den Tags nach dem Webinar |
+| Webinar Language | `{{contact.webinar_language}}` | Portal: `de` oder `en`, wählt die Mailvariante |
+| Webinar PMS, Webinar Units, Webinar Newsletter Consent | | Portal (Angaben aus dem Formular) |
+
+Die Felder gelten pro Person und zeigen immer das zuletzt betroffene Webinar. Deshalb schreiben Portal und Orbit sie
+jeweils direkt vor dem Tag, der die Mail auslöst.
 
 ## Einrichtung
 

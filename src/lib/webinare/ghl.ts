@@ -9,6 +9,8 @@ import { setRegistrationGhl } from "./store";
  * Den Kundentag setzt Elev8 Suite, nicht Orbit. Nutzt GHL_API_TOKEN und GHL_LOCATION_ID wie die anderen Module.
  * Bis November 2026 hiessen die Zusätze deutsch (-angemeldet, -anwesend, -verpasst, -unterlagen); solche Tags
  * werden beim Abschliessen entfernt oder mit migrateLegacyTags umgestellt.
+ * Vor jedem Tag schreibt Orbit die Kontaktfelder „Webinar Title“ (in der Sprache der Person) und „Webinar Recording Link“,
+ * damit die Mail des Workflows den richtigen Titel und Link zeigt, auch wenn die Person inzwischen anderswo angemeldet ist.
  */
 
 const BASE = "https://services.leadconnectorhq.com";
@@ -47,6 +49,39 @@ const legacyTag = (w: Pick<Webinar, "ghlTagBase">, kind: TagKind) => `${w.ghlTag
 /** Trägt eine Anmeldung nach unserem Stand noch einen deutschen Tag? (ghl_status aus Portal bzw. Orbit) */
 export const hasLegacyTag = (r: Pick<Registration, "ghlStatus">) => /^tag:(?:.*-)?(angemeldet|anwesend|verpasst|unterlagen)$/.test(r.ghlStatus ?? "");
 
+/* Kontaktfelder nach Namen, wie im Portal; fehlende werden angelegt (falls der Token das darf). */
+export const FIELD_TITLE = "Webinar Title";
+export const FIELD_RECORDING = "Webinar Recording Link";
+const fieldIds = new Map<string, string>();
+
+async function fieldId(name: string): Promise<string | null> {
+  if (fieldIds.has(name)) return fieldIds.get(name)!;
+  const loc = encodeURIComponent(process.env.GHL_LOCATION_ID ?? "");
+  const list = await ghl<{ customFields?: { id: string; name: string }[] }>(`/locations/${loc}/customFields?model=contact`, undefined, "GET");
+  for (const f of list.customFields ?? []) fieldIds.set(f.name, f.id);
+  if (fieldIds.has(name)) return fieldIds.get(name)!;
+  try {
+    const r = await ghl<{ customField?: { id: string } }>(`/locations/${loc}/customFields`, { name, dataType: "TEXT", model: "contact" });
+    if (r.customField?.id) fieldIds.set(name, r.customField.id);
+  } catch (err) {
+    console.warn(`GHL-Feld „${name}“ nicht angelegt:`, err instanceof Error ? err.message : err);
+  }
+  return fieldIds.get(name) ?? null;
+}
+
+export const recordingUrl = (w: Pick<Webinar, "slug">) =>
+  `${(process.env.WEBINAR_PORTAL_URL || "https://webinar.elev8-suite.com").replace(/\/$/, "")}/aufzeichnung/${w.slug}`;
+
+/** Titel in der Sprache der Person und Link zur Aufzeichnung, bevor ein Tag den Mail-Workflow startet. */
+async function writeWebinarFields(contactId: string, w: Webinar, r: Registration): Promise<void> {
+  const [title, link] = await Promise.all([fieldId(FIELD_TITLE), fieldId(FIELD_RECORDING)]);
+  const customFields = [
+    title ? { id: title, field_value: r.lang === "en" && w.titleEn ? w.titleEn : w.titleDe } : null,
+    link ? { id: link, field_value: recordingUrl(w) } : null
+  ].filter(Boolean);
+  if (customFields.length) await ghl(`/contacts/${encodeURIComponent(contactId)}`, { customFields }, "PUT");
+}
+
 async function contactIdFor(r: Registration): Promise<string> {
   if (r.ghlContactId) return r.ghlContactId;
   const upsert = await ghl<{ contact?: { id: string } }>("/contacts/upsert", {
@@ -62,7 +97,10 @@ async function contactIdFor(r: Registration): Promise<string> {
   return id;
 }
 
-/** Setzt nach dem Webinar pro Person genau einen Status-Tag. Liefert Anzahl ok und Fehler. */
+/**
+ * Setzt nach dem Webinar pro Person genau einen Status-Tag. Liefert Anzahl ok und Fehler.
+ * Personen, die den Tag schon haben (laut ghl_status), werden übersprungen, damit kein Workflow doppelt startet.
+ */
 export async function applyStatusTags(webinar: Webinar, regs: Registration[]): Promise<{ ok: number; failed: number; skipped: boolean }> {
   if (!ghlConfigured()) return { ok: 0, failed: 0, skipped: true };
   let ok = 0;
@@ -72,6 +110,7 @@ export async function applyStatusTags(webinar: Webinar, regs: Registration[]): P
     try {
       const id = await contactIdFor(r);
       const add = tagFor(webinar, r.status === "attended" ? "attended" : "missed");
+      if (r.ghlStatus === `tag:${add}`) continue;
       // Auch die früheren deutschen Tags weg, damit kein alter Workflow mehr greift
       const remove = [
         tagFor(webinar, "registered"),
@@ -81,6 +120,7 @@ export async function applyStatusTags(webinar: Webinar, regs: Registration[]): P
         legacyTag(webinar, "missed")
       ];
       await ghl(`/contacts/${encodeURIComponent(id)}/tags`, { tags: remove }, "DELETE");
+      await writeWebinarFields(id, webinar, r);
       await ghl(`/contacts/${encodeURIComponent(id)}/tags`, { tags: [add] });
       await setRegistrationGhl(r.id, { contactId: id, status: `tag:${add}` });
       ok++;
@@ -93,13 +133,14 @@ export async function applyStatusTags(webinar: Webinar, regs: Registration[]): P
 }
 
 /** Setzt einen zusätzlichen Tag bei allen Personen (z. B. `<basis>-materials` für den Unterlagen-Workflow). */
-export async function addTag(tag: string, regs: Registration[]): Promise<{ ok: number; failed: number; skipped: boolean }> {
+export async function addTag(webinar: Webinar, tag: string, regs: Registration[]): Promise<{ ok: number; failed: number; skipped: boolean }> {
   if (!ghlConfigured()) return { ok: 0, failed: 0, skipped: true };
   let ok = 0;
   let failed = 0;
   for (const r of regs) {
     try {
       const id = await contactIdFor(r);
+      await writeWebinarFields(id, webinar, r);
       await ghl(`/contacts/${encodeURIComponent(id)}/tags`, { tags: [tag] });
       if (!r.ghlContactId) await setRegistrationGhl(r.id, { contactId: id, status: r.ghlStatus ?? `tag:${tag}` });
       ok++;
