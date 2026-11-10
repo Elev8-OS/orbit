@@ -270,8 +270,13 @@ export async function finalizeAction(_: FormState, form: FormData): Promise<Form
       return { error: "Der Bericht hat Warnungen. Bitte prüfen und „Trotzdem abschliessen“ ankreuzen." };
     }
     await markLiveEver(regs.filter((r) => r.status === "attended").map((r) => r.email));
-    const result = await applyStatusTags(w, regs);
     await updateWebinar(id, { attendanceFinalizedAt: new Date() });
+    // Die Mails der Tags verlinken die Aufzeichnung; vorher wäre der Link tot. Die Tags folgen beim Veröffentlichen.
+    if (!w.recordingPublishedAt) {
+      refresh(id);
+      return { ok: "Abgeschlossen. Die GHL-Tags und damit die Mails folgen automatisch, sobald die Aufzeichnung veröffentlicht ist." };
+    }
+    const result = await applyStatusTags(w, regs);
     refresh(id);
     if (result.skipped) return { ok: "Abgeschlossen. GHL ist nicht eingerichtet, Tags wurden nicht gesetzt." };
     return result.failed
@@ -491,8 +496,18 @@ export async function publishAction(_: FormState, form: FormData): Promise<FormS
     const on = str(form, "on") === "1";
     if (on && !w.bunnyVideoDe) return { error: "Ohne Video kann die Aufzeichnung nicht veröffentlicht werden." };
     await updateWebinar(id, { recordingPublishedAt: on ? new Date() : null });
+    let tags = "";
+    // Teilnahme schon abgeschlossen: jetzt die Tags setzen, die Mails verlinken die Aufzeichnung
+    if (on && w.attendanceFinalizedAt) {
+      const result = await applyStatusTags(w, await listRegistrations(id));
+      if (!result.skipped && result.ok + result.failed > 0) {
+        tags = result.failed
+          ? ` ${result.ok} GHL-Tags gesetzt, ${result.failed} fehlgeschlagen (siehe Teilnahme). Erneut veröffentlichen versucht es nochmals.`
+          : ` ${result.ok} GHL-Tags gesetzt, die Mails gehen raus.`;
+      }
+    }
     refresh(id);
-    return { ok: on ? "Aufzeichnung ist im Portal sichtbar." : "Aufzeichnung ist wieder versteckt." };
+    return { ok: on ? `Aufzeichnung ist im Portal sichtbar.${tags}` : "Aufzeichnung ist wieder versteckt." };
   } catch (err) {
     return fail(err);
   }
@@ -721,7 +736,7 @@ export async function notifyMaterialsAction(_: FormState, form: FormData): Promi
     const regs = (await listRegistrations(id)).filter((r) => r.status === "attended" || r.status === "missed");
     if (!regs.length) return { error: "Keine Teilnehmenden. Zuerst die Teilnahme abschliessen." };
     const tag = tagFor(w, "materials");
-    const result = await addTag(tag, regs);
+    const result = await addTag(w, tag, regs);
     if (result.skipped) return { error: "GHL ist in Orbit nicht eingerichtet." };
     if (result.ok) await updateWebinar(id, { materialsNotifiedAt: new Date() });
     refresh(id);
