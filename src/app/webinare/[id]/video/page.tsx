@@ -7,12 +7,23 @@ import { ActionButton } from "@/components/messen/MessenForms";
 import { CopyField } from "@/components/webinare/CopyField";
 import { VideoPlanEditor } from "@/components/webinare/VideoPlanEditor";
 import { RefreshWhile } from "@/components/webinare/RefreshWhile";
+import { YoutubePublish } from "@/components/webinare/YoutubePublish";
+import { getConnection, youtubeConfigured } from "@/lib/webinare/youtube";
 import { clipsWithoutWords, emptyPlan, getVideoJob, mmss, plannedSeconds, TARGET, youtubeDescription, youtubeFallback } from "@/lib/webinare/video";
-import { cancelVideoAction, cleanNarrationAction, prepareAudioAction, renderVideoAction, saveVideoPlanAction, suggestVideoPlanAction, suggestYoutubeAction } from "../../video-actions";
+import { cancelVideoAction, cleanNarrationAction, prepareAudioAction, renderVideoAction, saveVideoPlanAction, suggestVideoPlanAction, suggestYoutubeAction, youtubeDisconnectAction, youtubeUploadAction } from "../../video-actions";
 import "./video.css";
 
 export const dynamic = "force-dynamic";
 const ZONE = "Europe/Zurich";
+
+/** Rückmeldung nach der Google-Anmeldung (?youtube=…) */
+const YT_RESULT: Record<string, { text: string; bad?: boolean }> = {
+  ok: { text: "YouTube-Kanal verbunden." },
+  abgebrochen: { text: "Die Anmeldung bei Google wurde abgebrochen.", bad: true },
+  abgelaufen: { text: "Die Anmeldung ist abgelaufen. Bitte nochmals verbinden.", bad: true },
+  "kein-kanal": { text: "Zu diesem Google-Konto gibt es keinen YouTube-Kanal. Bei der Anmeldung den Kanal von Elev8 wählen.", bad: true },
+  fehler: { text: "Die Verbindung mit YouTube hat nicht geklappt. Bitte nochmals versuchen.", bad: true }
+};
 
 const STATUS = {
   draft: { label: "Entwurf", cls: "wb-state" },
@@ -22,7 +33,7 @@ const STATUS = {
   failed: { label: "Fehlgeschlagen", cls: "wb-state wb-state-bad" }
 } as const;
 
-export default async function VideoPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function VideoPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ youtube?: string }> }) {
   const user = await currentWebinarUser();
   if (!user) return null;
   const { id } = await params;
@@ -44,7 +55,14 @@ export default async function VideoPage({ params }: { params: Promise<{ id: stri
   const savedClips = Boolean(job?.plan.chapters.some((c) => c.clips.length));
   const hasNarration = plan.chapters.some((c) => c.clips.some((k) => k.lines?.length));
   const captions = job?.result?.captions ?? [];
-  const preparing = job?.task !== undefined && job.task !== "render";
+  const preparing = job?.task === "prepare" || job?.task === "prepare-all";
+  const uploading = job?.task === "youtube";
+  const ytResult = YT_RESULT[(await searchParams).youtube ?? ""];
+  const ytReady = youtubeConfigured();
+  const conn = ytReady ? await getConnection() : null;
+  const up = job?.youtube ?? null;
+  // Ohne Googles Prüfung des API-Projekts setzt YouTube jeden Upload auf privat
+  const locked = up?.state === "done" && up.privacyResult === "private" && (up.privacy !== "private" || Boolean(up.publishAt));
   const unprepared = clipsWithoutWords(plan);
 
   return (
@@ -138,9 +156,11 @@ export default async function VideoPage({ params }: { params: Promise<{ id: stri
         <section className="me-card">
           <div className="wb-step-head">
             <h2>Video</h2>
-            <span className={STATUS[status].cls}>{busy && preparing ? "Ton wird bereinigt" : STATUS[status].label}</span>
+            <span className={STATUS[status].cls}>
+              {busy && preparing ? "Ton wird bereinigt" : busy && uploading ? "Wird auf YouTube hochgeladen" : STATUS[status].label}
+            </span>
           </div>
-          {busy && !preparing && (
+          {busy && !preparing && !uploading && (
             <div className="wb-vid-progress">
               <div className="wb-bar" aria-hidden="true">
                 <span style={{ width: `${Math.max(3, job?.progress ?? 0)}%` }} />
@@ -226,6 +246,101 @@ export default async function VideoPage({ params }: { params: Promise<{ id: stri
             <CopyField label="Beschreibung mit Kapiteln" text={youtubeDescription({ ...plan, youtube: yt }, job?.result ?? null, portalUrl())} rows={14} />
             <CopyField label={`Tags (${yt.tags.join(",").length}/500 Zeichen)`} text={yt.tags.join(", ")} />
           </div>
+        </section>
+
+        <section className="me-card">
+          <div className="wb-step-head">
+            <h2>Auf YouTube veröffentlichen</h2>
+            <span className={conn ? "wb-state wb-state-ok" : "wb-state"}>{conn ? `Kanal: ${conn.channelTitle}` : "Nicht verbunden"}</span>
+          </div>
+          {ytResult && <p className={ytResult.bad ? "wb-warn" : "wb-note"}>{ytResult.text}</p>}
+          {!ytReady ? (
+            <p className="wb-note">Noch nicht eingerichtet: In Railway beim Dienst orbit YOUTUBE_CLIENT_ID und YOUTUBE_CLIENT_SECRET setzen.</p>
+          ) : !conn ? (
+            <>
+              <p className="wb-hint">
+                Einmal den YouTube-Kanal von Elev8 verbinden. Danach lädt Orbit fertige Erklärvideos mit Titel, Beschreibung, Kapiteln, Tags,
+                Vorschaubild und den Untertiteln Deutsch und Englisch hoch.
+              </p>
+              {!ro && (
+                <a className="me-btn me-btn-primary" href={`/api/webinare/youtube/connect?w=${w.id}`}>
+                  YouTube-Kanal verbinden
+                </a>
+              )}
+            </>
+          ) : (
+            <>
+              {uploading && busy && (
+                <div className="wb-vid-progress">
+                  <div className="wb-bar" aria-hidden="true">
+                    <span style={{ width: `${Math.max(3, job?.progress ?? 0)}%` }} />
+                  </div>
+                  <p className="me-muted">
+                    {job?.message ?? "…"} {status === "rendering" && `(${job?.progress ?? 0} %)`}
+                  </p>
+                </div>
+              )}
+              {up?.state === "failed" && !busy && <p className="wb-warn">Upload fehlgeschlagen: {up.message}</p>}
+              {up?.state === "done" && up.videoId && (
+                <div className="wb-yt-done">
+                  <p>
+                    Hochgeladen{up.at ? ` am ${formatInZone(new Date(up.at), ZONE)}` : ""}:{" "}
+                    <a href={up.url} target="_blank" rel="noreferrer">
+                      {up.url}
+                    </a>{" "}
+                    ·{" "}
+                    <a href={`https://studio.youtube.com/video/${up.videoId}/edit`} target="_blank" rel="noreferrer">
+                      In YouTube Studio öffnen
+                    </a>
+                  </p>
+                  {locked ? (
+                    <p className="wb-note">
+                      YouTube hat das Video auf privat gesetzt, weil Google das API-Projekt noch nicht geprüft hat. Bitte in YouTube Studio auf
+                      {up.publishAt ? " „Planen“" : up.privacy === "unlisted" ? " „Nicht gelistet“" : " „Öffentlich“"} stellen.
+                    </p>
+                  ) : (
+                    <p className="me-muted">
+                      Sichtbarkeit: {up.publishAt ? `geplant für ${formatInZone(new Date(up.publishAt), ZONE)}` : up.privacyResult === "unlisted" ? "nicht gelistet" : up.privacyResult === "private" ? "privat" : "öffentlich"}
+                    </p>
+                  )}
+                  {(up.notes ?? []).map((n) => (
+                    <p key={n} className="wb-note">
+                      {n}
+                    </p>
+                  ))}
+                  {up.version !== job?.version && <p className="wb-note">Das Video wurde danach neu gerendert. Die neue Fassung ist noch nicht auf YouTube.</p>}
+                </div>
+              )}
+              {!ro && !busy && (status === "done" && job?.fileKey && !stale ? (
+                <YoutubePublish
+                  webinarId={w.id}
+                  action={youtubeUploadAction}
+                  label={up?.state === "done" ? (up.version === job.version ? "Nochmals hochladen" : "Neue Fassung hochladen") : "Auf YouTube hochladen"}
+                  confirm={
+                    up?.state === "done"
+                      ? "Es entsteht ein zusätzliches Video auf YouTube. Das bisherige bitte danach in YouTube Studio löschen. Fortfahren?"
+                      : undefined
+                  }
+                  synthetic={plan.voice !== "original"}
+                  playlist={up?.playlistId ?? ""}
+                />
+              ) : (
+                <p className="me-muted">{stale ? "Die Schnittliste wurde geändert. Zuerst neu rendern, dann hochladen." : "Zuerst das Video fertig rendern."}</p>
+              ))}
+              {!ro && (
+                <div className="wb-actions" style={{ marginTop: "1rem" }}>
+                  <ActionButton
+                    action={youtubeDisconnectAction}
+                    fields={{ id: w.id }}
+                    label="Kanal trennen"
+                    pending="Trennt …"
+                    variant="secondary"
+                    confirm="Die Verbindung zum YouTube-Kanal wird getrennt. Bereits hochgeladene Videos bleiben. Fortfahren?"
+                  />
+                </div>
+              )}
+            </>
+          )}
         </section>
       </div>
     </div>
