@@ -4,9 +4,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import postgres from "postgres";
 import { H, PIP, W, chapterPng, clean, introPng, keyPng, outroPng, pipPng, pipX, pipY, thumbPng } from "./overlays.mjs";
-import { deleteObject, putObject, storageConfigured } from "./s3.mjs";
+import { deleteObject, getObject, putObject, storageConfigured } from "./s3.mjs";
 import { clipWords } from "./stt.mjs";
 import { convert, speak, voiceConfigured } from "./voice.mjs";
+import { accessToken, addToPlaylist, insertCaption, setThumbnail, uploadVideo } from "./youtube.mjs";
 
 /**
  * Render-Dienst für Erklärvideos aus Webinar-Aufzeichnungen.
@@ -16,6 +17,7 @@ import { convert, speak, voiceConfigured } from "./voice.mjs";
  * Variablen: DATABASE_URL, BUNNY_CDN_HOST, S3_ENDPOINT, S3_BUCKET, S3_REGION, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY,
  * für die Profistimme ELEVENLABS_API_KEY und ELEVENLABS_VIDEO_VOICE_ID.
  * Aufträge "prepare"/"prepare-all": Clips wortgenau transkribieren und Füllwörter markieren (für die synchrone Profistimme).
+ * Auftrag "youtube": fertiges Video auf YouTube hochladen (YOUTUBE_CLIENT_ID, YOUTUBE_CLIENT_SECRET, AUTH_SECRET wie in Orbit).
  * Zum Testen: SOURCE_OVERRIDE (lokale Datei statt Bunny), NO_UPLOAD=1 (Ergebnis bleibt in OUT_DIR).
  */
 
@@ -570,16 +572,94 @@ async function runPrepare(job) {
   }
 }
 
+/** Datei aus dem Bucket auf die Platte laden */
+async function download(key, file) {
+  const res = await getObject(key);
+  if (!res?.ok) throw new Error(`Datei ${key} nicht im Speicher (${res?.status}).`);
+  await writeFile(file, Buffer.from(await res.arrayBuffer()));
+}
+
+/** Fertiges Video mit Vorschaubild, Untertiteln und Playlist auf YouTube. Ändert updated_at nicht (das Video gilt nicht als geändert). */
+export async function runYoutube(job) {
+  const id = job.webinar_id;
+  const y = job.youtube ?? {};
+  const step = (pct, message) => sql`UPDATE webinar_videos SET progress = ${Math.round(pct)}, message = ${message} WHERE webinar_id = ${id}`;
+  const patch = (p) => sql`UPDATE webinar_videos SET youtube = COALESCE(youtube, '{}'::jsonb) || ${sql.json(p)} WHERE webinar_id = ${id}`;
+  const dir = await mkdtemp(join(process.env.OUT_DIR || tmpdir(), "youtube-"));
+  try {
+    if (!job.file_key) throw new Error("Es gibt noch kein fertiges Video.");
+    await patch({ state: "uploading", message: null });
+    await step(1, "Meldet sich bei YouTube an …");
+    const token = await accessToken(sql);
+    await step(2, "Holt das Video aus dem Speicher …");
+    const file = join(dir, "video.mp4");
+    await download(job.file_key, file);
+    const size = (await stat(file)).size;
+    let last = 0;
+    const video = await uploadVideo(token, file, size, y, async (f) => {
+      if (f - last < 0.05 && f < 1) return;
+      last = f;
+      await step(3 + f * 85, `Lädt auf YouTube hoch … ${Math.round(f * 100)} %`);
+    });
+    log("YouTube: hochgeladen", video.id);
+    const notes = [];
+    if (job.thumb_key) {
+      await step(90, "Setzt das Vorschaubild …");
+      try {
+        const png = join(dir, "thumb.png");
+        const jpg = join(dir, "thumb.jpg");
+        await download(job.thumb_key, png);
+        await run("ffmpeg", ["-hide_banner", "-y", "-i", png, "-vf", "scale=1280:-2", "-q:v", "3", jpg]);
+        await setThumbnail(token, video.id, await readFile(jpg));
+      } catch (err) {
+        notes.push(`Vorschaubild nicht gesetzt: ${err.message}`);
+      }
+    }
+    const caps = job.result?.captions ?? [];
+    for (const [lang, name] of [["de", "Deutsch"], ["en", "English"]]) {
+      if (!caps.some((c) => c[lang])) continue;
+      await step(94, `Lädt die Untertitel ${name} hoch …`);
+      try {
+        await insertCaption(token, video.id, lang, name, toSrt(caps, lang));
+      } catch (err) {
+        notes.push(`Untertitel ${name} nicht hochgeladen: ${err.message}`);
+      }
+    }
+    if (y.playlistId) {
+      await step(98, "Fügt das Video der Playlist hinzu …");
+      try {
+        await addToPlaylist(token, y.playlistId, video.id);
+      } catch (err) {
+        notes.push(`Nicht zur Playlist hinzugefügt: ${err.message}`);
+      }
+    }
+    await patch({ state: "done", videoId: video.id, url: `https://youtu.be/${video.id}`, privacyResult: video.status?.privacyStatus ?? y.privacy, notes, message: null, at: new Date().toISOString() });
+    await sql`UPDATE webinar_videos SET status = 'done', progress = 100, message = NULL WHERE webinar_id = ${id}`;
+    log("YouTube: fertig", video.id, notes.join(" | "));
+  } catch (err) {
+    log("Fehler beim YouTube-Upload", err);
+    await patch({ state: "failed", message: String(err?.message || err).slice(0, 1000) }).catch(() => {});
+    await sql`UPDATE webinar_videos SET status = CASE WHEN file_key IS NOT NULL THEN 'done' ELSE 'draft' END, progress = 0, message = NULL WHERE webinar_id = ${id}`.catch(() => {});
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+}
+
 async function claim() {
   const [job] = await sql`
-    UPDATE webinar_videos SET status = 'rendering', progress = 0, message = 'Startet …', attempts = attempts + 1, started_at = now(), updated_at = now()
+    UPDATE webinar_videos SET status = 'rendering', progress = 0, message = 'Startet …', attempts = attempts + 1, started_at = now()
     WHERE webinar_id = (SELECT webinar_id FROM webinar_videos WHERE status = 'queued' ORDER BY queued_at NULLS FIRST LIMIT 1 FOR UPDATE SKIP LOCKED)
     RETURNING *`;
   return job ?? null;
 }
 
 async function loop() {
-  // Beim Start: abgebrochene Aufträge einmal neu einreihen, danach als fehlgeschlagen markieren
+  // Beim Start: ein abgebrochener YouTube-Upload wird nicht wiederholt (sonst womöglich doppelt auf YouTube)
+  await sql`
+    UPDATE webinar_videos SET status = CASE WHEN file_key IS NOT NULL THEN 'done' ELSE 'draft' END, progress = 0, message = NULL,
+      youtube = COALESCE(youtube, '{}'::jsonb) || ${sql.json({ state: "failed", message: "Abgebrochen (Dienst neu gestartet). Bitte in YouTube Studio prüfen, ob das Video teilweise hochgeladen wurde." })}
+    WHERE status = 'rendering' AND task = 'youtube'`;
+  // Übrige abgebrochene Aufträge einmal neu einreihen, danach als fehlgeschlagen markieren
   await sql`UPDATE webinar_videos SET status = 'queued', message = 'Neu eingereiht nach Neustart' WHERE status = 'rendering' AND attempts < 2`;
   await sql`UPDATE webinar_videos SET status = 'failed', message = 'Abgebrochen (Dienst neu gestartet)' WHERE status = 'rendering'`;
   log("Render-Dienst bereit");
@@ -590,6 +670,7 @@ async function loop() {
       if (job) {
         log("Auftrag", job.webinar_id, job.task ?? "render");
         if (job.task === "prepare" || job.task === "prepare-all") await runPrepare(job);
+        else if (job.task === "youtube") await runYoutube(job);
         else await render(job);
         continue;
       }

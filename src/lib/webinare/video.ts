@@ -3,6 +3,7 @@ import { callClaudeTool, claudeConfigured } from "@/lib/offerten/claude";
 import { mmss } from "./content";
 import type { Webinar } from "./store";
 import { linesFromWords, wordsValid, type Word } from "./words";
+import type { YoutubeUpload } from "./youtube";
 
 /**
  * Erklärvideos aus Webinar-Aufzeichnungen. Orbit pflegt die Schnittliste (plan) und reiht den Auftrag ein,
@@ -38,8 +39,11 @@ export type VideoStatus = "draft" | "queued" | "rendering" | "done" | "failed";
 /** Untertitel im fertigen Video (Sekunden), vom Render-Dienst aus der Platzierung der Zeilen */
 export type Caption = { start: number; end: number; de: string; en: string };
 export type VideoResult = { durationSec: number; size: number; chapters: { title: string; at: number }[]; captions?: Caption[] };
-/** render: Video rendern, prepare: Ton der Clips wortgenau transkribieren und Füllwörter markieren (fehlende), prepare-all: alle neu */
-export type VideoTask = "render" | "prepare" | "prepare-all";
+/**
+ * render: Video rendern, prepare: Ton der Clips wortgenau transkribieren und Füllwörter markieren (fehlende),
+ * prepare-all: alle neu, youtube: fertiges Video auf YouTube hochladen
+ */
+export type VideoTask = "render" | "prepare" | "prepare-all" | "youtube";
 export type VideoJob = {
   webinarId: string;
   task: VideoTask;
@@ -55,6 +59,7 @@ export type VideoJob = {
   startedAt: Date | null;
   finishedAt: Date | null;
   updatedAt: Date;
+  youtube: YoutubeUpload | null;
 };
 
 /** Gleiche Werte wie im Render-Dienst */
@@ -377,7 +382,7 @@ export async function getCaptions(webinarId: string): Promise<Caption[]> {
 type Row = Record<string, unknown>;
 const toJob = (r: Row, w: Webinar): VideoJob => ({
   webinarId: r.webinar_id as string,
-  task: (r.task === "prepare" || r.task === "prepare-all" ? r.task : "render") as VideoTask,
+  task: (r.task === "prepare" || r.task === "prepare-all" || r.task === "youtube" ? r.task : "render") as VideoTask,
   plan: normalizePlan(r.plan, w),
   status: r.status as VideoStatus,
   progress: Number(r.progress ?? 0),
@@ -389,7 +394,8 @@ const toJob = (r: Row, w: Webinar): VideoJob => ({
   queuedAt: (r.queued_at as Date) ?? null,
   startedAt: (r.started_at as Date) ?? null,
   finishedAt: (r.finished_at as Date) ?? null,
-  updatedAt: r.updated_at as Date
+  updatedAt: r.updated_at as Date,
+  youtube: (r.youtube as YoutubeUpload) ?? null
 });
 
 export async function getVideoJob(w: Webinar): Promise<VideoJob | null> {

@@ -59,3 +59,10 @@
 .wb-vid-words button.wb-ev { color: var(--muted); font-style: italic; }
 .wb-vid-wordbox small { font-size: 0.75rem; line-height: 1.45; color: var(--muted); }
 fieldset:disabled .wb-vid-words button { cursor: default; }
+
+/* Auf YouTube veröffentlichen */
+.wb-yt-done { display: grid; gap: 0.5rem; margin-bottom: 1rem; }
+.wb-yt-done p { margin: 0; overflow-wrap: anywhere; }
+.wb-yt-done a { color: var(--ink); text-decoration: underline; text-underline-offset: 2px; }
+.wb-yt-form { margin-top: 0.25rem; }
+.wb-yt-form .me-field em { font-style: normal; font-weight: 400; color: var(--muted); }

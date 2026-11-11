@@ -1,10 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireWebinarUser } from "@/lib/webinare/access";
+import { portalUrl, requireWebinarUser } from "@/lib/webinare/access";
 import { getWebinar } from "@/lib/webinare/store";
 import { storageConfigured } from "@/lib/venues/s3";
-import { cancelQueued, cleanNarration, clipsWithoutWords, getVideoJob, normalizePlan, plannedSeconds, queueRender, savePlan, saveYoutube, suggestPlan, suggestYoutube, translateNarration, withTranscriptLines, withWordLines, type VideoPlan } from "@/lib/webinare/video";
+import { disconnect, getConnection, queueUpload, youtubeConfigured, type YoutubeUpload } from "@/lib/webinare/youtube";
+import { cancelQueued, cleanNarration, clipsWithoutWords, getVideoJob, normalizePlan, plannedSeconds, queueRender, savePlan, saveYoutube, suggestPlan, suggestYoutube, translateNarration, withTranscriptLines, withWordLines, youtubeDescription, youtubeFallback, type VideoPlan } from "@/lib/webinare/video";
 
 export type VideoFormState = { ok?: string; error?: string } | null;
 
@@ -159,6 +160,63 @@ export async function prepareAudioAction(_: VideoFormState, form: FormData): Pro
     return started
       ? { ok: "Eingereiht. Der Render-Dienst transkribiert die Clips wortgenau und markiert Füllwörter, das dauert etwa eine Minute." }
       : { error: "Es läuft bereits ein Auftrag." };
+  } catch (err) {
+    return fail(err);
+  }
+}
+
+export async function youtubeUploadAction(_: VideoFormState, form: FormData): Promise<VideoFormState> {
+  try {
+    const user = await requireWebinarUser("edit");
+    const w = await load(form);
+    if (!youtubeConfigured()) return { error: "Die YouTube-Schnittstelle ist in Orbit nicht eingerichtet." };
+    if (!(await getConnection())) return { error: "Zuerst den YouTube-Kanal verbinden." };
+    const job = await getVideoJob(w);
+    if (!job || job.status !== "done" || !job.fileKey) return { error: "Zuerst das Video fertig rendern." };
+    if (job.finishedAt && job.updatedAt > job.finishedAt) return { error: "Die Schnittliste wurde nach dem Rendern geändert. Zuerst neu rendern." };
+    const privacy = String(form.get("privacy") ?? "");
+    if (!["public", "unlisted", "private", "scheduled"].includes(privacy)) return { error: "Sichtbarkeit wählen." };
+    let publishAt: string | undefined;
+    if (privacy === "scheduled") {
+      const at = new Date(String(form.get("publishAt") ?? ""));
+      if (Number.isNaN(at.getTime())) return { error: "Datum und Zeit für die Veröffentlichung angeben." };
+      if (at.getTime() < Date.now() + 15 * 60_000) return { error: "Die geplante Veröffentlichung muss mindestens 15 Minuten in der Zukunft liegen." };
+      publishAt = at.toISOString();
+    }
+    const playlist = String(form.get("playlist") ?? "").trim();
+    const playlistId = playlist.match(/[?&]list=([A-Za-z0-9_-]+)/)?.[1] ?? playlist;
+    if (playlistId && !/^[A-Za-z0-9_-]{10,64}$/.test(playlistId)) return { error: "Die Playlist bitte als ID oder Link angeben." };
+    const yt = job.plan.youtube.title && job.plan.youtube.description ? job.plan.youtube : youtubeFallback(w, job.plan);
+    const upload: YoutubeUpload = {
+      state: "queued",
+      privacy: privacy === "scheduled" ? "private" : (privacy as YoutubeUpload["privacy"]),
+      ...(publishAt ? { publishAt } : {}),
+      ...(playlistId ? { playlistId } : {}),
+      synthetic: form.get("synthetic") === "1",
+      version: job.version,
+      meta: {
+        title: yt.title.slice(0, 100),
+        description: youtubeDescription({ ...job.plan, youtube: yt }, job.result, portalUrl()).slice(0, 5000),
+        tags: yt.tags
+      },
+      by: user.email,
+      at: new Date().toISOString()
+    };
+    const started = await queueUpload(w.id, upload);
+    refresh(w.id);
+    return started ? { ok: "Eingereiht. Der Upload dauert je nach Grösse einige Minuten." } : { error: "Es läuft bereits ein Auftrag." };
+  } catch (err) {
+    return fail(err);
+  }
+}
+
+export async function youtubeDisconnectAction(_: VideoFormState, form: FormData): Promise<VideoFormState> {
+  try {
+    await requireWebinarUser("edit");
+    const w = await load(form);
+    await disconnect();
+    refresh(w.id);
+    return { ok: "YouTube-Kanal getrennt." };
   } catch (err) {
     return fail(err);
   }
