@@ -106,3 +106,9 @@ a.gr-pill:hover { border-color: var(--ink); color: var(--ink); }
   .gr-table-wrap { margin: 0 -1rem -1rem; }
   .gr-dl { grid-template-columns: 1fr; }
 }
+
+.gr-assist-res { display: grid; gap: 0.75rem; margin-top: 0.75rem; }
+.gr-assist-res p { margin: 0; }
+.gr-assist-hit { border: 1px solid var(--line); border-radius: 0.625rem; padding: 0.75rem 1rem; background: var(--bg); display: grid; gap: 0.5rem; }
+.gr-assist-hit summary { cursor: pointer; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+.gr-assist-hit[open] > *:not(summary) { margin-top: 0.5rem; }

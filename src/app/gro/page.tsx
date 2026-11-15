@@ -3,6 +3,7 @@ import { call, type LiveCheckin, type LiveGuest } from "@/lib/gro/elev8";
 import { keep, liveContext, liveListings } from "@/lib/gro/live";
 import { listConstants, listOverlays, listProcesses, listShortcuts } from "@/lib/gro/store";
 import { AutoRefresh, QuickSearch } from "@/components/gro/Tools";
+import { Assist } from "@/components/gro/Assist";
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +51,7 @@ export default async function Heute() {
         {creds && <AutoRefresh at={at} />}
       </header>
 
+      <Assist />
       <QuickSearch items={quick} />
 
       {err && <p className="gr-banner">{err}</p>}

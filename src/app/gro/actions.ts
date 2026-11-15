@@ -6,10 +6,11 @@ import { audit } from "@/lib/platform/audit";
 import { requireGro, TENANT_COOKIE } from "@/lib/gro/access";
 import { credsFor, testConnection } from "@/lib/gro/elev8";
 import {
-  addMember, createTenant, decideOpenItem, listAllTenants, readCodes, removeMember, saveCodes, saveConstant, saveEscalation,
+  addMember, createTenant, decideOpenItem, listAllTenants, listConstants, listProcesses, listShortcuts, listTemplates, readCodes, removeMember, saveCodes, saveConstant, saveEscalation,
   saveOverlay, saveProcess, saveTemplate, tenantSecrets, updateConnection
 } from "@/lib/gro/store";
 import { adoptTemplate, loadTemplateLibrary } from "@/lib/gro/seeding";
+import { assist, type AssistResult } from "@/lib/gro/assist";
 
 export type FormState = { ok?: string; error?: string } | null;
 
@@ -244,4 +245,15 @@ export async function removeMemberAction(_: FormState, f: FormData): Promise<For
 export async function refreshLiveAction() {
   await requireGro();
   revalidatePath("/gro");
+}
+
+/** Nachschlagen: Gästetext oder Stichwort, Claude ordnet passende Prozesse zu. Der Text wird nicht gespeichert. */
+export async function assistAction(text: string): Promise<AssistResult> {
+  const ctx = await requireGro();
+  const [procs, templates, shortcuts, constants] = await Promise.all([listProcesses(ctx.tenant.id), listTemplates(ctx.tenant.id), listShortcuts(ctx.tenant.id), listConstants(ctx.tenant.id)]);
+  const phrases = new Map<string, string[]>();
+  for (const sc of shortcuts) phrases.set(sc.processKey, [...(phrases.get(sc.processKey) ?? []), sc.phrase]);
+  const res = await assist(String(text ?? ""), procs, templates, phrases, constants);
+  await audit(who(ctx.user), "gro.assist", ctx.tenant.slug, { mode: res.mode, hits: res.hits.map((h) => h.key) });
+  return res;
 }
