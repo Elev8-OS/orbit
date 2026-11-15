@@ -116,6 +116,20 @@ apps:
     requestableBy: [Orbit.Staff]
     embed: true
 
+  # GRO Service – direkt in Orbit gebaut (/gro), mandantenfähig. Prozesse, Regeln und Vorlagen für Guest Relations,
+  # live verknüpft mit Elev8 (Unverifizierte, Check-ins, Objekte). Rollen: App.GRO, App.GRO.Edit, App.GRO.Admin. Siehe docs/GRO.md.
+  - id: gro
+    name: { de: GRO Service, en: GRO Service }
+    description:
+      de: Arbeitswerkzeug für Guest Relations, Prozesse, Regeln und Vorlagen, live mit Elev8 verknüpft.
+      en: Working tool for guest relations, processes, rules and templates, live-linked to Elev8.
+    url: https://myorbit.elev8-suite.com/gro
+    icon: Headset
+    category: operations
+    roles: [App.GRO, App.GRO.Edit, App.GRO.Admin]
+    requestableBy: [Orbit.Staff]
+    embed: true
+
   # Webinare – direkt in Orbit gebaut (/webinare). Pflegt das Webinar-Portal webinar.elev8-suite.com: Termine,
   # Teilnahme aus Teams, GHL-Tags, Aufzeichnungen (Bunny), Transkript (Fireflies), KI-Inhalte, Vorab-Fragen,
   # Abstimmungen. Rollen: App.Webinar (Redaktion), App.Webinar.Moderation (Fragen und Vorschläge).
