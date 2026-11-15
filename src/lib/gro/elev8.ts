@@ -82,6 +82,18 @@ export type LiveCheckin = {
   pms_reservation_id: string;
   notes: string;
 };
+/** get_guest_arrival_details: liefert auch die heutigen Anreisen (get_upcoming_checkins beginnt erst morgen) */
+export type LiveArrival = {
+  channel: string;
+  check_in_date: string;
+  check_out_date: string;
+  estimated_check_in_time: string;
+  guest_name: string;
+  listing_name: string;
+  nights: number;
+  number_of_guests: number;
+  pms_reservation_id: string;
+};
 export type LiveTag = { listing_id: string; listing_name: string; tag_name: string };
 
 export const countryCode = (c: string | null | undefined) => {
