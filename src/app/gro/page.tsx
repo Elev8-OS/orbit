@@ -1,5 +1,5 @@
 import { groContext } from "@/lib/gro/access";
-import { call, type LiveCheckin, type LiveGuest } from "@/lib/gro/elev8";
+import { call, type LiveArrival, type LiveCheckin, type LiveGuest } from "@/lib/gro/elev8";
 import { keep, liveContext, liveListings } from "@/lib/gro/live";
 import { listConstants, listOverlays, listProcesses, listShortcuts } from "@/lib/gro/store";
 import { AutoRefresh, QuickSearch } from "@/components/gro/Tools";
@@ -10,6 +10,7 @@ const CHANNEL: Record<string, string> = { BOOKING_COM: "Booking.com", AIRBNB: "A
 const channel = (c: string) => CHANNEL[c] ?? c.replace(/_/g, " ").toLowerCase();
 const day = (iso: string) => new Date(iso + "T12:00:00").toLocaleDateString("de-CH", { weekday: "short", day: "2-digit", month: "2-digit" });
 const todayIso = () => new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Zurich" }).format(new Date());
+const plusDays = (iso: string, n: number) => new Date(Date.parse(iso + "T12:00:00Z") + n * 86_400_000).toISOString().slice(0, 10);
 const short = (n: string) => n.replace(/^The R (Apartments?|Suites?|Villa|Loft)\s*/i, "").split(/[,\-–|]/)[0].trim() || n;
 
 export default async function Heute() {
@@ -19,19 +20,28 @@ export default async function Heute() {
   const [{ creds, allowed, problem }, processes, shortcuts, overlays, constants] = await Promise.all([liveContext(t), listProcesses(t.id), listShortcuts(t.id), listOverlays(t.id), listConstants(t.id)]);
   const pruef = constants.find((c) => c.key === "pruefzeit_ch")?.value ?? "14:00";
 
-  const [unver, ins, listings] = await Promise.all([
+  const today = todayIso();
+  const tomorrow = plusDays(today, 1);
+  // Elev8 liefert bei Unverifizierten und Check-ins nur ab morgen und ignoriert den Zeitraum: heute separat holen, Zeitraum selbst begrenzen
+  const [unver, ins, arrToday, listings] = await Promise.all([
     call<LiveGuest>(t, creds, "get_unverified_guests", { days_ahead: 3 }),
     call<LiveCheckin>(t, creds, "get_upcoming_checkins", { days_ahead: 2 }),
+    call<LiveArrival>(t, creds, "get_guest_arrival_details", { from_date: today, to_date: today }),
     liveListings(t, creds)
   ]);
 
   const byName = new Map((listings.ok ? listings.rows : []).map((l) => [l.listing_name, l]));
   const idOf = (name: string) => byName.get(name)?.listing_id;
-  const unverRows = unver.ok ? keep(unver.rows, allowed).sort((a, b) => a.check_in_date.localeCompare(b.check_in_date)) : [];
+  const unverRows = unver.ok ? keep(unver.rows, allowed).filter((r) => r.check_in_date <= plusDays(today, 3)).sort((a, b) => a.check_in_date.localeCompare(b.check_in_date)) : [];
   const unverKeys = new Set(unverRows.map((r) => `${r.listing_name}|${r.guest_name}|${r.check_in_date}`));
-  const inRows = ins.ok ? keep(ins.rows, allowed).sort((a, b) => a.check_in_date.localeCompare(b.check_in_date) || a.listing_name.localeCompare(b.listing_name)) : [];
-  const today = todayIso();
-  const stamp = [unver, ins].flatMap((r) => (r.ok ? [r.at] : []));
+  const todayRows: LiveCheckin[] = arrToday.ok
+    ? keep(arrToday.rows, allowed)
+        .filter((r) => r.check_in_date === today)
+        .map((r) => ({ ...r, check_in_time: "15:00:00", number_of_adults: r.number_of_guests, number_of_childrens: 0, notes: "" }))
+    : [];
+  const laterRows = ins.ok ? keep(ins.rows, allowed).filter((r) => r.check_in_date > today && r.check_in_date <= tomorrow) : [];
+  const inRows = [...todayRows, ...laterRows].sort((a, b) => a.check_in_date.localeCompare(b.check_in_date) || a.listing_name.localeCompare(b.listing_name));
+  const stamp = [unver, ins, arrToday].flatMap((r) => (r.ok ? [r.at] : []));
   const at = stamp.length ? Math.min(...stamp) : null;
 
   const quick = shortcuts.flatMap((s) => {
@@ -55,7 +65,7 @@ export default async function Heute() {
       {err && <p className="gr-banner">{err}</p>}
 
       <section className="gr-stats" aria-label="Übersicht">
-        <div><b>{unverRows.length}</b><span>Unverifiziert (3 Tage)</span></div>
+        <div><b>{unverRows.length}</b><span>Unverifiziert (ab morgen, 3 Tage)</span></div>
         <div><b>{inRows.filter((r) => r.check_in_date === today).length}</b><span>Check-ins heute</span></div>
         <div><b>{inRows.filter((r) => r.check_in_date !== today).length}</b><span>Check-ins morgen</span></div>
         <div><b>{inRows.filter((r) => overlays.get(idOf(r.listing_name) ?? "")?.citytaxPortal).length}</b><span>mit Citytax-Meldung</span></div>
@@ -66,7 +76,7 @@ export default async function Heute() {
           <h2>Unverifizierte Check-ins</h2>
           <a className="gr-btn gr-btn-secondary" href="/gro/prozesse/P-2.1">Ablauf P-2.1</a>
         </div>
-        <p className="gr-muted">Prüfzeit Schweiz {pruef}. Jede Zeile bekommt die Nachricht mit dem Gästeführer-Link genau dieser Buchung (Vorlagen).</p>
+        <p className="gr-muted">Prüfzeit Schweiz {pruef}. Elev8 liefert diese Liste erst ab morgen, bei heutigen Anreisen den Status in Elev8 prüfen. Jede Zeile bekommt die Nachricht mit dem Gästeführer-Link genau dieser Buchung (Vorlagen).</p>
         {unverRows.length ? (
           <div className="gr-table-wrap">
             <table className="gr-table">
@@ -107,13 +117,14 @@ export default async function Heute() {
                   const extra = r.number_of_guests > t.baseGuests;
                   return (
                     <tr key={r.pms_reservation_id}>
-                      <td className="gr-nowrap">{day(r.check_in_date)}<span className="gr-muted"> {(r.estimated_check_in_time || r.check_in_time).slice(0, 5)}</span></td>
+                      <td className="gr-nowrap">{day(r.check_in_date)}<span className="gr-muted"> {/[AP]M/i.test(r.estimated_check_in_time) ? r.estimated_check_in_time : (r.estimated_check_in_time && r.estimated_check_in_time !== "00:00:00" ? r.estimated_check_in_time : r.check_in_time).slice(0, 5)}</span></td>
                       <td>{r.guest_name}<span className="gr-muted"> · {channel(r.channel)}</span></td>
                       <td>{short(r.listing_name)}</td>
                       <td className="gr-nowrap">{r.number_of_guests}{l?.maximum_capacity != null && <span className="gr-muted"> von {l.maximum_capacity}</span>}</td>
                       <td>{r.nights}</td>
                       <td className="gr-badges">
                         {isUnver && <a className="gr-pill gr-pill-warn" href="/gro/prozesse/P-2.1">Unverifiziert</a>}
+                        {r.check_in_date === today && <span className="gr-pill" title="Elev8 liefert den Verifizierungsstatus erst ab morgen">Status in Elev8 prüfen</span>}
                         {ov?.citytaxPortal && <a className="gr-pill" href="/gro/prozesse/P-3.1">Citytax {ov.citytaxPortal}</a>}
                         {over && <span className="gr-pill gr-pill-danger">Über Kapazität</span>}
                         {extra && !over && <a className="gr-pill" href="/gro/prozesse/P-4.1">Zusatzperson prüfen</a>}
