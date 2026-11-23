@@ -18,6 +18,7 @@ const de = {
   pillars: {
     villa_spotlight: "Villa im Fokus",
     villa_angles: "Villa aus mehreren Blickwinkeln",
+    availability: "Freie Nächte (Facebook)",
     which_villa_for: "Welche Villa für …",
     design_details: "Design-Detail",
     neighbourhood: "Umgebung",
@@ -79,6 +80,7 @@ const en: typeof de = {
   pillars: {
     villa_spotlight: "Villa spotlight",
     villa_angles: "Villa, several angles",
+    availability: "Free nights (Facebook)",
     which_villa_for: "Which villa for …",
     design_details: "Design detail",
     neighbourhood: "Neighbourhood",
