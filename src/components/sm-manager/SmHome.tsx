@@ -61,18 +61,18 @@ async function send(method: string, url: string, body?: unknown): Promise<{ ok: 
 
 const pad = (n: number) => String(n).padStart(2, "0");
 const toLocalInput = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-// baliHour: preferred posting hour in Bali time (UTC+8), set by an accepted learning. Without it 18:00 local time.
-function defaultWhen(baliHour?: number | null) {
-  const d = new Date();
-  if (typeof baliHour === "number") {
-    d.setUTCHours(baliHour - 8, 0, 0, 0);
-    if (d.getTime() < Date.now()) d.setUTCDate(d.getUTCDate() + 1);
-    return toLocalInput(d);
-  }
-  d.setHours(18, 0, 0, 0);
-  if (d.getTime() < Date.now()) d.setDate(d.getDate() + 1);
+const FALLBACK_BALI_HOUR = 18;
+// Proposal for the release time: the day the post is planned for (plan_date) at the best hour from an accepted learning
+// (Bali time, UTC+8). Without a learning 18:00 Bali time. A time that has already passed moves to the next day.
+function defaultWhen(planDate: string, baliHour?: number | null) {
+  const hour = typeof baliHour === "number" ? baliHour : FALLBACK_BALI_HOUR;
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(planDate));
+  const base = m ? Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), hour - 8, 0, 0, 0) : Date.now();
+  const d = new Date(base);
+  while (d.getTime() < Date.now() + 10 * 60 * 1000) d.setUTCDate(d.getUTCDate() + 1);
   return toLocalInput(d);
 }
+const baliLabel = (when: string) => new Intl.DateTimeFormat("de-CH", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Makassar" }).format(new Date(when));
 
 type NavItem = { view: View; href: string; label: string; count?: number };
 type NavGroup = { key: string; label: string; items: NavItem[] };
@@ -212,7 +212,7 @@ function PostCard({ s, locale, post, ghlReady, actionable, postHour }: { s: SmSt
   const tp = tipStrings(locale);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
-  const [when, setWhen] = useState(() => defaultWhen(postHour));
+  const [when, setWhen] = useState(() => defaultWhen(post.plan_date, postHour));
   const [comment, setComment] = useState("");
   const [rejecting, setRejecting] = useState(false);
 
@@ -289,6 +289,7 @@ function PostCard({ s, locale, post, ghlReady, actionable, postHour }: { s: SmSt
                 <label className="sm-when">
                   {s.approveAt}
                   <input type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} />
+                  <small> {locale === "en" ? "Bali time" : "Bali-Zeit"} {baliLabel(when)}</small>
                 </label>
                 <Tip text={tp.approveAt} label={tp.label} />
               </>
