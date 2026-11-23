@@ -17,6 +17,7 @@ const de = {
   formats: { reel: "Reel", carousel: "Karussell", single: "Einzelbild", story: "Story" } as Record<string, string>,
   pillars: {
     villa_spotlight: "Villa im Fokus",
+    villa_angles: "Villa aus mehreren Blickwinkeln",
     which_villa_for: "Welche Villa für …",
     design_details: "Design-Detail",
     neighbourhood: "Umgebung",
@@ -77,6 +78,7 @@ const en: typeof de = {
   formats: { reel: "Reel", carousel: "Carousel", single: "Single image", story: "Story" },
   pillars: {
     villa_spotlight: "Villa spotlight",
+    villa_angles: "Villa, several angles",
     which_villa_for: "Which villa for …",
     design_details: "Design detail",
     neighbourhood: "Neighbourhood",
