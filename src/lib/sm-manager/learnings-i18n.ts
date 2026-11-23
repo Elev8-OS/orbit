@@ -51,7 +51,8 @@ const de = {
       weekend: { yes: "Beiträge am Wochenende" },
       hashtags: { few: "Beiträge mit wenigen Hashtags (bis 5)", normal: "Beiträge mit 6 bis 10 Hashtags", many: "Beiträge mit vielen Hashtags (über 10)" },
       source: { engine: "Beiträge aus der Engine (gegenüber von Hand gepostet)" },
-      pillar: { villa_spotlight: "Beiträge „Villa im Fokus“", which_villa_for: "Beiträge „Welche Villa für wen“", design_details: "Beiträge „Design-Details“", neighbourhood: "Beiträge über die Umgebung", workation: "Beiträge zu Workation", book_direct: "Beiträge „Direkt buchen“" },
+      pillar: { villa_spotlight: "Beiträge „Villa im Fokus“", villa_angles: "Beiträge „Villa aus mehreren Blickwinkeln“", which_villa_for: "Beiträge „Welche Villa für wen“", design_details: "Beiträge „Design-Details“", neighbourhood: "Beiträge über die Umgebung", workation: "Beiträge zu Workation", book_direct: "Beiträge „Direkt buchen“" },
+      hookType: { curiosity: "Beiträge mit Neugier-Einstieg", surprise: "Beiträge mit überraschendem Detail im Einstieg", contrast: "Beiträge mit Kontrast im Einstieg", open_loop: "Beiträge mit offenem Einstieg (Open Loop)", moment: "Beiträge mit einer Szene als Einstieg" },
       villa: {}
     };
     const subject = l.dimension === "villa" ? `Beiträge zu ${cap(v)}` : labels[l.dimension]?.[v] ?? `${l.dimension}: ${v}`;
@@ -114,7 +115,8 @@ const en: typeof de = {
       weekend: { yes: "Posts at the weekend" },
       hashtags: { few: "Posts with few hashtags (up to 5)", normal: "Posts with 6 to 10 hashtags", many: "Posts with many hashtags (over 10)" },
       source: { engine: "Posts from the engine (compared with posted by hand)" },
-      pillar: { villa_spotlight: "\"Villa spotlight\" posts", which_villa_for: "\"Which villa for whom\" posts", design_details: "\"Design details\" posts", neighbourhood: "Posts about the area", workation: "Workation posts", book_direct: "\"Book direct\" posts" },
+      pillar: { villa_spotlight: "\"Villa spotlight\" posts", villa_angles: "\"Villa, several angles\" posts", which_villa_for: "\"Which villa for whom\" posts", design_details: "\"Design details\" posts", neighbourhood: "Posts about the area", workation: "Workation posts", book_direct: "\"Book direct\" posts" },
+      hookType: { curiosity: "Posts with a curiosity opening", surprise: "Posts with a surprising detail in the opening", contrast: "Posts with a contrast in the opening", open_loop: "Posts with an open-loop opening", moment: "Posts that open with a scene" },
       villa: {}
     };
     const subject = l.dimension === "villa" ? `Posts about ${cap(v)}` : labels[l.dimension]?.[v] ?? `${l.dimension}: ${v}`;
