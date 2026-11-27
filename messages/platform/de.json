@@ -117,6 +117,13 @@
     "quotes": "Offerten",
     "quoteStatus": { "sent": "versendet", "draft": "Entwurf" }
   },
+  "portfolio": {
+    "appName": "Portfolio-Analysen",
+    "noAccess": {
+      "title": "Kein Zugriff",
+      "body": "Für die Portfolio-Analysen brauchst du die Rolle App.PortfolioCH. Du kannst sie in Orbit über „Zugriff anfragen“ anfordern."
+    }
+  },
   "assistent": {
     "appName": "E-Mail-Assistent",
     "title": "E-Mail-Assistent",

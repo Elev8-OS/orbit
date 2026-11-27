@@ -117,6 +117,13 @@
     "quotes": "Offers",
     "quoteStatus": { "sent": "sent", "draft": "draft" }
   },
+  "portfolio": {
+    "appName": "Portfolio Analyses",
+    "noAccess": {
+      "title": "No access",
+      "body": "You need the App.PortfolioCH role to use Portfolio Analyses. You can request it in Orbit via “Request access”."
+    }
+  },
   "assistent": {
     "appName": "Email assistant",
     "title": "Email assistant",

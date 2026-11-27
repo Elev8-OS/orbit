@@ -1,4 +1,4 @@
-# Portfolio Monitoring Schweiz und Bali (`/portfolio`)
+# Portfolio-Analysen / Portfolio Analyses (`/portfolio`)
 
 Wirtschaftlichkeit, Empfehlungen und Kosten aller Schweizer Wohnungen von Elevate: Ranking, Netto pro Wohnung und Monat,
 Kosten pro Wohnung, Exit-Simulator, Break-even, Prognose, Bewährungs-Tracker, Neubeurteilung durch Claude, PDF- und Excel-Export.
