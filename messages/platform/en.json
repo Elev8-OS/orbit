@@ -118,6 +118,18 @@
     "quoteStatus": { "sent": "sent", "draft": "draft" }
   },
   "portfolio": {
+    "loading": "Loading portfolio …",
+    "loadError": "The portfolio module could not be loaded: {error}",
+    "mdv": {
+      "connected": "myDataValue connected",
+      "team": " (team {team})",
+      "by": " · by {name}",
+      "error": "myDataValue: {error}",
+      "notConnected": "myDataValue is not connected – Booking ratings are missing",
+      "connect": "Connect myDataValue",
+      "disconnect": "Disconnect",
+      "confirmDisconnect": "Disconnect from myDataValue? Booking ratings will then no longer be live."
+    },
     "appName": "Portfolio Analyses",
     "noAccess": {
       "title": "No access",

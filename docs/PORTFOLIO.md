@@ -18,6 +18,16 @@ einem Listing, die Auslastung wird deshalb über `units` pro Einheit gerechnet. 
 - Vergleichsmärkte AirROI: Pererenan, Canggu, Sanur (Denpasar Selatan)
 - Abschnitte zu Schaffhausen und zum PriceLabs-Monatsverlauf gelten nur für die Schweiz und sind in der Bali-Ansicht ausgeblendet
 
+## Sprache (Deutsch / Englisch)
+
+Das Modul folgt dem Sprachwahlschalter von Orbit (`getLocale()` → Prop `locale` von `PortfolioApp`). Beim Sprachwechsel lädt sich die Seite neu.
+
+- Rahmen (Titel, „Kein Zugriff“, myDataValue-Leiste, Ladehinweise): `messages/platform/{de,en}.json`, Abschnitt `portfolio`
+- Statisches Markup: `public/portfolio-app/app.html` (Deutsch) und `app.en.html` (Englisch). Beide haben dieselbe Struktur, nur die Texte unterscheiden sich – Änderungen immer in beiden Dateien machen.
+- Texte im Dashboard-Code: Anzeigetexte stehen als `__L("Deutscher Text {0}", [wert])` in den `app-p*.min.js`. `__L` (in `public/portfolio-app/i18n.js`) liefert auf Deutsch den Originaltext und auf Englisch den Eintrag aus `public/portfolio-app/i18n-en.json` (Schlüssel = deutscher Text, Platzhalter `{0}`, `{1}` …; fehlt ein Eintrag, bleibt der deutsche Text stehen). Neuer Text: im Code `__L("…")` verwenden und den Schlüssel in `i18n-en.json` ergänzen.
+- Datenwerte (Empfehlung, Status, Kategorie, Quelle) bleiben im Speicher deutsch, weil die Logik damit rechnet; nur die Anzeige geht durch `__D(wert)` (gleiches Wörterbuch). Freitexte aus den Datensätzen (`summary`, `causes`, `actions`, Vorfälle, Märkte) werden beim Laden mit `__TR` übersetzt.
+- Nicht übersetzt: Texte, die erst zur Laufzeit entstehen und nicht im Wörterbuch stehen – z. B. Neubeurteilungen von Claude, Vorfälle aus HostBuddy/Kalendernotizen und Fehlermeldungen der API. Sie erscheinen im Originaltext.
+
 ## Zugriff
 
 | Rolle | Darf |
@@ -58,7 +68,7 @@ Optional: `PORTFOLIO_CACHE_MINUTES` (Standard 60), `PORTFOLIO_LISTING_TAG` (Stan
 ## Aufbau
 
 - `src/app/portfolio` – Seite, prüft Rolle; `src/components/portfolio/PortfolioApp.tsx` lädt das Modul aus `public/portfolio-app`
-- `public/portfolio-app/app.html`, `app.css`, `theme.css` – Markup und Design (Elevate: Tan `#cca67d`, Schwarz `#0e0e0e`)
+- `public/portfolio-app/app.html` / `app.en.html`, `app.css`, `theme.css`, `i18n.js`, `i18n-en.json` – Markup (de/en), Design und Sprachhilfen (Elevate: Tan `#cca67d`, Schwarz `#0e0e0e`)
 - `public/portfolio-app/app-p0.min.js` … `app-p4.min.js` – Dashboard in sechs Teilen (p0 Konstanten, p1 Laufzeit `dash`/`claude.use` und Berechnungen, p2a/p2b Seiten mit gemeinsamem Script-Scope, p3 Zusatzfunktionen, p4 Export, Regionen-Umschalter und Start), in dieser Reihenfolge geladen
 - `src/app/api/portfolio/mdv/connect`, `callback`, `status` – Anmeldung bei myDataValue, Stand, Trennen (`src/lib/portfolio/mdvOauth.ts`)
 - `src/app/api/portfolio/data` – alle Datensätze; `docs/[collection]/[id]` – Kosten, Gemeinkosten, Ziele, Einstellungen; `reassess` – Neubeurteilung

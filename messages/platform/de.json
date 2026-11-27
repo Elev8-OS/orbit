@@ -118,6 +118,18 @@
     "quoteStatus": { "sent": "versendet", "draft": "Entwurf" }
   },
   "portfolio": {
+    "loading": "Portfolio wird geladen …",
+    "loadError": "Das Portfolio-Modul konnte nicht geladen werden: {error}",
+    "mdv": {
+      "connected": "myDataValue verbunden",
+      "team": " (Team {team})",
+      "by": " · von {name}",
+      "error": "myDataValue: {error}",
+      "notConnected": "myDataValue ist nicht verbunden – Booking-Bewertungen fehlen",
+      "connect": "myDataValue verbinden",
+      "disconnect": "Trennen",
+      "confirmDisconnect": "Verbindung zu myDataValue trennen? Die Booking-Bewertungen kommen dann nicht mehr live."
+    },
     "appName": "Portfolio-Analysen",
     "noAccess": {
       "title": "Kein Zugriff",

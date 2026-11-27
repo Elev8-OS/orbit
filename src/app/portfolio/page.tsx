@@ -1,3 +1,4 @@
+import { getLocale } from "next-intl/server";
 import { currentUser } from "@/lib/platform/access";
 import { ensureEmbedded } from "@/lib/platform/embedded";
 import { canEditPortfolio, hasPortfolioAccess } from "@/lib/portfolio/access";
@@ -10,5 +11,5 @@ export default async function PortfolioPage() {
   const user = await currentUser();
   if (!user || !hasPortfolioAccess(user.roles)) return null;
   const version = (process.env.RAILWAY_GIT_COMMIT_SHA || "dev").slice(0, 12);
-  return <PortfolioApp canEdit={canEditPortfolio(user.roles)} version={version} />;
+  return <PortfolioApp canEdit={canEditPortfolio(user.roles)} version={version} locale={await getLocale()} />;
 }

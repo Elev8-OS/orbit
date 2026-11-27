@@ -1,0 +1,205 @@
+<div class="ev" style="position:relative">
+<div class="brand"><div class="logo"><img id="evlogo" alt="Elevate"></div>
+<div class="ttl"><div class="eyebrow" id="region-eyebrow">Elevate · Switzerland</div><h1 id="top">Portfolio decision basis</h1><div class="regsw" id="region-switch" role="group" aria-label="Region"><button type="button" data-region="all">All</button><button type="button" data-region="ch">Switzerland</button><button type="button" data-region="bali">Bali</button></div></div>
+<div class="exp"><button class="btn" id="btn-pdf" type="button">PDF report</button><button class="btn ghost" id="btn-xlsx" type="button">Excel export</button><button class="btn ghost" id="btn-refresh" type="button">Reload data</button><div id="exportmsg"></div></div></div>
+<p class="lede" id="lede" data-source="kpi">—</p>
+<p class="note" id="orbit-sync" style="margin:-.5rem 0 1rem"></p>
+<div class="tabs" role="tablist">
+<button class="tab" data-tab="overview" role="tab">Overview &amp; recommendation</button>
+<button class="tab" data-tab="ranking" role="tab">Ranking of all properties</button>
+<button class="tab" data-tab="decide" role="tab">Decision</button>
+<button class="tab" data-tab="causes" role="tab">Root-cause analysis</button>
+<button class="tab" data-tab="detail" role="tab">Drilldown per property</button>
+<button class="tab" data-tab="netmonth" role="tab">Result per month</button>
+<button class="tab" data-tab="outlook" role="tab">Break-even &amp; forecast</button>
+<button class="tab" data-tab="costs-tab" role="tab">Costs per apartment</button>
+<button class="tab" data-tab="method" role="tab">Methodology &amp; sources</button>
+</div>
+
+<section class="page" id="overview">
+<div class="kpis">
+ <div class="kpi"><div class="l">Revenue active properties · Oct 25–Sep 26</div><div class="v" data-source="kpi" data-field="rev_active" data-row="0">—</div><div class="d"><span data-source="kpi" data-field="n_active" data-row="0">—</span> active units</div></div>
+ <div class="kpi"><div class="l">Change like-for-like vs. prior year</div><div class="v" data-source="kpi" data-field="lfl_change" data-row="0">—</div><div class="d"><span data-source="kpi" data-field="n_lfl" data-row="0">—</span> units with a full prior year</div></div>
+ <div class="kpi"><div class="l">Ø occupancy · 12 months</div><div class="v" data-source="kpi" data-field="occ_avg" data-row="0">—</div><div class="d">Markets on average <span data-source="kpi" data-field="mkt_occ_avg" data-row="0">—</span></div></div>
+ <div class="kpi"><div class="l">Ø price per night (ADR)</div><div class="v" data-source="kpi" data-field="adr_avg" data-row="0">—</div><div class="d">Markets on average <span data-source="kpi" data-field="mkt_adr_avg" data-row="0">—</span></div></div>
+ <div class="kpi"><div class="l">Open bookings (current &amp; future)</div><div class="v" data-source="kpi" data-field="open_rev" data-row="0">—</div><div class="d"><span data-source="kpi" data-field="open_zero" data-row="0">—</span> active units without an open booking</div></div>
+ <div class="kpi"><div class="l">Exited 2026</div><div class="v" data-source="kpi" data-field="exited_rev" data-row="0">—</div><div class="d">Revenue Holzfluh (until 20.09.) – Loft Olten gone since 30.06.</div></div>
+</div>
+
+<h3 class="sec" id="board">Recommendation: which properties we continue</h3>
+<div class="lanes" id="lanes" data-source="scores properties"></div>
+<div class="card" id="reassess" style="margin-top:var(--cds-gap-lg)"><h2>Trigger reassessment</h2>
+<p class="note">The classification above is calculated automatically with the current costs. For a professional reassessment by Claude (recommendation, conclusion, causes, measures), enter important new information here – e.g. new rental terms, a conversation with the landlord, a planned price change – and submit. Claude receives the information together with the current figures; the result appears right here.</p>
+<div style="display:flex;gap:var(--cds-gap-sm);flex-wrap:wrap;align-items:flex-start">
+<select id="ra-prop" aria-label="Scope of reassessment"><option value="">Entire portfolio</option></select>
+<textarea id="ra-info" rows="3" placeholder="Important information for the reassessment …" aria-label="Information for the reassessment" style="flex:1;min-width:16rem;font:inherit;padding:var(--cds-pad-xs) var(--cds-pad-sm);border:1px solid var(--color-border-line);border-radius:var(--cds-radius);background:var(--color-bg);color:var(--color-fg)"></textarea>
+<button class="btn" type="button" id="ra-send" data-mode="copy">Trigger reassessment</button></div>
+<p class="note" id="ra-state" style="margin-top:var(--cds-gap-xs)"></p></div>
+
+<div class="grid" style="margin-top:var(--cds-gap-lg)">
+ <div class="card" id="matrix-card"><h2>Decision matrix</h2><p class="note">Horizontal: revenue development vs. prior year (new units on the “new” line). Vertical: quality index from Booking score and guest rating. Circle size = revenue 12 months. Click opens the drilldown.</p><div class="chart" id="matrix" data-source="scores"></div></div>
+ <div class="card" id="dev-card"><h2>Portfolio development (Elev8, all channels)</h2><p class="note">Revenue per month of stay of all units in the selected region, allocated per night. Grey = units that have since left (Bleiche, Loft Olten, Holzfluh). Months from Oct. 2026 = already booked.</p><div class="chart" id="dev" data-source="elev8_monthly properties"></div></div>
+ <div class="card" id="furn-card"><h2>Furniture rental: fixed costs fall from 2027</h2><p class="note">Monthly furniture rental (Myotaku) of all active properties until contract end. After that the furniture belongs to Elevate. On an exit the furniture is returned without further costs.</p><div class="chart" id="furn" data-source="property_costs" style="min-height:280px"></div></div>
+</div>
+</section>
+
+<section class="page" id="ranking" hidden="">
+<div class="card"><h2>All properties compared</h2><p class="note">Click a column heading to sort, click a row to open the drilldown. Rent, cleaning per booking, furniture and other fixed costs (internet, electricity, parking, software, insurance incl. deposit insurance) come from the “Costs per apartment” tab. Management mandates (Hasenberg): 20% of net rental income, cleaning/laundry passed on to the owner. Furniture rental according to Myotaku contracts (returnable on exit without further costs; after contract end the furniture belongs to Elevate). “Cleaning + laundry” and “Result before rent / after rent &amp; furniture” use these values and the cost assumptions above (revenue − commission per channel − cleaning per booking − laundry per guest); rent has not been deducted yet. Score 0–100 = weighted rating from revenue, trend, occupancy vs. market, quality, forward bookings and operational problems (see methodology).</p>
+<input class="search" id="q" placeholder="Search (name, location, recommendation) …" aria-label="Search">
+<div class="tblwrap"><table id="rank" data-source="scores" data-row-key="key"><thead><tr>
+<th class="l" data-field="name"><button data-s="name">Property</button></th>
+<th class="l" data-field="city"><button data-s="city">Location</button></th>
+<th data-field="score"><button data-s="score">Score</button></th>
+<th data-field="rev_ttm"><button data-s="rev_ttm">Revenue 12 M</button></th>
+<th data-field="yoy"><button data-s="yoy">vs. prior year</button></th>
+<th data-field="occ"><button data-s="occ">Occupancy</button></th>
+<th data-field="occ_vs_mkt"><button data-s="occ_vs_mkt">vs. market</button></th>
+<th data-field="adr"><button data-s="adr">ADR</button></th>
+<th data-field="booking_score"><button data-s="booking_score">Booking</button></th>
+<th data-field="guest_rating_2026"><button data-s="guest_rating_2026">Guests 2026</button></th>
+<th data-field="open_rev"><button data-s="open_rev">Open bookings</button></th>
+<th><button data-s="varcost">Cleaning + laundry</button></th>
+<th><button data-s="cleanRate">Cleaning/booking</button></th>
+<th><button data-s="contrib">Result before rent</button></th>
+<th data-source="property_costs" data-field="rent_month"><button data-s="rent_month">Rent incl. utilities</button></th>
+<th data-source="property_costs" data-field="furniture_month"><button data-s="furniture_month">Furniture/month</button></th>
+<th><button data-s="other_month">Other fixed costs/month</button></th>
+<th><button data-s="after_rent">Result after all costs</button></th>
+<th><button data-s="after_oh">After overhead</button></th>
+<th><button data-s="after_rent_nofurn">After furniture end</button></th>
+<th class="l"><button data-s="recommendation">Recommendation</button></th>
+</tr></thead><tbody></tbody></table></div></div>
+</section>
+
+<section class="page" id="causes" hidden="">
+<div class="card" style="margin-bottom:var(--cds-gap-lg)"><h2>Why is the portfolio developing this way?</h2>
+<ol class="causes" id="causelist" data-source="sh_yoy issues pricelabs_months kpi"></ol></div>
+<div class="grid">
+ <div class="card only-ch"><h2>Market is growing – Schaffhausen not in step</h2><p class="note">Change vs. the same month of the prior year: Schaffhausen market RevPAR (AirROI, entire apartments) vs. Elev8 revenue (all channels) of our Schaffhausen units with a full prior year.</p><div class="chart" id="shyoy" data-source="sh_yoy"></div></div>
+ <div class="card"><h2>Operational problems by topic</h2><p class="note">Incidents from Elev8 calendar notes, HostBuddy guest communication and reviews 2026. Access and cleaning dominate. Click a bar to see all incidents of that topic.</p><div class="chart" id="isscat" data-source="issues"></div>
+<div id="issdetail" data-source="issues properties" style="margin-top:var(--cds-gap-sm)"></div></div>
+ <div class="card only-ch"><h2>Price vs. market (PriceLabs, since May 2026)</h2><p class="note">RevPAR of the Swiss portfolio compared with the PriceLabs market comparison. Seasonal profiles (+15% Apr–May, +9% summer) sit on top of the PriceLabs seasonality.</p><div class="chart" id="plm" data-source="pricelabs_months"></div></div>
+ <div class="card"><h2>Booking.com rating categories</h2><p class="note">The darker the red, the weaker. Value for money is the weakest category across the whole portfolio.</p><div class="chart" id="heat" data-source="properties" style="min-height:200px"></div></div>
+
+ <div class="card"><h2>Local markets (AirROI, entire apartments, 12 months)</h2><p class="note">Basis of comparison for “Occupancy vs. market”. Our units are well above market occupancy almost everywhere – at a lower price.</p>
+ <div class="tblwrap"><table id="mkt" data-source="markets" data-row-key="key"><thead><tr><th class="l" data-field="market">Market</th><th data-field="occupancy">Occupancy</th><th data-field="adr">ADR</th><th data-field="revpar">RevPAR</th><th data-field="annual_revenue">Median annual revenue</th></tr></thead><tbody></tbody></table></div></div>
+</div>
+</section>
+
+<section class="page" id="detail" hidden="">
+<select id="propsel" aria-label="Select property" data-source="properties"></select>
+<div class="kpis" id="dkpis">
+ <div class="kpi"><div class="l">Recommendation</div><div class="v" style="font-size:var(--cds-font-size-heading)" id="d-rec">—</div><div class="d" id="d-status" data-source="properties" data-field="status">—</div></div>
+ <div class="kpi"><div class="l">Score</div><div class="v" id="d-score" data-source="scores" data-field="score">—</div><div class="d">out of 100</div></div>
+ <div class="kpi"><div class="l">Revenue Oct 25–Sep 26</div><div class="v" id="d-rev" data-source="elev8" data-field="rev_ttm">—</div><div class="d">Prior year <span id="d-prev" data-source="elev8" data-field="rev_prev">—</span><span id="d-prevnote"></span></div></div>
+ <div class="kpi"><div class="l">Occupancy / ADR</div><div class="v" id="d-occ" data-source="scores" data-field="occ">—</div><div class="d">ADR <span id="d-adr" data-source="scores" data-field="adr">—</span> · Market <span id="d-mocc" data-source="properties" data-field="market_occ">—</span></div></div>
+ <div class="kpi"><div class="l">Rating</div><div class="v" id="d-bs" data-source="properties" data-field="booking_score">—</div><div class="d">Booking (0–10) · Guests 2026 <span id="d-er" data-source="properties" data-field="guest_rating_2026">—</span>/5</div></div>
+ <div class="kpi"><div class="l">Open bookings (current &amp; future)</div><div class="v" id="d-fwd" data-source="elev8" data-field="open_rev">—</div><div class="d"><span id="d-fwdn" data-source="elev8" data-field="open_nights">—</span> nights in <span id="d-fwdr" data-source="elev8" data-field="open_res">—</span> bookings</div></div>
+</div>
+<div class="grid">
+ <div class="card text" id="d-text"><h2 id="d-name">—</h2><button class="btn ghost" type="button" id="d-reassess" style="padding:3px 12px;margin-bottom:var(--cds-gap-sm)">Trigger reassessment</button>
+  <p class="k">Conclusion</p><p id="d-sum" data-source="properties" data-field="summary">—</p>
+  <p class="k">Causes</p><p id="d-cause" data-source="properties" data-field="causes">—</p>
+  <p class="k">Measures</p><p id="d-act" data-source="properties" data-field="actions">—</p></div>
+ <div class="card"><h2>Monthly revenue (Elev8, all channels) vs. prior year</h2><p class="note">Bar = month of stay Oct 25 – Dec 26 (allocated per night), dot = same month one year earlier.</p><div class="chart" id="d-month" data-source="elev8_monthly"></div></div>
+ <div class="card"><h2>Rating by category</h2><p class="note">Booking.com categories of this property; line = average of all active properties in the selected region.</p><div class="chart" id="d-cat" data-source="properties" style="min-height:240px"></div></div>
+ <div class="card"><h2>Incidents &amp; guest sentiment</h2><p class="note">From Elev8, HostBuddy and reviews.</p><ul class="iss" id="d-iss" data-source="issues"></ul></div>
+ <div class="card" id="d-levers" data-source="scores elev8"></div>
+ <div class="card calc"><h2>Contribution margin calculator</h2><p class="note">Rent and cleaning costs per booking come from the property cost table (row of this property). Laundry counts the guests of each booking from Elev8, commission per channel (Elev8 rates, Direct 0%). The fields below are for what-if calculations and are not saved.</p>
+  <p class="note" id="c-stored" data-source="property_costs">—</p>
+  <label>Rent / fixed costs per month (CHF)<br><input id="c-rent" type="number" min="0" step="50" placeholder="z. B. 1800"></label>
+  <label>Cleaning per booking (CHF)<br><input id="c-clean" type="number" min="0" step="5"></label>
+  <div class="res" id="c-res">Enter rent</div><div class="note" id="c-det"></div></div>
+</div>
+</section>
+
+<section class="page" id="decide" hidden="">
+<div class="card" style="margin-bottom:var(--cds-gap-lg)"><h2>Exit simulator</h2>
+<p class="note">Tick apartments for an exit and immediately see how the portfolio result changes. The exit candidates are preselected. Furniture is returned free of charge on an exit. Earliest date from notice period or lease end (record in the “Costs per apartment” tab).</p>
+<div style="display:flex;gap:var(--cds-gap-sm);margin-bottom:var(--cds-gap-sm)"><button class="btn ghost" type="button" id="ex-reset">Preselect exit candidates</button><button class="btn ghost" type="button" id="ex-none">Clear selection</button></div>
+<div class="kpis" id="ex-kpis" data-source="scores"></div>
+<p class="note" id="ex-note" data-source="scores">—</p>
+<div class="tblwrap"><table id="extable" class="ct" data-source="scores"><thead><tr><th class="sel">Exit</th><th class="l">Apartment</th><th class="l">Recommendation</th><th>Revenue 12 M</th><th>Net 12 M</th><th>Fixed costs/month</th><th>Furniture return</th><th class="l">Earliest exit</th></tr></thead><tbody></tbody></table></div></div>
+<div class="card"><h2>Probation tracker until 31.03.2027</h2>
+<p class="note">For each apartment on probation, a target for the monthly net (after all costs) and the Booking score. July to September = actual, from October = booked so far (grey, month still open). Status: “On track” = at least 2 of the last 3 months on target and Booking score reached. Adjust targets directly in the table – they are saved for everyone. * = rent not recorded yet.</p>
+<div class="tblwrap"><table id="prtable" class="ct" data-source="scores elev8_monthly"><thead></thead><tbody></tbody></table></div></div>
+</section>
+
+<section class="page" id="outlook" hidden="">
+<div class="card" style="margin-bottom:var(--cds-gap-lg)"><h2>Break-even per apartment</h2>
+<p class="note">How many nights per month does each apartment need at today's price to cover its fixed costs? Bar = nights actually booked per month (Ø Oct 25 – Sep 26), line = break-even. Red = below break-even. Contribution margin per night = ADR − (commission + cleaning + laundry) per night. * = rent missing, so break-even is too low. Mandates are excluded (no fixed costs).</p>
+<label class="note" style="display:inline-flex;gap:.4rem;align-items:center"><input type="checkbox" id="be-oh" style="width:auto"> Include overhead share</label>
+<div class="chart" id="be-chart" data-source="scores elev8" style="min-height:300px"></div>
+<div class="tblwrap" style="margin-top:var(--cds-gap-md)"><table id="betable" data-source="scores elev8"><thead><tr><th class="l">Apartment</th><th>ADR</th><th>Var. costs/night</th><th>Contribution margin/night</th><th>Fixed costs/month</th><th>Break-even nights/mo</th><th>Booked nights/mo</th><th>Break-even occupancy</th><th>Occupancy</th><th>Buffer nights</th></tr></thead><tbody></tbody></table></div></div>
+<div class="card" style="margin-bottom:var(--cds-gap-lg)"><h2>After the furniture contracts expire</h2>
+<p class="note" id="fe-sum" data-source="scores">—</p>
+<div class="tblwrap"><table id="fetable" data-source="scores"><thead><tr><th class="l">Apartment</th><th>Furniture/month</th><th>Contract until</th><th>Net today (12 M)</th><th>Net afterwards</th><th>Change/year</th><th class="l">Effect</th></tr></thead><tbody></tbody></table></div></div>
+<div class="card"><h2>Forecast Oct 2026 – Mar 2027</h2>
+<p class="note">Estimate per apartment and month: the larger of revenue already booked and the prior-year month × apartment trend (revenue 12 M ÷ prior year, capped at ±40%). Costs as in the “Result per month” tab. No guarantee, but an early-warning signal for the winter.</p>
+<p class="note" id="fc-sum" data-source="elev8_monthly">—</p>
+<div class="chart" id="fc-chart" data-source="elev8_monthly scores" style="min-height:280px"></div>
+<div class="tblwrap" style="margin-top:var(--cds-gap-md)"><table id="fctable" data-source="elev8_monthly"><thead></thead><tbody></tbody></table></div></div>
+</section>
+
+<section class="page" id="netmonth" hidden="">
+<div class="card" style="margin-bottom:var(--cds-gap-lg)"><h2>What we earned per month</h2>
+<p class="note">Per apartment and month: revenue (allocated per night) − commission per channel − cleaning (in the month of departure) and laundry (in the month of arrival) − fixed costs (rent incl. utilities, furniture until contract end, internet, electricity, parking, software, smartlock, other, insurance ÷ 12). Mandates: fee for Elevate. Hover over a cell for the derivation, click opens the drilldown.</p>
+<label class="note" style="display:inline-flex;gap:.5rem;align-items:center">View <select id="nm-mode" aria-label="View"><option value="net">Net after all costs</option><option value="before">Before fixed costs (excluding rent &amp; co.)</option><option value="afterOH">After overhead</option><option value="nofurn">Net after end of furniture rental (simulation)</option></select></label>
+<p class="note" id="nm-sum" data-source="elev8_monthly">—</p>
+<div class="chart" id="nm-chart" data-source="elev8_monthly" style="min-height:240px"></div></div>
+<div class="card"><h2>Month by month per apartment</h2>
+<div class="tblwrap" style="max-height:44rem"><table id="nettable" data-source="elev8_monthly"><thead></thead><tbody></tbody><tfoot></tfoot></table></div></div>
+</section>
+
+<section class="page" id="costs-tab" hidden="">
+<div class="costs" id="costs" data-source="kpi commission_rates"><div style="width:100%;font-weight:700">Assumptions for all apartments</div>
+ <label>Laundry per guest &amp; booking (CHF)<input id="p-laundry" type="number" min="0" step="1"></label>
+ <div style="font-size:var(--cds-font-size-caption);color:var(--color-fg-muted);line-height:1.5">Commission from Elev8 (Aug + Sep 2026)<br>Booking.com <b id="cr-b" data-source="commission_rates" data-field="rate" data-where="channel=BOOKING_COM" style="color:var(--color-fg)">—</b> · Airbnb <b id="cr-a" data-source="commission_rates" data-field="rate" data-where="channel=AIRBNB" style="color:var(--color-fg)">—</b> · Direct 0%</div>
+ <label>Commission other OTAs (%)<input id="p-comm" type="number" min="0" max="40" step="1"></label>
+ <label>Guests if not recorded in Elev8<input id="p-defg" type="number" min="1" max="10" step="1"></label>
+ <div class="sum" id="costsum">—</div>
+</div>
+<div class="card"><h2>Costs per apartment</h2>
+<p class="note">Record all costs centrally per apartment. Changes are saved when you leave a field and apply immediately for everyone who opens the dashboard (ranking, drilldown, result). Amounts in CHF: running costs per month, insurance premiums per year. If “Mandate %” is filled in, the property counts as a management mandate: Elevate receives this share of net rental income, cleaning and laundry go to the owner, fixed costs do not apply.</p>
+<p class="dbstate" id="dbstate">Loading saved costs …</p>
+<input class="search" id="cq" placeholder="Search apartment …" aria-label="Search apartment">
+<div class="ctool" id="ctool"><span id="ct-src">Copy values: click a field, tick the target apartments on the left, then transfer.</span>
+<button class="btn" type="button" id="ct-copy" disabled="">Copy field to selection</button>
+<button class="btn ghost" type="button" id="ct-copyrow" disabled="">Copy further fixed costs of the row</button>
+<button class="btn ghost" type="button" id="ct-city">Tick same location</button>
+<button class="btn ghost" type="button" id="ct-clear">Clear selection</button></div>
+<div class="tblwrap" style="max-height:44rem"><table class="ct" id="ctable"><thead>
+<tr><th></th><th class="l"></th><th class="grp" colspan="3">Rent &amp; furniture / month</th><th class="grp">Cleaning</th><th class="grp" colspan="2">Deposit insurance</th><th class="grp" colspan="6">Further fixed costs / month</th><th class="grp">Insurance</th><th class="grp" colspan="2">Total fixed costs</th><th class="grp" colspan="2">Lease</th><th class="grp">Mandate</th><th></th></tr>
+<tr><th class="sel"><input type="checkbox" id="selall" aria-label="Select all" style="width:auto"></th><th class="l">Apartment</th><th>Rent net</th><th>Utilities</th><th>Furniture</th><th>per booking</th><th class="l">Firm</th><th>Premium/year</th><th>Internet/TV</th><th>Electricity</th><th>Parking</th><th>Software</th><th>Smartlock licence</th><th>Other</th><th>Contents/liability /year</th><th>per month</th><th>per year</th><th>End (YYYY-MM-DD)</th><th>Notice mo.</th><th>%</th><th class="l">Note</th></tr>
+<tr id="selsum"></tr>
+</thead><tbody></tbody><tfoot></tfoot></table></div>
+</div>
+<div class="card" style="margin-top:var(--cds-gap-lg)"><h2>Overhead (company)</h2>
+<p class="note">Costs that do not belong directly to any apartment: team, Elev8/PMS, PriceLabs, HostBuddy, accounting, company insurance, office etc. They are distributed across the active apartments and appear in the ranking as “After overhead”, in the break-even (optional) and in the exit simulator.</p>
+<div style="display:flex;gap:var(--cds-gap-sm);align-items:center;flex-wrap:wrap;margin-bottom:var(--cds-gap-sm)"><button class="btn" type="button" id="oh-add">Add item</button>
+<label class="note" style="display:inline-flex;gap:.4rem;align-items:center;margin:0">Allocation <select id="oh-key" aria-label="Allocation key"><option value="units">evenly per apartment</option><option value="revenue">by revenue share</option></select></label>
+<span class="note" id="oh-sum" style="margin:0"></span><span class="note" id="oh-state" style="margin:0"></span></div>
+<div class="tblwrap"><table class="ct" id="ohtable"><thead><tr><th class="l">Description</th><th class="l">Category</th><th class="l">Region</th><th>CHF/month</th><th></th></tr></thead><tbody></tbody></table></div></div>
+</section>
+
+<section class="page" id="method" hidden="">
+<div class="card" style="margin-bottom:var(--cds-gap-lg)"><h2>Data quality – what is still missing</h2><p class="note">Checked continuously against the current data.</p><ul class="iss" id="dq" data-source="scores elev8"></ul></div>
+<div class="grid">
+<div class="card text"><h2>Score methodology</h2>
+<p>Each active property receives up to 100 points: <b>Revenue level</b> 25 (relative to the portfolio), <b>Trend vs. prior year</b> 20 (−30% = 0, +10% = full; new units neutral 10), <b>Occupancy vs. local market</b> 15, <b>Quality</b> 20 (Booking score and Elev8 guest rating 2026), <b>open bookings</b> 10 and <b>operational problems</b> 10 (deduction per low rating ≤ 3/5). The formula can be viewed under “Sources” next to the score.</p>
+<p><b>Costs:</b> Cleaning per booking and laundry per guest and booking (guests from Elev8; where 0 is recorded – mainly older imported bookings – the configured guest count applies) can be set above. Commission depends on the channel of each booking: Direct/website 0%, Booking.com and Airbnb at the rate measured in Elev8 (OTA commission ÷ gross revenue, August + September 2026 – before that, commissions are not or only partly recorded in Elev8), other OTAs at the adjustable default. Elev8 does not yet provide commission per booking, hence channel rates. Default values: CHF 90 cleaning, CHF 12 laundry per guest, 15% for other OTAs, 2 guests – changes apply to your own view; please ask Claude for new default values.</p>
+<p>Classification: Continue &amp; expand · Continue – optimise (incl. long-stay and mandate models) · On probation with target until 31.03.2027 · Review exit / terminate. The recommendation is a professional assessment across score, trend and causes – not just the score.</p>
+<p><b>Important:</b> Rent, cleaning and utility costs are not recorded in any connected system. The recommendation is based on revenue and quality data; before giving notice, please check the rent per unit in the contribution margin calculator.</p></div>
+<div class="card text"><h2>Sources</h2>
+<p><b>Elev8 Suite (live)</b>: all reservations with tag “Swiss” (Switzerland) and “indonesia” (Bali), arrival Oct 2024 – Dec 2027. Revenue and nights are allocated to the period per night of stay; bookings and guests count by arrival date; open bookings = not yet completed (current and future). USD bookings at 0.80, IDR bookings (Bali) converted to CHF at the configured rate (default 21'000 IDR per CHF). Guest names are not loaded. Guest ratings 2026 and calendar notes are a snapshot from 15.10.2026.</p>
+<p><b>MyDataValue</b>: Booking review score and categories (as of Oct. 2026).</p>
+<p><b>PriceLabs</b>: Account review 10/2025–09/2026 (data effectively from May 2026), RevPAR vs. market, notes on seasonal profiles and base prices.</p>
+<p><b>AirROI</b>: market KPIs for entire apartments (Schaffhausen, Neuhausen, Basel, Dietikon as proxy for Greater Zurich, Olten as proxy for Mittelland, Thun as proxy for Steffisburg), RevPAR trend Schaffhausen 24 months.</p>
+<p><b>HostBuddy</b>: action items from guest communication (access, cleaning, maintenance, enquiries). The sentiment search was not reachable at the time of creation.</p>
+<p><b>Management mandates</b>: Hasenberg Suite (ML) and Suites Hasenberg (BB) – Elevate receives 20% of net rental income (guest payment − OTA commission); cleaning and laundry are passed on to the owner 1:1; no rent and no furniture rental. “Result” here is the fee for Elevate.</p>
+<p><b>Costs per apartment</b> are maintained in the tab of the same name and saved in the dashboard (visible to everyone). Total fixed costs = net rent + utilities + furniture + internet/TV + electricity + parking + software/lock + other + (deposit insurance + contents/liability) ÷ 12. Result after all costs = revenue − commission − cleaning − laundry − fixed costs × 12. Without recorded rent, no result after all costs is shown.</p>
+<p><b>Source data for property costs</b>: rent per month, cleaning costs per booking (cleaning fee charged) and furniture rental per property from the cost table. Furniture rental according to the Myotaku Contract Overview of 22.07.2026 (14 active contracts; Holzfluh returned). On an exit, furniture is returned without follow-up costs; after the contract ends it belongs to Elevate; properties without a contract are self-furnished. Empty values: cleaning = default above, rent = not deducted.</p>
+<p><b>Bali</b>: 10 villas, Villa Merapi (5 rooms) and the Pererenan apartments as 3 types with 3–4 units; occupancy per unit. Comparison markets AirROI Pererenan, Canggu and Sanur (Denpasar Selatan). Elev8 data only from autumn 2025, hence no prior-year comparison. Not included: Studio 111 Aarau (not Elevate), Villa Talang, Kaba and Toba (no longer in Elev8). Bleiche (until 30.09.2025), Loft Olten (until 30.06.2026) and Holzfluh (until 20.09.2026) are shown as exited and not in the KPIs. Marlin Home (short management mandate) is not included.</p></div>
+</div>
+</section>
+</div>
